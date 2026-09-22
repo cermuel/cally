@@ -10,16 +10,19 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@internationalized/date": "^3.12.4",
     "@lucide/vue": "latest",
     "@tailwindcss/vite": "latest",
     "axios": "latest",
     "class-variance-authority": "latest",
     "clsx": "latest",
     "nuxt": "latest",
+    "reka-ui": "^2.10.5",
     "tailwind-merge": "latest",
     "tailwindcss": "latest",
     "tw-animate-css": "latest",
-    "vue": "latest"
+    "vue": "latest",
+    "vue-sonner": "^2.0.9"
   },
   "devDependencies": {
     "typescript": "latest"
