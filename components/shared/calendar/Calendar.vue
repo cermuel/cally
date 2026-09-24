@@ -16,7 +16,8 @@ import {
   CalendarRoot,
   useForwardPropsEmits,
 } from 'reka-ui'
-import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
+import { ChevronLeftIcon, ChevronRightIcon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/vue'
 import { computed } from 'vue'
 import { cn } from '../../../lib/utils'
 import { buttonVariants } from '../button'
@@ -42,13 +43,13 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       <CalendarPrev
         :class="cn(buttonVariants({ variant: 'outline', size: 'icon' }), 'absolute left-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100')"
       >
-        <ChevronLeftIcon class="size-4" />
+        <HugeiconsIcon :icon="ChevronLeftIcon" :size="16" color="currentColor" :stroke-width="1.75" />
       </CalendarPrev>
       <CalendarHeading class="text-sm font-medium" />
       <CalendarNext
         :class="cn(buttonVariants({ variant: 'outline', size: 'icon' }), 'absolute right-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100')"
       >
-        <ChevronRightIcon class="size-4" />
+        <HugeiconsIcon :icon="ChevronRightIcon" :size="16" color="currentColor" :stroke-width="1.75" />
       </CalendarNext>
     </CalendarHeader>
     <div class="mt-4 flex flex-col gap-y-4 sm:flex-row sm:gap-x-4 sm:gap-y-0">

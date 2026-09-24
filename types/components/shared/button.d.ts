@@ -5,5 +5,6 @@ import type { ButtonVariants } from '../../../components/shared/button/variants'
 export interface ButtonProps extends PrimitiveProps {
   variant?: ButtonVariants['variant']
   size?: ButtonVariants['size']
+  type?: 'button' | 'submit' | 'reset'
   class?: HTMLAttributes['class']
 }

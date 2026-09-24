@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SelectTriggerSharedProps } from '../../../types/components/shared/select.d'
-import { ChevronDownIcon } from '@lucide/vue'
+import { ChevronDownIcon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/vue'
 import { SelectIcon, SelectTrigger } from 'reka-ui'
 import { cn } from '../../../lib/utils'
 
@@ -16,7 +17,7 @@ const props = defineProps<SelectTriggerSharedProps>()
   >
     <slot />
     <SelectIcon as-child>
-      <ChevronDownIcon class="size-4 opacity-50" />
+      <HugeiconsIcon :icon="ChevronDownIcon" :size="16" color="currentColor" :stroke-width="1.75" class="opacity-50" />
     </SelectIcon>
   </SelectTrigger>
 </template>

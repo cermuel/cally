@@ -1,12 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  overflow-block: hidden;
   --font-geist-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-geist-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-geist-mono:
+    "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -120,6 +123,29 @@
 }
 
 @layer base {
+  @keyframes input-error-vibrate {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+
+    20% {
+      transform: translateX(-3px);
+    }
+
+    40% {
+      transform: translateX(3px);
+    }
+
+    60% {
+      transform: translateX(-2px);
+    }
+
+    80% {
+      transform: translateX(2px);
+    }
+  }
+
   * {
     @apply border-border outline-ring/50;
   }

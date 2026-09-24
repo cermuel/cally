@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import type { CardActionProps } from '../../../types/components/shared/card.d'
+import type { HTMLAttributes } from 'vue'
 import { cn } from '../../../lib/utils'
 
-const props = defineProps<CardActionProps>()
+const props = defineProps<{
+  class?: HTMLAttributes['class']
+}>()
 </script>
 
 <template>

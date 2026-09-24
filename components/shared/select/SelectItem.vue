@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SelectItemSharedProps } from '../../../types/components/shared/select.d'
-import { CheckIcon } from '@lucide/vue'
+import { CheckIcon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/vue'
 import { SelectItem, SelectItemIndicator, SelectItemText } from 'reka-ui'
 import { cn } from '../../../lib/utils'
 
@@ -15,7 +16,7 @@ const props = defineProps<SelectItemSharedProps>()
   >
     <span class="absolute right-2 flex size-3.5 items-center justify-center">
       <SelectItemIndicator>
-        <CheckIcon class="size-4" />
+        <HugeiconsIcon :icon="CheckIcon" :size="16" color="currentColor" :stroke-width="2.5" />
       </SelectItemIndicator>
     </span>
     <SelectItemText>

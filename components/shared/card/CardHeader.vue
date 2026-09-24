@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import type { CardHeaderProps } from '../../../types/components/shared/card.d'
+import type { HTMLAttributes } from 'vue'
 import { cn } from '../../../lib/utils'
 
-const props = defineProps<CardHeaderProps>()
+const props = defineProps<{
+  class?: HTMLAttributes['class']
+}>()
 </script>
 
 <template>
