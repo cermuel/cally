@@ -12,6 +12,7 @@ type InputField = {
   focus: () => void;
 };
 
+const route = useRoute();
 const email = ref("");
 const password = ref("");
 const emailInput = ref<InputField | null>(null);
@@ -33,7 +34,12 @@ const loginMutation = useMutation({
   onSuccess: async (response) => {
     if (response.token) {
       auth.setAuth(response.token, response.user);
-      await navigateTo("/");
+      const redirect = typeof route.query.redirect === "string"
+        && (route.query.redirect === "/app" || route.query.redirect.startsWith("/app/"))
+        ? route.query.redirect
+        : auth.getAuthenticatedHomePath();
+
+      await navigateTo(redirect);
       return;
     }
 

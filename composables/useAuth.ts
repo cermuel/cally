@@ -2,6 +2,11 @@ import type { AuthUser } from '../utils/api/auth'
 
 const tokenStorageKey = 'cally-auth-token'
 const userStorageKey = 'cally-auth-user'
+const cookieOptions = {
+  maxAge: 60 * 60 * 24 * 30,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+} as const
 
 export type AuthState =
   | 'unauthenticated'
@@ -12,17 +17,26 @@ export type AuthState =
 export function useAuth() {
   const token = useState<string | null>('auth:token', () => null)
   const user = useState<AuthUser | null>('auth:user', () => null)
+  const tokenCookie = useCookie<string | null>(tokenStorageKey, cookieOptions)
+  const userCookie = useCookie<AuthUser | null>(userStorageKey, cookieOptions)
 
   const hydrateAuth = () => {
-    if (!import.meta.client || token.value || user.value) {
+    if (token.value && user.value) {
       return
     }
 
-    token.value = localStorage.getItem(tokenStorageKey)
+    token.value ||= tokenCookie.value ?? null
+    user.value ||= userCookie.value ?? null
+
+    if (!import.meta.client) {
+      return
+    }
+
+    token.value ||= localStorage.getItem(tokenStorageKey)
 
     const storedUser = localStorage.getItem(userStorageKey)
 
-    if (!storedUser) {
+    if (!storedUser || user.value) {
       return
     }
 
@@ -36,6 +50,8 @@ export function useAuth() {
   const setAuth = (nextToken: string, nextUser: AuthUser) => {
     token.value = nextToken
     user.value = nextUser
+    tokenCookie.value = nextToken
+    userCookie.value = nextUser
 
     if (import.meta.client) {
       localStorage.setItem(tokenStorageKey, nextToken)
@@ -45,6 +61,7 @@ export function useAuth() {
 
   const setUser = (nextUser: AuthUser) => {
     user.value = nextUser
+    userCookie.value = nextUser
 
     if (import.meta.client) {
       localStorage.setItem(userStorageKey, JSON.stringify(nextUser))
@@ -54,6 +71,8 @@ export function useAuth() {
   const clearAuth = () => {
     token.value = null
     user.value = null
+    tokenCookie.value = null
+    userCookie.value = null
 
     if (import.meta.client) {
       localStorage.removeItem(tokenStorageKey)
@@ -77,12 +96,21 @@ export function useAuth() {
     return 'authenticated'
   })
 
+  const getAuthenticatedHomePath = () => {
+    if (authState.value === 'needs_onboarding') {
+      return '/app/onboarding'
+    }
+
+    return '/app/bookings'
+  }
+
   hydrateAuth()
 
   return {
     authState,
     clearAuth,
     hydrateAuth,
+    getAuthenticatedHomePath,
     setAuth,
     setUser,
     token,

@@ -2,8 +2,8 @@ import type { AxiosInstance } from 'axios'
 import { apiRequest } from './client'
 
 export type AuthUser = {
-  name: string
-  username: string
+  name: string | null
+  username: string | null
   email: string
   avatar: string | null
   email_verified_at: string | null

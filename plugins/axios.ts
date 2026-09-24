@@ -2,6 +2,7 @@ import axios from 'axios'
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()
+  const tokenCookie = useCookie<string | null>('cally-auth-token')
   const apiBaseUrl = config.public.apiBaseUrl
     ? `${config.public.apiBaseUrl.replace(/\/$/, '')}/api`
     : '/api'
@@ -16,11 +17,9 @@ export default defineNuxtPlugin(() => {
   })
 
   api.interceptors.request.use((request) => {
-    if (!import.meta.client) {
-      return request
-    }
-
-    const token = localStorage.getItem('cally-auth-token')
+    const token = import.meta.client
+      ? localStorage.getItem('cally-auth-token') || tokenCookie.value
+      : tokenCookie.value
 
     if (token) {
       request.headers.Authorization = `Bearer ${token}`

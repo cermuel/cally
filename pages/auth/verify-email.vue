@@ -54,7 +54,7 @@ const verifyEmailMutation = useMutation({
     }),
   onSuccess: async (response) => {
     auth.setAuth(response.token, response.user);
-    await navigateTo("/");
+    await navigateTo(auth.getAuthenticatedHomePath());
   },
   onError: (error) => {
     toast.error(getApiErrorMessage(error, "Invalid or expired token"));
@@ -77,7 +77,7 @@ const resendEmailMutation = useMutation({
 const isResendingEmail = computed(() => resendEmailMutation.isPending.value);
 
 const continueToApp = async () => {
-  await navigateTo("/");
+  await navigateTo(auth.getAuthenticatedHomePath());
 };
 
 const requestNewVerificationLink = () => {
