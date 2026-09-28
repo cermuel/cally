@@ -9,6 +9,7 @@ export type CheckUsernameResponse = MessageResponse & {
 export type EditProfilePayload = {
   name?: string
   username?: string
+  description?: string | null
   avatar_url?: string
 }
 

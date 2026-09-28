@@ -25,7 +25,7 @@ const props = defineProps({
   },
   position: {
     type: String,
-    default: "top-center",
+    default: "bottom-right",
   },
   style: {
     type: Object,

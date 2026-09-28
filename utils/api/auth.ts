@@ -4,6 +4,7 @@ import { apiRequest } from './client'
 export type AuthUser = {
   name: string | null
   username: string | null
+  description: string | null
   email: string
   avatar: string | null
   email_verified_at: string | null

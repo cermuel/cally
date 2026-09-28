@@ -90,7 +90,7 @@ const sortedEmailProviders = computed(() => {
             <svg
               v-if="provider.logo === 'gmail'"
               viewBox="0 0 48 48"
-              class="size-[4.5rem]"
+              class="size-18"
             >
               <path
                 fill="#4285f4"
@@ -103,7 +103,7 @@ const sortedEmailProviders = computed(() => {
             <svg
               v-else-if="provider.logo === 'yahoo'"
               viewBox="0 0 48 48"
-              class="size-[4.5rem]"
+              class="size-18"
             >
               <rect width="48" height="48" rx="10" fill="#6001d2" />
               <path
@@ -115,7 +115,7 @@ const sortedEmailProviders = computed(() => {
                 d="M31.7 15.7H36.8L35.4 30.6H30.3L31.7 15.7ZM29.8 33.1H35.2L34.7 37.8H29.3L29.8 33.1Z"
               />
             </svg>
-            <svg v-else viewBox="0 0 48 48" class="size-[4.5rem]">
+            <svg v-else viewBox="0 0 48 48" class="size-18">
               <rect x="4" y="9" width="25" height="30" rx="3" fill="#0078d4" />
               <path
                 fill="#fff"

@@ -1,27 +1,32 @@
 <script setup lang="ts">
-import type { PopoverContentEmits } from 'reka-ui'
-import type { PopoverContentSharedProps } from '../../../types/components/shared/popover.d'
-import { PopoverContent, PopoverPortal, useForwardPropsEmits } from 'reka-ui'
-import { computed } from 'vue'
+import { PopoverContent, PopoverPortal } from 'reka-ui'
+import type { HTMLAttributes } from 'vue'
+import { useAttrs } from 'vue'
 import { cn } from '../../../lib/utils'
 
-const props = withDefaults(defineProps<PopoverContentSharedProps>(), {
+defineOptions({
+  inheritAttrs: false,
+})
+
+const props = withDefaults(defineProps<{
+  align?: 'center' | 'end' | 'start'
+  class?: HTMLAttributes['class']
+  side?: 'bottom' | 'left' | 'right' | 'top'
+  sideOffset?: number
+}>(), {
   sideOffset: 4,
 })
-const emits = defineEmits<PopoverContentEmits>()
-
-const delegatedProps = computed(() => {
-  const { class: _, ...delegated } = props
-  return delegated
-})
-const forwarded = useForwardPropsEmits(delegatedProps, emits)
+const attrs = useAttrs()
 </script>
 
 <template>
   <PopoverPortal>
     <PopoverContent
       data-slot="popover-content"
-      v-bind="forwarded"
+      v-bind="attrs"
+      :align="align"
+      :side="side"
+      :side-offset="sideOffset"
       :class="cn('bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-72 rounded-md border p-4 shadow-md outline-none', props.class)"
     >
       <slot />

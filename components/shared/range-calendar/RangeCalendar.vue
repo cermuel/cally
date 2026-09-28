@@ -84,7 +84,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
               <RangeCalendarCellTrigger
                 :day="date"
                 :month="month.value"
-                :class="cn(buttonVariants({ variant: 'ghost' }), 'size-9 p-0 font-normal aria-selected:opacity-100 data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[selection-start]:rounded-l-md data-[selection-end]:rounded-r-md data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[today]:bg-accent data-[today]:text-accent-foreground data-[outside-view]:text-muted-foreground data-[outside-view]:opacity-50 data-[disabled]:text-muted-foreground data-[disabled]:opacity-50')"
+                :class="cn(buttonVariants({ variant: 'ghost' }), 'size-9 p-0 font-normal aria-selected:opacity-100 data-selected:bg-primary data-selected:text-primary-foreground data-selection-start:rounded-l-md data-selection-end:rounded-r-md data-highlighted:bg-accent data-highlighted:text-accent-foreground data-today:bg-accent data-today:text-accent-foreground data-outside-view:text-muted-foreground data-outside-view:opacity-50 data-disabled:text-muted-foreground data-disabled:opacity-50')"
               />
             </RangeCalendarCell>
           </RangeCalendarGridRow>

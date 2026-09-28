@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import type { PopoverProps } from '../../../types/components/shared/popover.d'
 import { PopoverRoot } from 'reka-ui'
+import { useAttrs } from 'vue'
 
-const props = defineProps<PopoverProps>()
+defineOptions({
+  inheritAttrs: false,
+})
+
+const attrs = useAttrs()
 </script>
 
 <template>
-  <PopoverRoot data-slot="popover" v-bind="props">
+  <PopoverRoot data-slot="popover" v-bind="attrs">
     <slot />
   </PopoverRoot>
 </template>

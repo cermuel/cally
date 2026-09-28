@@ -10,7 +10,7 @@ const progressStyle = computed(() => ({
 <template>
   <div class="flex items-center gap-2" role="progressbar" :aria-valuenow="current + 1" :aria-valuemax="total">
     <span
-      class="grid size-6 rounded-full transition-[background] duration-500 ease-out after:m-[3px] after:rounded-full after:bg-card after:content-['']"
+      class="grid size-6 rounded-full transition-[background] duration-500 ease-out after:m-0.75 after:rounded-full after:bg-card after:content-['']"
       :style="progressStyle"
       aria-hidden="true"
     />

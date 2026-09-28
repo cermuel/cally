@@ -21,6 +21,14 @@ export const queryKeys = {
     public: (username: string) => [...queryKeys.availability.all(), 'public', username] as const,
   },
 
+  links: {
+    all: () => [...queryKeys.all, 'links'] as const,
+    lists: () => [...queryKeys.links.all(), 'list'] as const,
+    list: () => [...queryKeys.links.lists()] as const,
+    details: () => [...queryKeys.links.all(), 'detail'] as const,
+    detail: (id: QueryKeyId) => [...queryKeys.links.details(), id] as const,
+  },
+
   bookings: {
     all: () => [...queryKeys.all, 'bookings'] as const,
     lists: () => [...queryKeys.bookings.all(), 'list'] as const,
