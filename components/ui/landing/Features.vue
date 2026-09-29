@@ -75,7 +75,7 @@ const slots = [
                 :size="12"
                 :stroke-width="1.75"
               />
-              cally.cermuel.dev/cermuel
+              cally.cermuel.dev/alex
             </div>
 
             <div class="mt-5 flex items-center gap-3">
