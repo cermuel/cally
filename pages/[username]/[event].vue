@@ -7,7 +7,6 @@ import {
   formatPublicTimeRange,
   formatPublicSlotLabel,
   getPublicCalendarDays,
-  isSameMonth,
   mapPublicEvent,
   mapPublicProfile,
   toDateKey,
@@ -22,10 +21,18 @@ const apiClient = useApiClient();
 const username = computed(() => String(route.params.username || ""));
 const eventSlug = computed(() => String(route.params.event || "15min"));
 
+const isEmbed = computed(() =>
+  ["true", "1"].includes(String(route.query.embed)),
+);
+const profilePath = computed(() => ({
+  path: `/${username.value}`,
+  query: isEmbed.value ? { embed: "true" } : undefined,
+}));
+
 const profile = ref<PublicProfile | null>(null);
 const event = ref<PublicEvent | null>(null);
 const bookingError = ref<unknown>(null);
-const bookingPending = ref(import.meta.client);
+const bookingPending = ref(true);
 
 const loadBookingData = async () => {
   bookingPending.value = true;
@@ -64,6 +71,7 @@ const safeProfile = computed(
       name: username.value,
       email: "",
       username: username.value,
+      description: null,
       image: undefined,
       timezone: "UTC",
     },
@@ -81,7 +89,7 @@ const safeEvent = computed(
 );
 
 const step = ref<PublicBookingStep>("slots");
-const selectedDate = ref(toDateKey(new Date()));
+const selectedDate = ref("");
 const activeMonth = ref(
   new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12),
 );
@@ -94,25 +102,55 @@ const guests = ref<string[]>([]);
 const activeMonthKey = computed(() => toDateKey(activeMonth.value).slice(0, 7));
 const scheduleData = ref<PublicScheduleResponse | null>(null);
 const schedulePending = ref(false);
+let scheduleRequest = 0;
 
 const loadSchedule = async () => {
+  const request = ++scheduleRequest;
+
   if (!event.value) {
     scheduleData.value = null;
+    schedulePending.value = false;
     return;
   }
 
+  const { id } = event.value;
   schedulePending.value = true;
 
   try {
-    scheduleData.value = await publicApi.schedule(
-      apiClient,
-      event.value.id,
-      activeMonthKey.value,
-    );
+    const data = await publicApi.schedule(apiClient, id, activeMonthKey.value);
+    if (request === scheduleRequest) {
+      scheduleData.value = data;
+
+      const availableDateKeys = Object.entries(data.schedules)
+        .filter(
+          ([dateKey, slots]) =>
+            dateKey.startsWith(activeMonthKey.value) && slots.length > 0,
+        )
+        .map(([dateKey]) => dateKey)
+        .sort();
+      const today = toDateKey(new Date());
+      const isCurrentMonth = activeMonthKey.value === today.slice(0, 7);
+
+      selectedDate.value =
+        isCurrentMonth && availableDateKeys.includes(today)
+          ? today
+          : (availableDateKeys[0] ?? "");
+      selectedTime.value = "";
+    }
+  } catch {
+    if (request === scheduleRequest) {
+      scheduleData.value = null;
+      selectedDate.value = "";
+      selectedTime.value = "";
+    }
   } finally {
-    schedulePending.value = false;
+    if (request === scheduleRequest) schedulePending.value = false;
   }
 };
+
+const calendarLoading = computed(
+  () => bookingPending.value || schedulePending.value,
+);
 
 const monthLabel = computed(() =>
   new Intl.DateTimeFormat("en-GB", {
@@ -134,24 +172,12 @@ const calendarDays = computed(() =>
   getPublicCalendarDays(activeMonth.value, availableDates.value),
 );
 
-const availableDatesInActiveMonth = computed(() =>
-  Array.from(availableDates.value)
-    .filter((dateKey) => isSameMonth(dateKey, activeMonth.value))
-    .sort(),
-);
-
-const selectedDateIsInActiveMonth = computed(() =>
-  isSameMonth(selectedDate.value, activeMonth.value),
-);
-
 const selectedDateLabel = computed(() =>
   formatPublicDateLabel(selectedDate.value),
 );
 
 const selectedSlotHeading = computed(() =>
-  selectedDateIsInActiveMonth.value
-    ? formatPublicSlotHeading(selectedDate.value)
-    : "Select a date",
+  selectedDate.value ? formatPublicSlotHeading(selectedDate.value) : "",
 );
 
 const selectedTimeRange = computed(() =>
@@ -172,21 +198,36 @@ const slots = computed(() =>
   ),
 );
 
-const selectedDateHasSlots = computed(() => slots.value.length > 0);
+const showSlots = computed(
+  () =>
+    !calendarLoading.value && !!selectedDate.value && slots.value.length > 0,
+);
 
-const selectDate = (dateKey: string) => {
+const slotsPanel = ref<{ $el: HTMLElement } | null>(null);
+
+const selectDate = async (dateKey: string) => {
   if (!availableDates.value.has(dateKey)) {
     return;
   }
 
   selectedDate.value = dateKey;
   selectedTime.value = "";
+
+  await nextTick();
+  if (window.matchMedia("(max-width: 767px)").matches) {
+    slotsPanel.value?.$el.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  }
 };
 
 const moveMonth = (amount: number) => {
   const nextMonth = new Date(activeMonth.value);
   nextMonth.setMonth(nextMonth.getMonth() + amount, 1);
   activeMonth.value = nextMonth;
+  selectedDate.value = "";
+  selectedTime.value = "";
 };
 
 const chooseSlot = (slot: string) => {
@@ -194,38 +235,47 @@ const chooseSlot = (slot: string) => {
   step.value = "details";
 };
 
-watch(
-  scheduleData,
-  () => {
-    const nextSelectedDate =
-      availableDatesInActiveMonth.value[0] || toDateKey(activeMonth.value);
-
-    if (!availableDates.value.has(selectedDate.value)) {
-      selectedDate.value = nextSelectedDate;
-      selectedTime.value = "";
-    }
-  },
-  { immediate: true },
-);
-
 if (import.meta.client) {
   watch([username, eventSlug], loadBookingData, { immediate: true });
   watch([event, activeMonthKey], loadSchedule, { immediate: true });
 }
+
+const root = ref<HTMLElement | null>(null);
+let resizeObserver: ResizeObserver | undefined;
+
+onMounted(() => {
+  if (!isEmbed.value || window.parent === window || !root.value) return;
+  const el = root.value;
+  const postHeight = () =>
+    window.parent.postMessage(
+      { source: "cally", type: "resize", height: el.offsetHeight },
+      "*",
+    );
+  resizeObserver = new ResizeObserver(postHeight);
+  resizeObserver.observe(el);
+  postHeight();
+});
+onBeforeUnmount(() => resizeObserver?.disconnect());
 
 useHead(() => ({
   title:
     event.value && profile.value
       ? `${event.value.title} with ${profile.value.name}`
       : "Book a meeting | Cally",
+  htmlAttrs: { style: isEmbed.value ? "background:transparent" : undefined },
+  bodyAttrs: { style: isEmbed.value ? "background:transparent" : undefined },
 }));
 </script>
 
 <template>
-  <main class="min-h-screen bg-[#101010] text-foreground antialiased">
+  <main
+    ref="root"
+    class="text-foreground antialiased"
+    :class="isEmbed ? 'bg-transparent' : 'h-dvh overflow-hidden bg-[#101010]'"
+  >
     <NuxtLink
-      v-if="step === 'scheduled'"
-      :to="`/${username}`"
+      v-if="step === 'scheduled' && !isEmbed"
+      :to="profilePath"
       class="fixed left-8 top-6 inline-flex items-center gap-2 text-base font-medium text-muted-foreground transition-colors hover:text-foreground"
     >
       <HugeiconsIcon
@@ -239,7 +289,8 @@ useHead(() => ({
 
     <section
       v-if="bookingError"
-      class="mx-auto flex min-h-screen w-full max-w-200 items-center px-5 py-14 text-center sm:px-8"
+      class="mx-auto flex w-full max-w-200 items-center px-5 py-14 text-center sm:px-8"
+      :class="isEmbed ? '' : 'min-h-dvh'"
     >
       <SharedCard class="w-full border-white/10 bg-[#171717] p-8">
         <h1 class="text-2xl font-bold tracking-normal text-white">
@@ -249,83 +300,79 @@ useHead(() => ({
           The event may have moved, been unpublished, or no longer exists.
         </p>
         <SharedButton as-child class="mt-6">
-          <NuxtLink :to="`/${username}`"> Back to profile </NuxtLink>
+          <NuxtLink :to="profilePath"> Back to profile </NuxtLink>
         </SharedButton>
       </SharedCard>
     </section>
 
     <section
-      v-else-if="step === 'slots'"
-      class="mx-auto flex h-dvh w-full max-w-260 flex-col items-stretch justify-start overflow-hidden md:items-center md:justify-center md:px-5 md:py-20"
+      v-else-if="step !== 'scheduled'"
+      class="mx-auto flex h-full w-full max-w-240 justify-center overflow-hidden md:px-5 lg:px-0"
+      :class="
+        isEmbed
+          ? 'py-1'
+          : 'items-stretch max-md:bg-[#171717] md:items-center md:py-16'
+      "
     >
       <SharedCard
-        class="mx-auto grid h-full w-full md:max-h-120 max-w-200 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden rounded-xl border-white/10 bg-[#171717] py-0 shadow-[inset_0_1px_0_oklch(1_0_0/0.02)] max-md:rounded-none max-md:border-none"
+        class="grid h-full w-full grid-cols-1 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden rounded-xl border-white/10 bg-[#171717] py-0 shadow-[inset_0_1px_0_oklch(1_0_0/0.02)] max-md:rounded-none max-md:border-none md:h-120 md:grid-cols-[17rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]"
       >
-        <div class="border-b border-white/10 p-4 md:p-6">
-          <UiPublicEventSummary
-            :host-name="safeProfile.name"
-            :host-image="safeProfile.image"
-            :title="safeEvent.title"
-            :description="safeEvent.description"
-            :duration-label="safeEvent.durationLabel"
-          />
-        </div>
+        <UiPublicEventSummary
+          :host-name="safeProfile.name"
+          :host-image="safeProfile.image"
+          :title="safeEvent.title"
+          :description="safeEvent.description"
+          :duration-label="safeEvent.durationLabel"
+          :loading="bookingPending"
+          :hide-description-on-mobile="step === 'details'"
+          class="border-b border-white/10 p-4 md:min-h-0 md:border-b-0 md:border-r md:p-6"
+        />
 
         <div
-          class="grid min-h-0 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] md:grid-cols-3 md:grid-rows-1"
+          v-if="step === 'slots'"
+          class="grid min-h-0 grid-cols-1 overflow-hidden md:grid-rows-[minmax(0,1fr)]"
+          :class="
+            showSlots
+              ? 'grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[27rem_minmax(0,1fr)]'
+              : 'grid-rows-1'
+          "
         >
-          <UiPublicCalendarSkeleton
-            v-if="schedulePending"
-            class="md:col-span-2"
-          />
+          <UiPublicCalendarSkeleton v-if="calendarLoading" />
           <UiPublicBookingCalendar
             v-else
             :days="calendarDays"
             :month-label="monthLabel"
             :selected-date="selectedDate"
-            :selected-date-is-in-active-month="selectedDateIsInActiveMonth"
+            :no-availability="availableDates.size === 0"
             @previous="moveMonth(-1)"
             @next="moveMonth(1)"
             @select="selectDate"
-            class="md:col-span-2"
           />
 
-          <UiPublicTimeSlotsSkeleton v-if="schedulePending" />
-          <UiPublicTimeSlots
-            v-else
-            :heading="selectedSlotHeading"
-            :slots="slots"
-            :disabled="!selectedDateHasSlots"
-            @choose="chooseSlot"
-          />
+          <Transition
+            enter-active-class="transition duration-200 ease-out motion-reduce:transition-none"
+            enter-from-class="opacity-0 md:translate-x-2"
+          >
+            <UiPublicTimeSlots
+              v-if="showSlots"
+              ref="slotsPanel"
+              :heading="selectedSlotHeading"
+              :slots="slots"
+              class="border-t border-white/10 md:border-l md:border-t-0"
+              @choose="chooseSlot"
+            />
+          </Transition>
         </div>
-      </SharedCard>
-    </section>
 
-    <section
-      v-else-if="step === 'details'"
-      class="mx-auto flex h-dvh w-full max-w-260 flex-col items-stretch justify-start overflow-hidden md:items-center md:justify-center md:px-5 md:py-20"
-    >
-      <SharedCard
-        class="mx-auto grid h-full w-full max-w-220 md:max-h-140 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden rounded-lg border-white/10 bg-[#171717] py-0 shadow-[inset_0_1px_0_oklch(1_0_0/0.02)] max-md:rounded-none max-md:border-none"
-      >
-        <div class="border-b border-white/10 p-4 md:p-6">
-          <UiPublicEventSummary
-            :host-name="safeProfile.name"
-            :host-image="safeProfile.image"
-            :title="safeEvent.title"
-            :description="safeEvent.description"
-            :duration-label="safeEvent.durationLabel"
-          />
-        </div>
         <div
-          class="grid min-h-0 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] md:grid-cols-3 md:grid-rows-1"
+          v-else
+          class="grid min-h-0 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden md:grid-cols-[27rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]"
         >
           <UiPublicBookingDetailsForm
             v-model:attendee-name="attendeeName"
             v-model:attendee-email="attendeeEmail"
             v-model:notes="notes"
-            class="border-b border-white/10 md:col-span-2 md:border-b-0 md:border-r"
+            class="border-b border-white/10 md:min-h-0 md:overflow-y-auto md:border-b-0 md:border-r"
             @back="step = 'slots'"
             @confirm="step = 'scheduled'"
           />
@@ -334,7 +381,7 @@ useHead(() => ({
             v-model:guests="guests"
             :selected-date-label="selectedDateLabel"
             :selected-time-label="selectedTimeRange"
-            class="border-b border-white/10 md:border-b-0"
+            class="min-h-0"
           />
         </div>
       </SharedCard>
@@ -349,6 +396,7 @@ useHead(() => ({
       :profile="safeProfile"
       :scheduled-when-label="scheduledWhenLabel"
       :username="username"
+      :class="isEmbed ? 'h-auto! py-4!' : ''"
       @reschedule="step = 'slots'"
     />
   </main>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Clock01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import { PUBLIC_EVENT_FALLBACK_DESCRIPTIONS } from "~/constants/public-profile";
 import {
   getPublicDescriptionFirstLine,
   type PublicEvent,
@@ -15,14 +14,9 @@ const props = defineProps<{
 }>();
 
 const displayEvents = computed(() =>
-  props.events.map((event, index) => ({
+  props.events.map((event) => ({
     ...event,
-    preview: getPublicDescriptionFirstLine(
-      event.description ||
-        PUBLIC_EVENT_FALLBACK_DESCRIPTIONS[
-          index % PUBLIC_EVENT_FALLBACK_DESCRIPTIONS.length
-        ],
-    ),
+    preview: getPublicDescriptionFirstLine(event.description),
   })),
 );
 </script>

@@ -161,7 +161,6 @@ export const useOnboarding = () => {
     }
   };
 
-  // Flow
   const canContinue = computed(() => {
     switch (step.value.id) {
       case "profile":

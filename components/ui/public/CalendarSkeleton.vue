@@ -1,6 +1,6 @@
 <template>
   <section
-    class="min-w-0 border-b border-white/10 p-4 md:p-6 lg:border-b-0 lg:border-r"
+    class="min-w-0 p-4 md:p-6"
     aria-label="Loading calendar"
     aria-busy="true"
   >

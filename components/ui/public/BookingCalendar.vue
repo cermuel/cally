@@ -7,7 +7,7 @@ defineProps<{
   days: PublicCalendarDay[];
   monthLabel: string;
   selectedDate: string;
-  selectedDateIsInActiveMonth: boolean;
+  noAvailability?: boolean;
 }>();
 
 defineEmits<{
@@ -18,9 +18,7 @@ defineEmits<{
 </script>
 
 <template>
-  <section
-    class="min-w-0 border-b border-white/10 p-4 md:p-6 lg:border-b-0 lg:border-r"
-  >
+  <section class="min-w-0 p-4 md:p-6">
     <div class="mb-4 flex items-center justify-between gap-4 md:mb-7">
       <h2 class="font-medium tracking-normal">
         {{ monthLabel }}
@@ -73,19 +71,27 @@ defineEmits<{
         type="button"
         class="relative mx-auto flex size-8 items-center justify-center rounded p-0 text-base font-medium transition-[background-color,color,transform] disabled:opacity-100 active:scale-[0.96] sm:size-9 md:size-10"
         :class="
-          day.key === selectedDate && selectedDateIsInActiveMonth
+          day.key === selectedDate
             ? 'bg-foreground text-background'
             : day.available
-              ? 'cursor-pointer text-foreground'
+              ? 'cursor-pointer text-foreground hover:bg-white/10'
               : day.muted
                 ? 'cursor-not-allowed text-muted-foreground hover:cursor-not-allowed'
                 : 'text-muted-foreground/50 cursor-not-allowed'
         "
         :disabled="!day.available"
+        :aria-pressed="day.key === selectedDate"
         @click="$emit('select', day.key)"
       >
         {{ day.day }}
       </button>
     </div>
+
+    <p
+      v-if="noAvailability"
+      class="mt-6 text-center text-sm text-muted-foreground"
+    >
+      No availability in {{ monthLabel }}. Try another month.
+    </p>
   </section>
 </template>

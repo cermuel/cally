@@ -57,6 +57,13 @@ export const usersApi = {
       data: payload,
     })
   },
+
+  deleteAccount(client: AxiosInstance) {
+    return apiRequest<MessageResponse>(client, {
+      method: 'DELETE',
+      url: '/users/delete-account',
+    })
+  },
 }
 
 export type { AuthUser }

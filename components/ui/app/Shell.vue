@@ -68,7 +68,7 @@ const {
         class="min-h-0 flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8"
         tabindex="-1"
       >
-        <div class="mx-auto h-full overflow-y-scroll w-full max-w-5xl">
+        <div class="mx-auto w-full max-w-5xl">
           <slot />
         </div>
       </main>
@@ -82,8 +82,8 @@ const {
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   display: flex;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   padding: 0.5rem;
 }
 
@@ -92,8 +92,9 @@ const {
 }
 
 .main-surface {
-  min-height: calc(100vh - 1rem);
-  min-height: calc(100dvh - 1rem);
+  min-height: 0;
+  height: calc(100vh - 1rem);
+  height: calc(100dvh - 1rem);
   border-radius: 0.75rem;
 }
 
@@ -113,8 +114,8 @@ const {
   }
 
   .main-surface {
-    min-height: 100vh;
-    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
     border-width: 0;
     border-radius: 0;
   }

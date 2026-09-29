@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import type { HTMLAttributes } from "vue";
 import { cn } from "../../../lib/utils";
 
 const props = defineProps<{
   image?: string;
   name: string;
-  class?: string;
+  class?: HTMLAttributes["class"];
 }>();
 </script>
 

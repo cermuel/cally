@@ -37,7 +37,6 @@ export const TIME_OPTIONS = Array.from(
   (_, i) => fromMinutes(i * TIME_STEP_MINUTES),
 );
 
-// Ranges
 export const uid = () => crypto.randomUUID();
 
 export const makeRange = (
@@ -80,7 +79,6 @@ export const validateRanges = (ranges: TimeRange[]) => {
   return null;
 };
 
-// Availability
 export const createDefaultAvailability = () =>
   Object.fromEntries(
     DAYS.map((d) => [
@@ -99,7 +97,6 @@ export const getAvailabilityError = (availability: Availability) => {
   return null;
 };
 
-// Profile
 export const normalizeUsername = (value: string) =>
   value
     .toLowerCase()

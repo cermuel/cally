@@ -122,19 +122,18 @@ button {
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Link themes */
-  --color-note-cream: #ffdf5c; /* Sticky yellow */
-  --color-note-banana: #fff09a; /* Soft yellow */
-  --color-note-sand: #ffba7a; /* Warm peach */
-  --color-note-coral: #ff9b80; /* Coral */
-  --color-note-rose: #ffa8b8; /* Hot pink */
-  --color-note-blush: #ffcedd; /* Light pink */
-  --color-note-lilac: #c0a8ff; /* Lavender */
-  --color-note-sky: #8ec9ff; /* Clear blue */
-  --color-note-aqua: #95dfdc; /* Aqua/teal */
-  --color-note-mint: #8de0a6; /* Spring green */
-  --color-note-sage: #c0d8a8; /* Sage */
-  --color-note-slate: #cdd2dc; /* Slate */
+  --color-note-cream: #ffdf5c;
+  --color-note-banana: #fff09a;
+  --color-note-sand: #ffba7a;
+  --color-note-coral: #ff9b80;
+  --color-note-rose: #ffa8b8;
+  --color-note-blush: #ffcedd;
+  --color-note-lilac: #c0a8ff;
+  --color-note-sky: #8ec9ff;
+  --color-note-aqua: #95dfdc;
+  --color-note-mint: #8de0a6;
+  --color-note-sage: #c0d8a8;
+  --color-note-slate: #cdd2dc;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -230,4 +229,29 @@ button {
 
 .typeset-docs p {
   color: var(--muted-foreground);
+}
+
+.rich-text a[data-link-chip] {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.1875rem;
+  vertical-align: -0.125em;
+  white-space: nowrap;
+}
+
+.rich-text a[data-link-chip] img {
+  display: block;
+  width: 0.875rem;
+  max-width: none;
+  height: 0.875rem;
+  flex: 0 0 0.875rem;
+  margin: 0;
+  border-radius: 3px;
+}
+
+.rich-text a[data-link-chip] span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

@@ -60,7 +60,6 @@ const signOut = async () => {
   try {
     await authApi.logout(apiClient);
   } catch {
-    // Local auth still needs to be cleared if the session already expired.
   } finally {
     auth.clearAuth();
     await navigateTo("/auth/login");

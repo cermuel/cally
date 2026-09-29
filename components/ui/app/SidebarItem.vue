@@ -1,5 +1,4 @@
 <script setup lang="ts">
-//@ts-ignore
 import type { IconSvgObject } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 

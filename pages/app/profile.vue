@@ -1,48 +1,74 @@
 <script setup lang="ts">
-definePageMeta({ layout: false })
-useHead({ title: 'Profile | Cally' })
+import { useMutation } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
+import { usersApi, type EditProfilePayload } from "~/utils/api/users";
 
-const auth = useAuth()
+definePageMeta({ layout: false });
+useHead({ title: "Profile | Cally" });
 
+const auth = useAuth();
+const client = useApiClient();
+const editErrors = ref<Record<string, string[]>>({});
+const user = computed(() => auth.user.value);
 const publicPath = computed(() =>
-  auth.user.value?.username ? `/${auth.user.value.username}` : null,
-)
+  user.value?.username ? `/${user.value.username}` : null,
+);
+const deleteConfirmText = computed(
+  () => `delete/${user.value?.username || "username"}`,
+);
+
+const editMutation = useMutation({
+  mutationFn: (payload: EditProfilePayload) =>
+    usersApi.editProfile(client, payload),
+  onSuccess: (response) => {
+    auth.setUser(response.user);
+    editErrors.value = {};
+  },
+  onError: (error) => {
+    editErrors.value = getApiFieldErrors(error);
+  },
+});
+
+const saveProfile = (payload: EditProfilePayload) => {
+  editErrors.value = {};
+  toast.promise(editMutation.mutateAsync(payload), {
+    loading: "Saving profile...",
+    success: "Profile updated",
+    error: (error) =>
+      getApiErrorMessage(error, "Could not update your profile."),
+  });
+};
+
+const deleteMutation = useMutation({
+  mutationFn: () => usersApi.deleteAccount(client),
+  onSuccess: async () => {
+    auth.clearAuth();
+    toast.success("Account deleted");
+    await navigateTo("/auth/login");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not delete your account.")),
+});
 </script>
 
 <template>
   <UiAppShell>
-    <UiAppPageHeader
-      title="Profile"
-      description="Manage the public details guests see before they book with you."
-    />
+    <div class="mx-auto max-w-160">
+      <div v-if="user" class="space-y-8">
+        <UiProfileForm
+          :user="user"
+          :saving="editMutation.isPending.value"
+          :errors="editErrors"
+          @save="saveProfile"
+        />
 
-    <section class="rounded-lg border border-border bg-card p-6 shadow-xs">
-      <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-        <div class="space-y-4">
-          <div>
-            <p class="text-sm text-muted-foreground">Name</p>
-            <p class="mt-1 font-medium">{{ auth.user.value?.name || 'Not set' }}</p>
-          </div>
-          <div>
-            <p class="text-sm text-muted-foreground">Username</p>
-            <p class="mt-1 font-medium">
-              {{ auth.user.value?.username ? `@${auth.user.value.username}` : 'Not set' }}
-            </p>
-          </div>
-          <div>
-            <p class="text-sm text-muted-foreground">Timezone</p>
-            <p class="mt-1 font-medium">{{ auth.user.value?.timezone || 'Not set' }}</p>
-          </div>
-        </div>
-
-        <NuxtLink
-          v-if="publicPath"
-          :to="publicPath"
-          class="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-accent"
-        >
-          View public page
-        </NuxtLink>
+        <UiProfileDangerZone
+          :confirm-text="deleteConfirmText"
+          :deleting="deleteMutation.isPending.value"
+          @delete="deleteMutation.mutate()"
+        />
       </div>
-    </section>
+    </div>
   </UiAppShell>
 </template>

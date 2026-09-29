@@ -79,7 +79,7 @@ const removeGuest = (index: number) => {
 </script>
 
 <template>
-  <aside class="flex min-h-0 flex-col p-4 md:p-6">
+  <aside class="flex h-full min-h-0 flex-col overflow-hidden p-4 md:p-6">
     <div
       v-if="selectedDateLabel && selectedTimeLabel"
       class="mb-4 flex shrink-0 items-start gap-1.5 max-sm:my-2"
@@ -94,17 +94,19 @@ const removeGuest = (index: number) => {
         />
         <span class="sr-only">When</span>
       </dt>
-      <dd class="leading-6 text-[15px] font-medium text-foreground/85">
+      <dd class="leading-6 text-sm font-medium text-foreground/85">
         {{ selectedDateLabel }}<br />
         {{ selectedTimeLabel }}
       </dd>
     </div>
 
-    <div class="flex min-h-0 flex-1 flex-col space-y-3 pt-2 md:pt-4">
+    <div
+      class="flex min-h-0 flex-1 flex-col space-y-3 overflow-hidden pt-2 md:pt-4"
+    >
       <div
         v-if="guests.length > 0"
         ref="guestList"
-        class="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1"
+        class="min-h-0 flex-1 space-y-3 overflow-y-auto pe-1"
         @scroll="updateGuestListAutoScroll"
       >
         <div v-for="(_, index) in guests" :key="index" class="relative">
@@ -114,7 +116,7 @@ const removeGuest = (index: number) => {
             type="email"
             placeholder="Email"
             :error="
-              showGuestErrors && guests[index].trim().length === 0
+              showGuestErrors && guests[index]?.trim().length === 0
                 ? 'Enter guest email'
                 : undefined
             "
@@ -145,7 +147,7 @@ const removeGuest = (index: number) => {
         type="button"
         variant="secondary"
         size="sm"
-        class="shrink-0"
+        class="mt-auto shrink-0"
         @click="addGuest"
       >
         <HugeiconsIcon

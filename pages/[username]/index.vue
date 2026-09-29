@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { PUBLIC_PROFILE_FALLBACK_DESCRIPTION } from "~/constants/public-profile";
 import { publicApi } from "~/utils/api/public";
 import { mapPublicEvent, mapPublicProfile } from "~/utils/public-booking";
 
@@ -29,7 +28,6 @@ const { data: eventsData, pending: eventsPending } = await useAsyncData(
   { server: false, watch: [username] },
 );
 
-// embed mode: /username?embed=true
 const isEmbed = computed(() =>
   ["true", "1"].includes(String(route.query.embed)),
 );
@@ -70,11 +68,7 @@ const pageTitle = computed(() =>
     : `@${username.value} | Cally`,
 );
 
-const description = computed(
-  () =>
-    (profile.value as { description?: string } | null)?.description ||
-    PUBLIC_PROFILE_FALLBACK_DESCRIPTION,
-);
+const description = computed(() => profile.value?.description ?? "");
 const registrationPath = computed(
   () => `/auth/register?username=${encodeURIComponent(username.value)}`,
 );

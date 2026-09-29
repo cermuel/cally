@@ -11,14 +11,16 @@ defineEmits<{
 </script>
 
 <template>
-  <aside class="flex min-h-0 flex-col px-4 py-3 md:p-6">
+  <aside class="flex h-full min-h-0 flex-col overflow-hidden px-4 py-3 md:p-6">
     <div class="mb-3 flex shrink-0 items-center justify-between gap-4 md:mb-4">
       <h2 class="font-medium tracking-normal">
         {{ heading }}
       </h2>
     </div>
 
-    <div class="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto pb-4 pr-1">
+    <div
+      class="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto pb-4 pe-1"
+    >
       <button
         v-for="slot in slots"
         :key="slot"
