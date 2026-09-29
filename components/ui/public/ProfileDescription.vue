@@ -8,10 +8,10 @@ defineProps<{
 <template>
   <div v-if="pending" class="mt-6 space-y-2">
     <span
-      class="block h-4 w-full rounded bg-white/10 motion-safe:animate-pulse"
+      class="block h-4 w-full rounded bg-muted motion-safe:animate-pulse"
     />
     <span
-      class="block h-4 w-2/3 rounded bg-white/10 motion-safe:animate-pulse"
+      class="block h-4 w-2/3 rounded bg-muted motion-safe:animate-pulse"
     />
   </div>
   <div v-else-if="description" class="rich-text mt-6" v-html="description" />
@@ -21,7 +21,7 @@ defineProps<{
 .rich-text {
   font-size: 15px;
   line-height: 1.65;
-  color: rgb(255 255 255 / 0.65);
+  color: color-mix(in oklch, var(--foreground) 65%, transparent);
   overflow-wrap: anywhere;
 }
 .rich-text :deep(> * + *) {
@@ -30,7 +30,7 @@ defineProps<{
 .rich-text :deep(h1),
 .rich-text :deep(h2),
 .rich-text :deep(h3) {
-  color: #fff;
+  color: var(--foreground);
   font-weight: 600;
   line-height: 1.3;
   margin-top: 1.25em;
@@ -45,18 +45,18 @@ defineProps<{
   font-size: 1rem;
 }
 .rich-text :deep(strong) {
-  color: #fff;
+  color: var(--foreground);
   font-weight: 600;
 }
 .rich-text :deep(a) {
   color: #fff;
   text-decoration: underline;
-  text-decoration-color: rgb(255 255 255 / 0.3);
+  text-decoration-color: color-mix(in oklch, var(--foreground) 30%, transparent);
   text-underline-offset: 3px;
   transition: text-decoration-color 0.15s;
 }
 .rich-text :deep(a:hover) {
-  text-decoration-color: #fff;
+  text-decoration-color: var(--foreground);
 }
 .rich-text :deep(ul),
 .rich-text :deep(ol) {
@@ -72,22 +72,22 @@ defineProps<{
   margin-top: 0.25em;
 }
 .rich-text :deep(li::marker) {
-  color: rgb(255 255 255 / 0.3);
+  color: color-mix(in oklch, var(--foreground) 30%, transparent);
 }
 .rich-text :deep(blockquote) {
-  border-left: 2px solid rgb(255 255 255 / 0.15);
-  padding-left: 1rem;
+  border-inline-start: 2px solid color-mix(in oklch, var(--foreground) 15%, transparent);
+  padding-inline-start: 1rem;
   font-style: italic;
 }
 .rich-text :deep(code) {
-  background: rgb(255 255 255 / 0.08);
+  background: color-mix(in oklch, var(--foreground) 8%, transparent);
   border-radius: 4px;
   padding: 0.1em 0.35em;
   font-size: 0.9em;
-  color: #fff;
+  color: var(--foreground);
 }
 .rich-text :deep(hr) {
-  border-color: rgb(255 255 255 / 0.1);
+  border-color: color-mix(in oklch, var(--foreground) 10%, transparent);
 }
 .rich-text :deep(img) {
   max-width: 100%;

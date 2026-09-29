@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { HugeiconsIcon } from "@hugeicons/vue";
 import { Loading03Icon } from "@hugeicons/core-free-icons";
-import { DAYS } from "~/constants/onboarding";
 import SharedButton from "~/components/shared/button/Button.vue";
 
 const ob = useOnboardingContext();
@@ -9,13 +8,16 @@ const ob = useOnboardingContext();
 
 <template>
   <div class="space-y-5">
-    <div
-      class="max-h-[min(30rem,calc(100dvh-11rem))] divide-y divide-border overflow-y-auto rounded-lg border border-border"
-    >
-      <UiOnboardingAvailabilityDay
-        v-for="day in DAYS"
-        :key="day.key"
-        :day="day"
+    <div class="max-h-[min(30rem,calc(100dvh-11rem))] overflow-y-auto">
+      <UiAvailabilityEditor
+        :availability="ob.availability"
+        :day-errors="ob.dayErrors"
+        :disabled="ob.submitting"
+        @toggle="ob.toggleDay"
+        @add="ob.addRange"
+        @remove="ob.removeRange"
+        @update="ob.updateRange"
+        @copy="ob.copyDay"
       />
     </div>
 

@@ -2,27 +2,17 @@ import type { InjectionKey } from "vue";
 import { toast } from "vue-sonner";
 import {
   DAYS,
-  DEFAULT_RANGE,
-  MAX_RANGES_PER_DAY,
   STEPS,
   USERNAME_DEBOUNCE_MS,
   USERNAME_MIN,
 } from "~/constants/onboarding";
 import {
-  cloneRanges,
-  createDefaultAvailability,
-  getAvailabilityError,
-  getNextRange,
   getUsernameError,
-  makeRange,
-  shiftEnd,
-  toMinutes,
-  validateRanges,
 } from "~/helpers/onboarding";
 import { availabilityApi } from "~/utils/api/availability";
 import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
 import { usersApi } from "~/utils/api/users";
-import type { Availability, DayKey, UsernameStatus } from "~/types/onboarding";
+import type { UsernameStatus } from "~/types/onboarding";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -98,68 +88,16 @@ export const useOnboarding = () => {
     calendar.connecting = false;
   };
 
-  const availability = ref<Availability>(createDefaultAvailability());
-
-  const dayErrors = computed(
-    () =>
-      Object.fromEntries(
-        DAYS.map((d) => [
-          d.key,
-          availability.value[d.key].enabled
-            ? validateRanges(availability.value[d.key].ranges)
-            : null,
-        ]),
-      ) as Record<DayKey, string | null>,
-  );
-
-  const availabilityError = computed(() =>
-    getAvailabilityError(availability.value),
-  );
-
-  const toggleDay = (day: DayKey, enabled: boolean) => {
-    availability.value[day].enabled = enabled;
-  };
-
-  const addRange = (day: DayKey) => {
-    const ranges = availability.value[day].ranges;
-    if (ranges.length >= MAX_RANGES_PER_DAY) return;
-    const next = getNextRange(ranges);
-    if (next) ranges.push(next);
-  };
-
-  const removeRange = (day: DayKey, id: string) => {
-    const schedule = availability.value[day];
-    if (schedule.ranges.length === 1) {
-      schedule.enabled = false;
-      schedule.ranges = [makeRange(DEFAULT_RANGE.start, DEFAULT_RANGE.end)];
-      return;
-    }
-    schedule.ranges = schedule.ranges.filter((r) => r.id !== id);
-  };
-
-  const updateRange = (
-    day: DayKey,
-    id: string,
-    field: "start" | "end",
-    value: string,
-  ) => {
-    const range = availability.value[day].ranges.find((r) => r.id === id);
-    if (!range) return;
-    range[field] = value;
-    if (field === "start" && toMinutes(range.end) <= toMinutes(value))
-      range.end = shiftEnd(value);
-  };
-
-  const copyDay = (from: DayKey, targets: DayKey[]) => {
-    const source = availability.value[from];
-    for (const key of targets) {
-      if (key === from) continue;
-      availability.value[key] = {
-        enabled: source.enabled,
-        ranges: cloneRanges(source.ranges),
-      };
-    }
-  };
+  const {
+    availability,
+    dayErrors,
+    availabilityError,
+    toggleDay,
+    addRange,
+    removeRange,
+    updateRange,
+    copyDay,
+  } = useAvailabilityEditor();
 
   const canContinue = computed(() => {
     switch (step.value.id) {

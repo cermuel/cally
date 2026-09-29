@@ -9,7 +9,12 @@ export type DayKey =
   | 'saturday'
   | 'sunday'
 
-export type TimeRange = { id: string; start: string; end: string }
+export type TimeRange = {
+  id: string
+  start: string
+  end: string
+  serverId?: number
+}
 
 export type DaySchedule = { enabled: boolean; ranges: TimeRange[] }
 

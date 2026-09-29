@@ -15,7 +15,7 @@ onMounted(initTheme);
   <SharedButton
     variant="ghost"
     size="icon-sm"
-    class="ml-auto -mr-2 h-7 w-7"
+    class="h-8 w-8"
     :aria-label="nextThemeLabel"
     :title="nextThemeLabel"
     @click="toggleTheme"

@@ -85,7 +85,7 @@ useHead(() => ({
     ref="root"
     class="relative text-foreground antialiased"
     :class="
-      isEmbed ? 'bg-transparent' : 'h-dvh overflow-y-auto bg-[#0d0d0d]'
+      isEmbed ? 'bg-transparent' : 'h-dvh overflow-y-auto bg-background'
     "
   >
     <div
@@ -109,6 +109,7 @@ useHead(() => ({
           :image="profile?.image"
           :name="profile?.name"
           :pending="profilePending"
+          :show-theme-toggle="!isEmbed"
           :username="username"
         />
 
@@ -128,7 +129,7 @@ useHead(() => ({
       <footer v-if="!isEmbed" class="mt-auto pt-16">
         <NuxtLink
           to="/"
-          class="inline-flex items-center gap-1.5 text-xs text-white/30 transition-colors hover:text-white/60"
+          class="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60 transition-colors hover:text-foreground"
         >
           Powered by
           <img src="/logo.png" alt="" class="size-4 rounded" />
@@ -143,7 +144,7 @@ useHead(() => ({
 .page-dots {
   background-image: radial-gradient(
     circle,
-    rgb(255 255 255 / 0.12) 1px,
+    color-mix(in oklch, var(--foreground) 12%, transparent) 1px,
     transparent 1.4px
   );
   background-size: 18px 18px;

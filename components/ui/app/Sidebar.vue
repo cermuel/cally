@@ -93,7 +93,7 @@ const trapMobileFocus = (event: KeyboardEvent) => {
         </span>
       </NuxtLink>
 
-      <UiAppThemeToggle v-if="!compact" />
+      <SharedThemeToggle v-if="!compact" class="ml-auto" />
 
       <SharedButton
         v-if="isMobile"
