@@ -12,15 +12,12 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      htmlAttrs: {
-        class: 'dark',
-      },
       title: 'Cally',
       meta: [
         { name: 'application-name', content: 'Cally' },
         { name: 'apple-mobile-web-app-title', content: 'Cally' },
         { name: 'description', content: appDescription },
-        { name: 'theme-color', content: '#171717' },
+        { name: 'theme-color', content: '#ffffff' },
         { property: 'og:title', content: 'Cally' },
         { property: 'og:description', content: appDescription },
         { property: 'og:image', content: '/logo.png' },
@@ -36,7 +33,7 @@ export default defineNuxtConfig({
       ],
       script: [
         {
-          innerHTML: "try{var t=localStorage.getItem('cally-theme')||'dark';var d=document.documentElement;d.classList.toggle('dark',t==='dark');d.style.colorScheme=t==='light'?'light':'dark'}catch(e){}",
+          innerHTML: "try{var k='cally-theme';var t=localStorage.getItem(k);if(t!=='dark'&&t!=='light'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';localStorage.setItem(k,t)}var d=document.documentElement;d.classList.toggle('dark',t==='dark');d.style.colorScheme=t;document.querySelector('meta[name=theme-color]').setAttribute('content',t==='dark'?'#171717':'#ffffff')}catch(e){}",
           tagPosition: 'head',
         },
       ],

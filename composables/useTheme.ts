@@ -1,10 +1,15 @@
 export type Theme = 'dark' | 'light'
 
 const themeStorageKey = 'cally-theme'
-const defaultTheme: Theme = 'dark'
 
 const isTheme = (value: string | null): value is Theme => {
   return value === 'dark' || value === 'light'
+}
+
+const getSystemTheme = (): Theme => {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light'
 }
 
 const applyTheme = (theme: Theme) => {
@@ -22,7 +27,7 @@ const applyTheme = (theme: Theme) => {
 }
 
 export const useTheme = () => {
-  const theme = useState<Theme>('theme', () => defaultTheme)
+  const theme = useState<Theme>('theme', () => 'light')
 
   const setTheme = (nextTheme: Theme) => {
     theme.value = nextTheme
@@ -43,7 +48,7 @@ export const useTheme = () => {
     }
 
     const savedTheme = localStorage.getItem(themeStorageKey)
-    setTheme(isTheme(savedTheme) ? savedTheme : defaultTheme)
+    setTheme(isTheme(savedTheme) ? savedTheme : getSystemTheme())
   }
 
   return {

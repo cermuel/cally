@@ -6,6 +6,7 @@ import {
   LinkSquare02Icon,
   Logout01Icon,
   Mail02Icon,
+  UnfoldMoreIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import { toast } from "vue-sonner";
@@ -85,7 +86,7 @@ const signOut = async () => {
           size="sm"
         />
         <span
-          class="sidebar-copy min-w-0"
+          class="sidebar-copy min-w-0 flex-1"
           :class="hideCopy && 'sidebar-copy--hidden'"
           :aria-hidden="hideCopy ? 'true' : undefined"
         >
@@ -95,6 +96,12 @@ const signOut = async () => {
           <span class="block truncate text-xs text-muted-foreground">
             {{ auth.user.value?.email || "Manage your profile" }}
           </span>
+        </span>
+        <span
+          :class="open ? 'rotate-180' : 'rotate-0'"
+          class="transition-all duration-300 scale-120"
+        >
+          <HugeiconsIcon :icon="UnfoldMoreIcon" />
         </span>
       </SharedButton>
     </PopoverTrigger>

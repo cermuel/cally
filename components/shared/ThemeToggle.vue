@@ -2,13 +2,11 @@
 import { Sun01Icon, SunMoonIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 
-const { initTheme, theme, toggleTheme } = useTheme();
+const { theme, toggleTheme } = useTheme();
 
 const nextThemeLabel = computed(() =>
   theme.value === "dark" ? "Switch to light mode" : "Switch to dark mode",
 );
-
-onMounted(initTheme);
 </script>
 
 <template>
