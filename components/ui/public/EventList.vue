@@ -1,24 +1,29 @@
 <script setup lang="ts">
 import { Clock01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import {
-  getPublicDescriptionFirstLine,
-  type PublicEvent,
-} from "~/utils/public-booking";
+import type { PublicApiEvent } from "~/utils/api/public";
 
 const props = defineProps<{
-  events: PublicEvent[];
+  events: PublicApiEvent[];
   isEmbed: boolean;
   pending: boolean;
   username: string;
 }>();
 
-const displayEvents = computed(() =>
-  props.events.map((event) => ({
-    ...event,
-    preview: getPublicDescriptionFirstLine(event.description),
-  })),
-);
+const getDescriptionFirstLine = (html: string) =>
+  html
+    .replace(/<\/(p|li|h[1-6]|div|blockquote)>|<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .split("\n")
+    .map((line) => line.trim())
+    .find(Boolean) ?? "";
+
 </script>
 
 <template>
@@ -37,14 +42,14 @@ const displayEvents = computed(() =>
       </div>
 
       <p
-        v-else-if="!displayEvents.length"
+        v-else-if="!events.length"
         class="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground"
       >
         No event types yet. Check back soon.
       </p>
 
       <ul v-else class="space-y-2">
-        <li v-for="event in displayEvents" :key="event.slug">
+        <li v-for="event in events" :key="event.slug">
           <NuxtLink
             :to="{
               path: `/${username}/${event.slug}`,
@@ -55,7 +60,7 @@ const displayEvents = computed(() =>
             <div class="min-w-0 flex-1">
               <div class="flex items-start justify-between gap-3">
                 <h2 class="text-[15px] font-medium leading-6 text-foreground">
-                  {{ event.title }}
+                  {{ event.name }}
                 </h2>
                 <span
                   class="flex shrink-0 items-center gap-1.5 pt-1 text-xs font-medium text-muted-foreground"
@@ -67,14 +72,14 @@ const displayEvents = computed(() =>
                     :stroke-width="1.75"
                     aria-hidden="true"
                   />
-                  {{ event.durationLabel }}
+                  {{ event.duration_minutes }}m
                 </span>
               </div>
               <p
-                v-if="event.preview"
+                v-if="getDescriptionFirstLine(event.description ?? '')"
                 class="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground"
               >
-                {{ event.preview }}
+                {{ getDescriptionFirstLine(event.description ?? "") }}
               </p>
             </div>
           </NuxtLink>

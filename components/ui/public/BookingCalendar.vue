@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import { ChevronLeftIcon, ChevronRightIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import type { PublicCalendarDay } from "~/utils/public-booking";
+
+type CalendarDay = {
+  key: string;
+  day: string;
+  muted: boolean;
+  available: boolean;
+  today: boolean;
+};
 
 defineProps<{
-  days: PublicCalendarDay[];
+  days: CalendarDay[];
   monthLabel: string;
   selectedDate: string;
   noAvailability?: boolean;

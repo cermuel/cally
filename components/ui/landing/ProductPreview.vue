@@ -9,10 +9,10 @@ import { HugeiconsIcon } from "@hugeicons/vue";
     class="mx-auto w-full max-w-7xl scroll-mt-8 px-5 sm:px-8 lg:px-10"
   >
     <div
-      class="relative mx-auto max-w-sm rounded-4xl bg-foreground/6 p-2 shadow-[0_32px_100px_oklch(0_0_0_/_0.24)] ring-1 ring-foreground/10 sm:hidden"
+      class="relative mx-auto max-w-sm rounded-4xl bg-foreground/6 p-2 shadow-[0_32px_100px_oklch(0_0_0/0.24)] ring-1 ring-foreground/10 sm:hidden"
     >
       <div
-        class="pointer-events-none absolute -inset-16 -z-10 bg-[radial-gradient(circle_at_center,oklch(1_0_0_/_0.06),transparent_62%)]"
+        class="pointer-events-none absolute -inset-16 -z-10 bg-[radial-gradient(circle_at_center,oklch(1_0_0/0.06),transparent_62%)]"
       />
       <div class="overflow-hidden rounded-3xl bg-[#0d0d0d] ring-1 ring-white/8">
         <img
@@ -25,7 +25,7 @@ import { HugeiconsIcon } from "@hugeicons/vue";
 
     <div class="relative hidden rounded-4xl bg-foreground/6 sm:block">
       <div
-        class="pointer-events-none absolute -inset-20 -z-10 bg-[radial-gradient(circle_at_center,oklch(1_0_0_/_0.06),transparent_62%)]"
+        class="pointer-events-none absolute -inset-20 -z-10 bg-[radial-gradient(circle_at_center,oklch(1_0_0/0.06),transparent_62%)]"
       />
 
       <div

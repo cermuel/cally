@@ -8,14 +8,14 @@ import {
   UserMultipleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import type { PublicEvent, PublicProfile } from "~/utils/public-booking";
+import type { PublicApiEvent, PublicApiUser } from "~/utils/api/public";
 
 const props = defineProps<{
   attendeeEmail: string;
   attendeeName: string;
-  event: PublicEvent;
+  event: PublicApiEvent;
   guests: string[];
-  profile: PublicProfile;
+  profile: PublicApiUser;
   scheduledWhenLabel: string;
   username: string;
 }>();
@@ -53,9 +53,13 @@ const hiddenGuestCount = computed(() =>
     >
       <header class="grid place-items-center text-center pt-5">
         <h1 class="text-xl font-medium tracking-normal">
-          Your meeting with {{ profile.name.split(" ")[0] }} is scheduled
+          Your request was sent to {{ profile.name.split(" ")[0] }}
         </h1>
       </header>
+
+      <p class="px-8 text-center text-sm leading-6 text-muted-foreground">
+        You’ll receive a confirmation when the host accepts the booking.
+      </p>
 
       <section class="border-y border-white/10 bg-[#171717] px-10 py-9">
         <div class="space-y-7 text-base font-medium">
@@ -68,12 +72,12 @@ const hiddenGuestCount = computed(() =>
               class="mt-0.5 text-muted-foreground"
             />
             <div>
-              <p>{{ event.title }}</p>
+              <p>{{ event.name }}</p>
               <p class="mt-1 text-muted-foreground">
                 {{ scheduledDateLabel }} at {{ scheduledTimeLabel }}
               </p>
               <p class="mt-1 text-muted-foreground">
-                {{ event.durationLabel }} duration
+                {{ event.duration_minutes }}m duration
               </p>
             </div>
           </section>
@@ -109,7 +113,7 @@ const hiddenGuestCount = computed(() =>
             />
             <div class="space-y-3">
               <div
-                v-for="guest in visibleGuests"
+                v-for="(guest, index) in visibleGuests"
                 :key="guest"
                 class="flex flex-wrap items-center justify-between gap-2"
               >
@@ -119,7 +123,7 @@ const hiddenGuestCount = computed(() =>
                 <span
                   class="rounded-md bg-white/10 px-1.5 py-0.5 text-sm font-medium text-foreground/80"
                 >
-                  Pending
+                  {{ index === 0 ? "Confirmed" : "Pending" }}
                 </span>
               </div>
               <button

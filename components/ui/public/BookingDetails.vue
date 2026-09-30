@@ -10,6 +10,7 @@ import { nextTick, ref } from "vue";
 defineProps<{
   selectedDateLabel: string;
   selectedTimeLabel: string;
+  errors?: Record<string, string[]>;
 }>();
 
 const guests = defineModel<string[]>("guests", { required: true });
@@ -114,13 +115,13 @@ const removeGuest = (index: number) => {
             ref="guestInputs"
             v-model="guests[index]"
             type="email"
-            placeholder="Email"
+            placeholder="you@example.com"
             :error="
-              showGuestErrors && guests[index]?.trim().length === 0
+              errors?.[`guests.${index + 1}.email`]?.[0]
+              || (showGuestErrors && guests[index]?.trim().length === 0
                 ? 'Enter guest email'
-                : undefined
+                : undefined)
             "
-            class="border-white/20 bg-background pr-10 text-base font-medium text-foreground placeholder:text-muted-foreground focus-visible:border-white/40 focus-visible:outline-white/10 md:text-base"
           >
             <template #suffix>
               <SharedButton

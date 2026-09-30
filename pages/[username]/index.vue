@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { publicApi } from "~/utils/api/public";
-import { mapPublicEvent, mapPublicProfile } from "~/utils/public-booking";
 
 const route = useRoute();
 const apiClient = useApiClient();
@@ -14,7 +13,7 @@ const {
   () => `public-profile-${username.value}`,
   async () => {
     const response = await publicApi.profile(apiClient, username.value);
-    return mapPublicProfile(response.user);
+    return response.user;
   },
   { server: false, watch: [username] },
 );
@@ -23,7 +22,7 @@ const { data: eventsData, pending: eventsPending } = await useAsyncData(
   () => `public-events-${username.value}`,
   async () => {
     const response = await publicApi.events(apiClient, username.value);
-    return response.events.map(mapPublicEvent);
+    return response.events;
   },
   { server: false, watch: [username] },
 );
@@ -106,7 +105,7 @@ useHead(() => ({
 
       <template v-else>
         <UiPublicProfileHeader
-          :image="profile?.image"
+          :image="profile?.avatar ?? undefined"
           :name="profile?.name"
           :pending="profilePending"
           :show-theme-toggle="!isEmbed"

@@ -2,19 +2,77 @@
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import {
-  formatPublicDateLabel,
-  formatPublicSlotHeading,
-  formatPublicTimeRange,
-  formatPublicSlotLabel,
-  getPublicCalendarDays,
-  mapPublicEvent,
-  mapPublicProfile,
-  toDateKey,
-  type PublicBookingStep,
-  type PublicEvent,
-  type PublicProfile,
-} from "~/utils/public-booking";
-import { publicApi, type PublicScheduleResponse } from "~/utils/api/public";
+  publicApi,
+  type PublicApiEvent,
+  type PublicApiUser,
+  type PublicScheduleResponse,
+} from "~/utils/api/public";
+import { bookingsApi } from "~/utils/api/bookings";
+import {
+  getApiErrorMessage,
+  getApiFieldErrors,
+  type ApiError,
+} from "~/utils/api/client";
+
+type BookingStep = "slots" | "details" | "scheduled";
+
+const toDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const formatDateLabel = (dateKey: string) =>
+  new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(`${dateKey}T12:00:00`));
+
+const formatSlotHeading = (dateKey: string) =>
+  new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+  })
+    .format(new Date(`${dateKey}T12:00:00`))
+    .replace(",", "");
+
+const formatTimeRange = (
+  dateKey: string,
+  selectedTime: string,
+  durationMinutes: number,
+) => {
+  const [hour = 0, minute = 0] = selectedTime.split(":").map(Number);
+  const start = new Date(
+    `${dateKey}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`,
+  );
+  const end = new Date(start.getTime() + durationMinutes * 60_000);
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${formatter.format(start).toLowerCase()} - ${formatter.format(end).toLowerCase()}`;
+};
+
+const formatSlotLabel = (time: string) => {
+  const [hour = 0, minute = 0] = time.split(":").map(Number);
+  const date = new Date();
+  date.setHours(hour, minute, 0, 0);
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date).toLowerCase();
+};
+
+const addMinutesToTime = (time: string, minutesToAdd: number) => {
+  const [hours = 0, minutes = 0] = time.split(":").map(Number);
+  const totalMinutes = hours * 60 + minutes + minutesToAdd;
+  return `${String(Math.floor(totalMinutes / 60) % 24).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+};
 
 const route = useRoute();
 const apiClient = useApiClient();
@@ -29,8 +87,8 @@ const profilePath = computed(() => ({
   query: isEmbed.value ? { embed: "true" } : undefined,
 }));
 
-const profile = ref<PublicProfile | null>(null);
-const event = ref<PublicEvent | null>(null);
+const profile = ref<PublicApiUser | null>(null);
+const event = ref<PublicApiEvent | null>(null);
 const bookingError = ref<unknown>(null);
 const bookingPending = ref(true);
 
@@ -56,8 +114,8 @@ const loadBookingData = async () => {
       });
     }
 
-    profile.value = mapPublicProfile(profileResponse.user);
-    event.value = mapPublicEvent(apiEvent);
+    profile.value = profileResponse.user;
+    event.value = apiEvent;
   } catch (error) {
     bookingError.value = error;
   } finally {
@@ -65,39 +123,19 @@ const loadBookingData = async () => {
   }
 };
 
-const safeProfile = computed(
-  () =>
-    profile.value ?? {
-      name: username.value,
-      email: "",
-      username: username.value,
-      description: null,
-      image: undefined,
-      timezone: "UTC",
-    },
-);
-const safeEvent = computed(
-  () =>
-    event.value ?? {
-      id: 0,
-      slug: eventSlug.value,
-      title: "Meeting",
-      durationMinutes: 0,
-      durationLabel: "",
-      description: "",
-    },
-);
-
-const step = ref<PublicBookingStep>("slots");
+const step = ref<BookingStep>("slots");
 const selectedDate = ref("");
 const activeMonth = ref(
   new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12),
 );
 const selectedTime = ref("");
-const attendeeName = ref("Samuel Ngene");
-const attendeeEmail = ref("samuelobasi2005@gmail.com");
+const attendeeName = ref("");
+const attendeeEmail = ref("");
 const notes = ref("");
 const guests = ref<string[]>([]);
+const scheduleErrors = ref<Record<string, string[]>>({});
+const scheduleError = ref("");
+const scheduleSubmitting = ref(false);
 
 const activeMonthKey = computed(() => toDateKey(activeMonth.value).slice(0, 7));
 const scheduleData = ref<PublicScheduleResponse | null>(null);
@@ -168,23 +206,44 @@ const availableDates = computed(
     ),
 );
 
-const calendarDays = computed(() =>
-  getPublicCalendarDays(activeMonth.value, availableDates.value),
-);
+const calendarDays = computed(() => {
+  const year = activeMonth.value.getFullYear();
+  const month = activeMonth.value.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const blanks = Array.from({ length: firstDay.getDay() }, (_, index) => ({
+    key: `blank-${year}-${month}-${index}`,
+    day: "",
+    muted: true,
+    available: false,
+    today: false,
+  }));
+  const days = Array.from({ length: lastDay }, (_, index) => {
+    const key = toDateKey(new Date(year, month, index + 1));
+    return {
+      key,
+      day: String(index + 1),
+      muted: false,
+      available: availableDates.value.has(key),
+      today: key === toDateKey(new Date()),
+    };
+  });
+  return [...blanks, ...days];
+});
 
 const selectedDateLabel = computed(() =>
-  formatPublicDateLabel(selectedDate.value),
+  formatDateLabel(selectedDate.value),
 );
 
 const selectedSlotHeading = computed(() =>
-  selectedDate.value ? formatPublicSlotHeading(selectedDate.value) : "",
+  selectedDate.value ? formatSlotHeading(selectedDate.value) : "",
 );
 
 const selectedTimeRange = computed(() =>
-  formatPublicTimeRange(
+  formatTimeRange(
     selectedDate.value,
     selectedTime.value,
-    safeEvent.value.durationMinutes,
+    event.value?.duration_minutes ?? 0,
   ),
 );
 
@@ -193,9 +252,10 @@ const scheduledWhenLabel = computed(
 );
 
 const slots = computed(() =>
-  (scheduleData.value?.schedules[selectedDate.value] ?? []).map((slot) =>
-    formatPublicSlotLabel(slot.time),
-  ),
+  (scheduleData.value?.schedules[selectedDate.value] ?? []).map((slot) => ({
+    value: slot.time.slice(0, 5),
+    label: formatSlotLabel(slot.time),
+  })),
 );
 
 const showSlots = computed(
@@ -230,9 +290,65 @@ const moveMonth = (amount: number) => {
   selectedTime.value = "";
 };
 
-const chooseSlot = (slot: string) => {
-  selectedTime.value = slot;
+const chooseSlot = (slot: { label: string; value: string }) => {
+  selectedTime.value = slot.value;
   step.value = "details";
+};
+
+const scheduleBooking = async () => {
+  if (!event.value || !selectedDate.value || !selectedTime.value) return;
+
+  scheduleSubmitting.value = true;
+  scheduleErrors.value = {};
+  scheduleError.value = "";
+
+  const additionalGuests = guests.value
+    .map((email) => email.trim())
+    .filter(Boolean)
+    .filter((email, index, list) =>
+      email.toLowerCase() !== attendeeEmail.value.trim().toLowerCase()
+      && list.findIndex((item) => item.toLowerCase() === email.toLowerCase()) === index,
+    );
+
+  try {
+    await bookingsApi.schedule(apiClient, {
+      username: username.value,
+      event_id: String(event.value.id),
+      date: selectedDate.value,
+      starts_at: selectedTime.value,
+      ends_at: addMinutesToTime(selectedTime.value, event.value.duration_minutes),
+      notes: notes.value.trim() || null,
+      guests: [
+        {
+          name: attendeeName.value.trim(),
+          email: attendeeEmail.value.trim(),
+          attendance_status: "confirmed",
+        },
+        ...additionalGuests.map((email) => ({ email })),
+      ],
+    });
+
+    step.value = "scheduled";
+  } catch (error) {
+    const apiError = error as ApiError;
+    scheduleErrors.value = getApiFieldErrors(error);
+    scheduleError.value = getApiErrorMessage(error, "Could not schedule this meeting.");
+
+    if (apiError.response?.status === 409) {
+      step.value = "slots";
+      await loadSchedule();
+    }
+  } finally {
+    scheduleSubmitting.value = false;
+  }
+};
+
+const clearScheduleError = (field: string) => {
+  if (!(field in scheduleErrors.value)) return;
+
+  const nextErrors = { ...scheduleErrors.value };
+  delete nextErrors[field];
+  scheduleErrors.value = nextErrors;
 };
 
 if (import.meta.client) {
@@ -260,7 +376,7 @@ onBeforeUnmount(() => resizeObserver?.disconnect());
 useHead(() => ({
   title:
     event.value && profile.value
-      ? `${event.value.title} with ${profile.value.name}`
+      ? `${event.value.name} with ${profile.value.name}`
       : "Book a meeting | Cally",
   htmlAttrs: { style: isEmbed.value ? "background:transparent" : undefined },
   bodyAttrs: { style: isEmbed.value ? "background:transparent" : undefined },
@@ -318,11 +434,11 @@ useHead(() => ({
         class="grid h-full w-full grid-cols-1 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden rounded-xl border-white/10 bg-[#171717] py-0 shadow-[inset_0_1px_0_oklch(1_0_0/0.02)] max-md:rounded-none max-md:border-none md:h-120 md:grid-cols-[17rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]"
       >
         <UiPublicEventSummary
-          :host-name="safeProfile.name"
-          :host-image="safeProfile.image"
-          :title="safeEvent.title"
-          :description="safeEvent.description"
-          :duration-label="safeEvent.durationLabel"
+          :host-name="profile?.name ?? username"
+          :host-image="profile?.avatar ?? undefined"
+          :title="event?.name ?? 'Meeting'"
+          :description="event?.description ?? ''"
+          :duration-label="event ? `${event.duration_minutes}m` : ''"
           :loading="bookingPending"
           :hide-description-on-mobile="step === 'details'"
           class="border-b border-white/10 p-4 md:min-h-0 md:border-b-0 md:border-r md:p-6"
@@ -372,15 +488,20 @@ useHead(() => ({
             v-model:attendee-name="attendeeName"
             v-model:attendee-email="attendeeEmail"
             v-model:notes="notes"
+            :errors="scheduleErrors"
+            :error="scheduleError"
+            :submitting="scheduleSubmitting"
             class="border-b border-white/10 md:min-h-0 md:overflow-y-auto md:border-b-0 md:border-r"
             @back="step = 'slots'"
-            @confirm="step = 'scheduled'"
+            @clear-error="clearScheduleError"
+            @confirm="scheduleBooking"
           />
 
           <UiPublicBookingDetails
             v-model:guests="guests"
             :selected-date-label="selectedDateLabel"
             :selected-time-label="selectedTimeRange"
+            :errors="scheduleErrors"
             class="min-h-0"
           />
         </div>
@@ -388,12 +509,12 @@ useHead(() => ({
     </section>
 
     <UiPublicScheduledCard
-      v-else
+      v-else-if="event && profile"
       :attendee-email="attendeeEmail"
       :attendee-name="attendeeName"
-      :event="safeEvent"
+      :event="event"
       :guests="guests"
-      :profile="safeProfile"
+      :profile="profile"
       :scheduled-when-label="scheduledWhenLabel"
       :username="username"
       :class="isEmbed ? 'h-auto! py-4!' : ''"

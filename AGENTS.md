@@ -20,3 +20,9 @@ Use this pattern for any new feature UI component before adding a flat component
 Keep pages and layout shells focused on composition. Extract independently meaningful interface regions (for example, a sidebar) and repeated interactive units (for example, a sidebar item) into role-named components in the same feature folder.
 
 Treat Tailwind IntelliSense's `suggestCanonicalClasses` diagnostics as errors. Use canonical Tailwind utilities in every new or edited class list.
+
+## Preserve API Response Shapes
+
+Use API response objects directly throughout the application. Do not create mapping or normalization helpers such as `mapPublicMeeting`, `mapPublicEvent`, or `mapPublicProfile`, and do not introduce parallel view-model types that rename API fields.
+
+Keep display-only transformations at the UI boundary. For example, format dates, times, durations, and fallback labels in the component that renders them rather than reshaping the response after fetching it.

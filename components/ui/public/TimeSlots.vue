@@ -1,12 +1,12 @@
 <script setup lang="ts">
 defineProps<{
   heading: string;
-  slots: string[];
+  slots: Array<{ label: string; value: string }>;
   disabled?: boolean;
 }>();
 
 defineEmits<{
-  choose: [slot: string];
+  choose: [slot: { label: string; value: string }];
 }>();
 </script>
 
@@ -23,7 +23,7 @@ defineEmits<{
     >
       <button
         v-for="slot in slots"
-        :key="slot"
+        :key="slot.value"
         type="button"
         variant="secondary"
         :disabled="disabled"
@@ -34,7 +34,7 @@ defineEmits<{
         "
         @click="$emit('choose', slot)"
       >
-        {{ slot }}
+        {{ slot.label }}
       </button>
     </div>
   </aside>

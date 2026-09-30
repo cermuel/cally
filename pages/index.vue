@@ -17,7 +17,7 @@ useSeoMeta({
     class="relative h-dvh overflow-y-auto bg-background text-foreground antialiased selection:bg-foreground selection:text-background"
   >
     <div
-      class="pointer-events-none absolute inset-x-0 top-0 h-168 bg-[radial-gradient(circle_at_50%_-20%,oklch(0.68_0.17_30_/_0.18),transparent_58%)] dark:bg-[radial-gradient(circle_at_50%_-20%,oklch(0.68_0.17_30_/_0.18),transparent_58%)]"
+      class="pointer-events-none absolute inset-x-0 top-0 h-168 bg-[radial-gradient(circle_at_50%_-20%,oklch(0.68_0.17_30/0.18),transparent_58%)] dark:bg-[radial-gradient(circle_at_50%_-20%,oklch(0.68_0.17_30/0.18),transparent_58%)]"
     />
     <UiLandingHeader />
     <div class="relative overflow-hidden">
