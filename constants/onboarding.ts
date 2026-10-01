@@ -49,11 +49,6 @@ export const CALENDAR_NOTES = [
   "New bookings are added to your calendar with a meeting link.",
 ];
 
-export const CONNECTED_CALENDAR_ACCOUNT = {
-  name: "Samuel Cermuel",
-  email: "samuel@gmail.com",
-};
-
 export const DAYS: { key: DayKey; label: string }[] = [
   { key: "sunday", label: "Sunday" },
   { key: "monday", label: "Monday" },

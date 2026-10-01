@@ -13,6 +13,7 @@ type InputField = {
 };
 
 const route = useRoute();
+const googleOAuth = useGoogleOAuth();
 const email = ref("");
 const password = ref("");
 const emailInput = ref<InputField | null>(null);
@@ -34,10 +35,12 @@ const loginMutation = useMutation({
   onSuccess: async (response) => {
     if (response.token) {
       auth.setAuth(response.token, response.user);
-      const redirect = typeof route.query.redirect === "string"
-        && (route.query.redirect === "/app" || route.query.redirect.startsWith("/app/"))
-        ? route.query.redirect
-        : auth.getAuthenticatedHomePath();
+      const redirect =
+        typeof route.query.redirect === "string" &&
+        (route.query.redirect === "/app" ||
+          route.query.redirect.startsWith("/app/"))
+          ? route.query.redirect
+          : auth.getAuthenticatedHomePath();
 
       await navigateTo(redirect);
       return;
@@ -59,6 +62,18 @@ const loginMutation = useMutation({
 });
 
 const isLoginPending = computed(() => loginMutation.isPending.value);
+const isGooglePending = computed(() => googleOAuth.pending.value);
+
+const startGoogleLogin = () => {
+  const redirect =
+    typeof route.query.redirect === "string" &&
+    (route.query.redirect === "/app" ||
+      route.query.redirect.startsWith("/app/"))
+      ? route.query.redirect
+      : undefined;
+
+  return googleOAuth.startAuth("login", redirect);
+};
 
 const isValidEmail = computed(() => {
   return helpers.validateEmail(email.value);
@@ -118,14 +133,7 @@ useHead({
 </script>
 
 <template>
-  <UiAuthCard
-    :title="verificationEmail ? 'Check your email' : 'Welcome back'"
-    :description="
-      verificationEmail
-        ? undefined
-        : 'Sign in to manage your booking page, availability, and scheduled meetings.'
-    "
-  >
+  <UiAuthCard :title="verificationEmail && 'Check your email'">
     <template v-if="verificationEmail" #description>
       We sent a confirmation link to
       <span class="font-semibold text-foreground">{{ verificationEmail }}</span
@@ -146,49 +154,64 @@ useHead({
       </SharedButton>
     </div>
 
-    <form v-else class="space-y-5" @submit.prevent="handleSubmit">
-      <div class="space-y-2">
-        <SharedLabel for="email"> Email </SharedLabel>
-        <SharedInput
-          id="email"
-          ref="emailInput"
-          v-model="email"
-          type="email"
-          name="email"
-          autocomplete="email"
-          placeholder="you@example.com"
-          :error="errors.email"
-          :disabled="isLoginPending"
-          @update:model-value="errors.email = ''"
-        />
-      </div>
+    <div v-else class="space-y-5 -mt-7">
+      <UiAuthGoogleButton
+        label="Continue with Google"
+        :loading="isGooglePending"
+        @click="startGoogleLogin"
+      />
 
-      <div class="space-y-2">
-        <div class="flex items-center justify-between gap-4">
-          <SharedLabel for="password"> Password </SharedLabel>
-          <NuxtLink
-            :to="forgotPasswordLocation"
-            class="text-sm font-medium text-primary underline-offset-4 hover:underline"
-          >
-            Forgot password?
-          </NuxtLink>
+      <UiAuthDivider />
+
+      <form class="space-y-5" @submit.prevent="handleSubmit">
+        <div class="space-y-2">
+          <SharedLabel for="email"> Email </SharedLabel>
+          <SharedInput
+            id="email"
+            ref="emailInput"
+            v-model="email"
+            type="email"
+            name="email"
+            autocomplete="email"
+            placeholder="you@example.com"
+            :error="errors.email"
+            :disabled="isLoginPending"
+            @update:model-value="errors.email = ''"
+          />
         </div>
-        <SharedInput
-          id="password"
-          ref="passwordInput"
-          v-model="password"
-          type="password"
-          name="password"
-          autocomplete="current-password"
-          :error="errors.password"
-          :disabled="isLoginPending"
-          @update:model-value="errors.password = ''"
-        />
-      </div>
 
-      <SharedButton type="submit" class="w-full" :loading="isLoginPending">
-        Login
-      </SharedButton>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between gap-4">
+            <SharedLabel for="password"> Password </SharedLabel>
+            <NuxtLink
+              :to="forgotPasswordLocation"
+              class="text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Forgot password?
+            </NuxtLink>
+          </div>
+          <SharedInput
+            id="password"
+            ref="passwordInput"
+            v-model="password"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            :error="errors.password"
+            :disabled="isLoginPending"
+            @update:model-value="errors.password = ''"
+          />
+        </div>
+
+        <SharedButton
+          type="submit"
+          class="w-full"
+          :loading="isLoginPending"
+          :disabled="isGooglePending"
+        >
+          Login
+        </SharedButton>
+      </form>
 
       <p class="text-center text-sm text-muted-foreground">
         New to Cally?
@@ -199,6 +222,6 @@ useHead({
           Create an account
         </NuxtLink>
       </p>
-    </form>
+    </div>
   </UiAuthCard>
 </template>

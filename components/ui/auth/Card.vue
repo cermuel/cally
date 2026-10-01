@@ -31,7 +31,10 @@ defineProps<{
           <SharedCardCardTitle class="text-2xl">
             {{ title }}
           </SharedCardCardTitle>
-          <SharedCardCardDescription v-if="description || $slots.description" class="leading-6">
+          <SharedCardCardDescription
+            v-if="description || $slots.description"
+            class="leading-6"
+          >
             <slot name="description">
               {{ description }}
             </slot>
@@ -41,6 +44,8 @@ defineProps<{
           <slot />
         </SharedCardCardContent>
       </SharedCardCard>
+
+      <div class="h-7"></div>
     </div>
   </main>
 </template>

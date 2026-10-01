@@ -76,7 +76,14 @@
       class="flex flex-col gap-2 px-6 py-5 text-xs text-muted-foreground/70 sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-14"
     >
       <span>© {{ new Date().getFullYear() }} Cally</span>
-      <span>Scheduling, without the back-and-forth.</span>
+      <nav class="flex items-center gap-4" aria-label="Legal links">
+        <NuxtLink class="transition-colors hover:text-foreground" to="/privacy">
+          Privacy
+        </NuxtLink>
+        <NuxtLink class="transition-colors hover:text-foreground" to="/terms">
+          Terms
+        </NuxtLink>
+      </nav>
     </div>
   </footer>
 </template>

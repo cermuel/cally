@@ -6,20 +6,20 @@ import {
   USERNAME_DEBOUNCE_MS,
   USERNAME_MIN,
 } from "~/constants/onboarding";
-import {
-  getUsernameError,
-} from "~/helpers/onboarding";
+import { getUsernameError } from "~/helpers/onboarding";
 import { availabilityApi } from "~/utils/api/availability";
 import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
 import { usersApi } from "~/utils/api/users";
 import type { UsernameStatus } from "~/types/onboarding";
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export const useOnboarding = () => {
+  const route = useRoute();
   const apiClient = useApiClient();
   const auth = useAuth();
-  const stepIndex = ref(0);
+  const requestedStepIndex = STEPS.findIndex(
+    (item) => item.id === route.query.step,
+  );
+  const stepIndex = ref(requestedStepIndex >= 0 ? requestedStepIndex : 0);
   const direction = ref<1 | -1>(1);
   const step = computed(() => STEPS[stepIndex.value]!);
   const submitting = ref(false);
@@ -78,14 +78,11 @@ export const useOnboarding = () => {
     },
   );
 
-  const calendar = reactive({ connected: false, connecting: false });
+  const googleCalendar = useGoogleCalendar();
+  const calendar = googleCalendar.calendar;
 
   const connectCalendar = async () => {
-    calendar.connecting = true;
-
-    await sleep(1400);
-    calendar.connected = true;
-    calendar.connecting = false;
+    await googleCalendar.connect("/app/onboarding?step=calendar");
   };
 
   const {

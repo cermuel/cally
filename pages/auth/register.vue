@@ -13,8 +13,11 @@ type InputField = {
 };
 
 const route = useRoute();
+const googleOAuth = useGoogleOAuth();
 
-const email = ref(typeof route.query.email === "string" ? route.query.email : "");
+const email = ref(
+  typeof route.query.email === "string" ? route.query.email : "",
+);
 const password = ref("");
 const passwordConfirmation = ref("");
 const emailInput = ref<InputField | null>(null);
@@ -41,10 +44,12 @@ const registerMutation = useMutation({
     confirmationSent.value = true;
   },
   onError: (error) => {
-    toast.error(getApiErrorMessage(
-      error,
-      "Unable to create your account. Please try again.",
-    ));
+    toast.error(
+      getApiErrorMessage(
+        error,
+        "Unable to create your account. Please try again.",
+      ),
+    );
 
     const fieldErrors = getApiFieldErrors(error);
 
@@ -61,15 +66,18 @@ const resendEmailMutation = useMutation({
     toast.success("We sent you another verification email.");
   },
   onError: (error) => {
-    toast.error(getApiErrorMessage(
-      error,
-      "Unable to resend the verification email. Please try again.",
-    ));
+    toast.error(
+      getApiErrorMessage(
+        error,
+        "Unable to resend the verification email. Please try again.",
+      ),
+    );
   },
 });
 
 const isRegisterPending = computed(() => registerMutation.isPending.value);
 const isResendingEmail = computed(() => resendEmailMutation.isPending.value);
+const isGooglePending = computed(() => googleOAuth.pending.value);
 
 const focusFirstError = async () => {
   await nextTick();
@@ -113,11 +121,7 @@ const handleSubmit = async () => {
     errors.passwordConfirmation = "Password confirmation does not match.";
   }
 
-  if (
-    errors.email ||
-    errors.password ||
-    errors.passwordConfirmation
-  ) {
+  if (errors.email || errors.password || errors.passwordConfirmation) {
     await focusFirstError();
     return;
   }
@@ -141,14 +145,7 @@ useHead({
 </script>
 
 <template>
-  <UiAuthCard
-    :title="confirmationSent ? 'Check your email' : 'Create your account'"
-    :description="
-      confirmationSent
-        ? undefined
-        : 'Set up your booking page and start sharing times that work for you.'
-    "
-  >
+  <UiAuthCard :title="confirmationSent ? 'Check your email' : ''">
     <template v-if="confirmationSent" #description>
       We sent a confirmation link to
       <span class="font-semibold text-foreground">{{ registeredEmail }}</span
@@ -163,58 +160,73 @@ useHead({
       @use-different-email="returnToRegister"
     />
 
-    <form v-else class="space-y-5" @submit.prevent="handleSubmit">
-      <div class="space-y-2">
-        <SharedLabel for="email"> Email </SharedLabel>
-        <SharedInput
-          id="email"
-          ref="emailInput"
-          v-model="email"
-          type="email"
-          name="email"
-          autocomplete="email"
-          placeholder="you@example.com"
-          :error="errors.email"
-          :disabled="isRegisterPending"
-          @update:model-value="errors.email = ''"
-        />
-      </div>
+    <div v-else class="space-y-5 -mt-7">
+      <UiAuthGoogleButton
+        label="Sign up with Google"
+        :loading="isGooglePending"
+        @click="googleOAuth.startAuth('register')"
+      />
 
-      <div class="space-y-2">
-        <SharedLabel for="password"> Password </SharedLabel>
-        <SharedInput
-          id="password"
-          ref="passwordInput"
-          v-model="password"
-          type="password"
-          name="password"
-          autocomplete="new-password"
-          :error="errors.password"
-          :disabled="isRegisterPending"
-          @update:model-value="errors.password = ''"
-        />
-      </div>
+      <UiAuthDivider />
 
-      <div class="space-y-2">
-        <SharedLabel for="password_confirmation">
-          Confirm Password
-        </SharedLabel>
-        <SharedInput
-          id="password_confirmation"
-          ref="passwordConfirmationInput"
-          v-model="passwordConfirmation"
-          type="password"
-          name="password_confirmation"
-          autocomplete="new-password"
-          :error="errors.passwordConfirmation"
-          :disabled="isRegisterPending"
-          @update:model-value="errors.passwordConfirmation = ''"
-        />
-      </div>
+      <form class="space-y-5" @submit.prevent="handleSubmit">
+        <div class="space-y-2">
+          <SharedLabel for="email"> Email </SharedLabel>
+          <SharedInput
+            id="email"
+            ref="emailInput"
+            v-model="email"
+            type="email"
+            name="email"
+            autocomplete="email"
+            placeholder="you@example.com"
+            :error="errors.email"
+            :disabled="isRegisterPending"
+            @update:model-value="errors.email = ''"
+          />
+        </div>
 
-      <SharedButton type="submit" class="w-full" :loading="isRegisterPending">
-        Register
-      </SharedButton>
+        <div class="space-y-2">
+          <SharedLabel for="password"> Password </SharedLabel>
+          <SharedInput
+            id="password"
+            ref="passwordInput"
+            v-model="password"
+            type="password"
+            name="password"
+            autocomplete="new-password"
+            :error="errors.password"
+            :disabled="isRegisterPending"
+            @update:model-value="errors.password = ''"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <SharedLabel for="password_confirmation">
+            Confirm Password
+          </SharedLabel>
+          <SharedInput
+            id="password_confirmation"
+            ref="passwordConfirmationInput"
+            v-model="passwordConfirmation"
+            type="password"
+            name="password_confirmation"
+            autocomplete="new-password"
+            :error="errors.passwordConfirmation"
+            :disabled="isRegisterPending"
+            @update:model-value="errors.passwordConfirmation = ''"
+          />
+        </div>
+
+        <SharedButton
+          type="submit"
+          class="w-full"
+          :loading="isRegisterPending"
+          :disabled="isGooglePending"
+        >
+          Register
+        </SharedButton>
+      </form>
 
       <p class="text-center text-sm text-muted-foreground">
         Already have an account?
@@ -225,6 +237,6 @@ useHead({
           Login
         </NuxtLink>
       </p>
-    </form>
+    </div>
   </UiAuthCard>
 </template>

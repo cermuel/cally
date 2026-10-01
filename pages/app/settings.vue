@@ -11,12 +11,7 @@ useHead({ title: 'Settings | Cally' })
     />
 
     <section class="divide-y divide-border rounded-lg border border-border bg-card shadow-xs">
-      <div class="p-5">
-        <h2 class="text-base font-medium">Calendar connection</h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Connect Google Calendar to check conflicts and create meeting events.
-        </p>
-      </div>
+      <UiSettingsCalendarConnection />
       <div class="p-5">
         <h2 class="text-base font-medium">Notifications</h2>
         <p class="mt-1 text-sm text-muted-foreground">
