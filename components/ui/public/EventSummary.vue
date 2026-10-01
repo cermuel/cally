@@ -62,47 +62,34 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
       class="max-lg:space-y-4 w-full lg:flex lg:items-center lg:flex-row lg:justify-between"
       aria-busy="true"
     >
-      <div class="flex items-center gap-2 max-sm:mb-0">
+      <div class="flex items-center gap-2">
         <span
           class="size-8 rounded-full bg-white/10 motion-safe:animate-pulse"
         />
         <span class="h-4 w-24 rounded bg-white/10 motion-safe:animate-pulse" />
       </div>
       <div
-        class="block h-7 max-sm:hidden lg:w-40 w-3/4 rounded bg-white/10 motion-safe:animate-pulse"
+        class="block h-7 lg:w-40 w-3/4 rounded bg-white/10 motion-safe:animate-pulse"
       />
       <div
-        class="block h-4 max-sm:hidden mb-0 lg:w-40 w-1/2 rounded bg-white/10 motion-safe:animate-pulse"
+        class="block h-4 mb-0 lg:w-40 w-1/2 rounded bg-white/10 motion-safe:animate-pulse"
       />
     </div>
 
     <template v-else>
-      <div class="flex items-center gap-2 max-sm:-my-1">
+      <div class="flex items-center gap-2">
         <UiPublicProfileAvatar :image="hostImage" :name="hostName" size="sm" />
         <p class="text-sm font-medium text-muted-foreground">{{ hostName }}</p>
-        <div class="flex ml-auto sm:hidden items-center gap-2">
-          <dt class="grid size-5 place-items-center text-muted-foreground">
-            <HugeiconsIcon
-              :icon="Clock01Icon"
-              :size="18"
-              color="currentColor"
-              :stroke-width="1.75"
-              aria-hidden="true"
-            />
-            <span class="sr-only">Duration</span>
-          </dt>
-          <dd>{{ durationLabel }}</dd>
-        </div>
       </div>
 
       <h1
-        class="text-2xl max-sm:hidden font-semibold leading-tight tracking-tight text-foreground"
+        class="text-2xl font-semibold leading-tight tracking-tight text-foreground"
       >
         {{ title }}
       </h1>
 
       <dl
-        class="flex flex-wrap max-sm:hidden gap-x-4 gap-y-2 text-sm font-medium text-foreground/85 md:flex-col"
+        class="flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium text-foreground/85 md:flex-col"
       >
         <div class="flex items-center gap-2">
           <dt class="grid size-5 place-items-center text-muted-foreground">

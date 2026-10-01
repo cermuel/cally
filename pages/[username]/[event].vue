@@ -10,6 +10,7 @@ import {
 } from "~/utils/api/client";
 
 type BookingStep = "slots" | "details" | "scheduled";
+type MobileSlotStep = "calendar" | "times";
 
 const toDateKey = (date: Date) => {
   const year = date.getFullYear();
@@ -101,6 +102,7 @@ const bookingError = computed(
 );
 
 const step = ref<BookingStep>("slots");
+const mobileSlotStep = ref<MobileSlotStep>("calendar");
 const confirmationVisible = computed(() => step.value === "scheduled");
 const bookingPanel = useBookingPanelMotion(confirmationVisible);
 const selectedDate = ref("");
@@ -268,9 +270,12 @@ const selectDate = async (dateKey: string) => {
 
   selectedDate.value = dateKey;
   selectedTime.value = "";
+  mobileSlotStep.value = "times";
 
   await nextTick();
-  if (window.matchMedia("(max-width: 767px)").matches) {
+  if (
+    window.matchMedia("(min-width: 640px) and (max-width: 767px)").matches
+  ) {
     slotsPanel.value?.$el.scrollIntoView({
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ? "instant"
@@ -285,6 +290,12 @@ const moveMonth = (amount: number) => {
   nextMonth.setMonth(nextMonth.getMonth() + amount, 1);
   activeMonth.value = nextMonth;
   selectedDate.value = "";
+  selectedTime.value = "";
+  mobileSlotStep.value = "calendar";
+};
+
+const showMobileCalendar = () => {
+  mobileSlotStep.value = "calendar";
   selectedTime.value = "";
 };
 
@@ -444,6 +455,7 @@ useHead(() => ({
         {
           'booking-confirmation': confirmationVisible,
           'booking-loading': calendarLoading && step === 'slots',
+          'booking-mobile-slots': step === 'slots',
         },
       ]"
     >
@@ -486,6 +498,7 @@ useHead(() => ({
                 :month-label="monthLabel"
                 :selected-date="selectedDate"
                 :no-availability="availableDates.size === 0"
+                :class="mobileSlotStep === 'times' && 'max-sm:hidden'"
                 @previous="moveMonth(-1)"
                 @next="moveMonth(1)"
                 @select="selectDate"
@@ -502,8 +515,10 @@ useHead(() => ({
                   :slots="slots"
                   :selected-time="selectedTime"
                   class="border-t border-white/10 md:border-l md:border-t-0"
+                  :class="mobileSlotStep === 'calendar' && 'max-sm:hidden'"
                   @select="chooseSlot"
                   @preview="previewTime = $event"
+                  @back="showMobileCalendar"
                   @continue="step = 'details'"
                 />
               </Transition>
@@ -662,6 +677,13 @@ useHead(() => ({
   .booking-content {
     justify-content: flex-start; /* items start from the left/main start */
     align-items: stretch; /* items stretch to fill the cross axis */
+  }
+}
+@media (max-width: 639px) {
+  .booking-mobile-slots .booking-glass {
+    min-height: auto;
+    height: max-content;
+    flex: none;
   }
 }
 .booking-panel {

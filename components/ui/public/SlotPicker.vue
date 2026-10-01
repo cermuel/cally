@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/vue";
 import type { PublicScheduleSlot } from "~/utils/api/public";
 
 const props = defineProps<{
@@ -7,6 +9,7 @@ const props = defineProps<{
   selectedTime: string;
 }>();
 const emit = defineEmits<{
+  back: [];
   select: [time: string];
   preview: [time: string];
   continue: [];
@@ -132,8 +135,26 @@ const label = (time: string) => {
 
 <template>
   <aside class="flex min-h-0 flex-col p-5 md:p-6">
-    <div class="mb-5 flex items-center justify-between gap-3 max-sm:hidden">
-      <h2 class="text-sm font-medium">{{ heading }}</h2>
+    <div class="mb-5 flex items-center justify-between gap-3">
+      <div class="flex min-w-0 items-center gap-2">
+        <SharedButton
+          type="button"
+          variant="secondary"
+          size="icon-sm"
+          class="-ms-1 w-6 h-6 text-muted-foreground hover:bg-white/10 hover:text-foreground sm:hidden"
+          aria-label="Back to calendar"
+          @click="$emit('back')"
+        >
+          <HugeiconsIcon
+            :icon="ArrowLeft01Icon"
+            :size="18"
+            color="currentColor"
+            :stroke-width="1.75"
+            aria-hidden="true"
+          />
+        </SharedButton>
+        <h2 class="truncate text-sm font-medium">{{ heading }}</h2>
+      </div>
       <span class="slot-caption text-xs text-white/50">Available times</span>
     </div>
     <div
