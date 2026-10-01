@@ -9,7 +9,7 @@ const {
   data: profile,
   error: profileError,
   pending: profilePending,
-} = await useAsyncData(
+} = useLazyAsyncData(
   () => `public-profile-${username.value}`,
   async () => {
     const response = await publicApi.profile(apiClient, username.value);
@@ -18,7 +18,7 @@ const {
   { server: false, watch: [username] },
 );
 
-const { data: eventsData, pending: eventsPending } = await useAsyncData(
+const { data: eventsData, pending: eventsPending } = useLazyAsyncData(
   () => `public-events-${username.value}`,
   async () => {
     const response = await publicApi.events(apiClient, username.value);
@@ -126,7 +126,7 @@ useHead(() => ({
       <footer v-if="!isEmbed" class="booking-footer mt-4 px-2">
         <NuxtLink
           to="/"
-          class="inline-flex items-center gap-1.5 text-white/65 transition-colors hover:text-white"
+          class="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
         >
           <img src="/logo.png" alt="" class="size-5 rounded" />
           <span class="font-medium">Cally</span>

@@ -49,7 +49,7 @@ defineProps<{
   font-weight: 600;
 }
 .rich-text :deep(a) {
-  color: #fff;
+  color: var(--foreground);
   text-decoration: underline;
   text-decoration-color: color-mix(in oklch, var(--foreground) 30%, transparent);
   text-underline-offset: 3px;

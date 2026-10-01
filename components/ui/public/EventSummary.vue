@@ -123,7 +123,7 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
 
       <div
         v-if="description"
-        class="min-h-0 md:flex md:flex-1 md:flex-col"
+        class="min-h-0 md:hidden md:flex-1 md:flex-col hidden"
         :class="hideDescriptionOnMobile ? 'max-md:hidden' : ''"
       >
         <div
