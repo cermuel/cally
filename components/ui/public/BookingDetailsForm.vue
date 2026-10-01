@@ -12,12 +12,10 @@ const notes = defineModel<string>("notes", { required: true });
 const props = withDefaults(
   defineProps<{
     errors?: Record<string, string[]>;
-    error?: string;
     submitting?: boolean;
   }>(),
   {
     errors: () => ({}),
-    error: "",
     submitting: false,
   },
 );
@@ -137,10 +135,6 @@ watch(
         @update:model-value="$emit('clearError', 'notes')"
       />
     </div>
-
-    <p v-if="error" role="alert" class="text-sm text-destructive">
-      {{ error }}
-    </p>
 
     <div class="mt-auto flex justify-end gap-4 pt-2 md:pt-5">
       <SharedButton

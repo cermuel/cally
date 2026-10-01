@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import { bookingsApi } from "~/utils/api/bookings";
+import { toast } from "vue-sonner";
+import { bookingsApi, type Booking } from "~/utils/api/bookings";
 import {
   getApiErrorMessage,
   getApiFieldErrors,
@@ -120,8 +121,8 @@ const attendeeEmail = ref("");
 const notes = ref("");
 const guests = ref<string[]>([]);
 const scheduleErrors = ref<Record<string, string[]>>({});
-const scheduleError = ref("");
 const scheduleSubmitting = ref(false);
+const scheduledBooking = ref<Booking | null>(null);
 
 const activeMonthKey = computed(() => toDateKey(activeMonth.value).slice(0, 7));
 const {
@@ -216,9 +217,34 @@ const selectedTimeRange = computed(() =>
   ),
 );
 
-const scheduledWhenLabel = computed(
-  () => `${selectedDateLabel.value}\n${selectedTimeRange.value}`,
-);
+const scheduledWhenLabel = computed(() => {
+  const booking = scheduledBooking.value;
+  if (!booking?.starts_at) {
+    return `${selectedDateLabel.value}\n${selectedTimeRange.value}`;
+  }
+
+  const timeZone = profile.value?.timezone;
+  const date = new Date(booking.starts_at);
+  const dateLabel = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone,
+  }).format(date);
+  const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone,
+  });
+  const startLabel = timeFormatter.format(date).toLowerCase();
+  const endLabel = booking.ends_at
+    ? timeFormatter.format(new Date(booking.ends_at)).toLowerCase()
+    : "";
+
+  return `${dateLabel}\n${endLabel ? `${startLabel} - ${endLabel}` : startLabel}`;
+});
 
 const slots = computed(
   () => scheduleData.value?.schedules[selectedDate.value] ?? [],
@@ -272,7 +298,6 @@ const scheduleBooking = async () => {
 
   scheduleSubmitting.value = true;
   scheduleErrors.value = {};
-  scheduleError.value = "";
 
   const additionalGuests = guests.value
     .map((email) => email.trim())
@@ -285,7 +310,7 @@ const scheduleBooking = async () => {
     );
 
   try {
-    await bookingsApi.schedule(apiClient, {
+    const response = await bookingsApi.schedule(apiClient, {
       username: username.value,
       event_id: String(event.value.id),
       date: selectedDate.value,
@@ -305,15 +330,13 @@ const scheduleBooking = async () => {
       ],
     });
 
+    scheduledBooking.value = response.booking;
     step.value = "scheduled";
     void refetchSchedule();
   } catch (error) {
     const apiError = error as ApiError;
     scheduleErrors.value = getApiFieldErrors(error);
-    scheduleError.value = getApiErrorMessage(
-      error,
-      "Could not schedule this meeting.",
-    );
+    toast.error(getApiErrorMessage(error, "Could not schedule this meeting."));
 
     if (apiError.response?.status === 409) {
       step.value = "slots";
@@ -397,7 +420,9 @@ useHead(() => ({
       class="mx-auto flex w-full max-w-200 items-center px-5 py-14 text-center sm:px-8"
       :class="isEmbed ? '' : 'min-h-dvh'"
     >
-      <SharedCard class="w-full border-white/10 bg-[#171717] p-8">
+      <SharedCard
+        class="grid p-8 max-w-115 -mt-10 mx-auto w-full grid-cols-1 gap-0 overflow-hidden rounded-2xl border-white/20 bg-slate-950/55 text-white shadow-2xl backdrop-blur-2xl"
+      >
         <h1 class="text-2xl font-bold tracking-normal text-foreground">
           This booking page is unavailable
         </h1>
@@ -433,9 +458,6 @@ useHead(() => ({
           <SharedCard
             v-if="!confirmationVisible"
             class="booking-glass grid w-full grid-cols-1 gap-0 overflow-hidden rounded-2xl border-white/20 bg-slate-950/55 py-0 text-white shadow-2xl backdrop-blur-2xl"
-            :class="{
-              'booking-schedule-error': scheduleError && step === 'slots',
-            }"
           >
             <UiPublicEventSummary
               :host-name="profile?.name ?? username"
@@ -447,14 +469,6 @@ useHead(() => ({
               :hide-description-on-mobile="step === 'details'"
               class="booking-summary border-b border-white/15 p-5 md:p-6"
             />
-
-            <p
-              v-if="scheduleError && step === 'slots'"
-              role="alert"
-              class="px-6 pt-4 text-sm text-amber-200"
-            >
-              {{ scheduleError }}
-            </p>
 
             <div
               v-if="step === 'slots'"
@@ -504,7 +518,6 @@ useHead(() => ({
                 v-model:attendee-email="attendeeEmail"
                 v-model:notes="notes"
                 :errors="scheduleErrors"
-                :error="scheduleError"
                 :submitting="scheduleSubmitting"
                 class="border-b border-white/10 md:min-h-0 md:overflow-y-auto md:border-b-0 md:border-r"
                 @back="step = 'slots'"
@@ -599,6 +612,8 @@ useHead(() => ({
   .booking-content {
     display: flex;
     flex: 1;
+    justify-content: center;
+    align-items: center;
     min-height: 0;
     margin-inline: auto;
     margin-top: 16px;
@@ -614,9 +629,6 @@ useHead(() => ({
     min-height: 0;
     flex: 1;
     overflow-y: auto;
-  }
-  .booking-glass.booking-schedule-error {
-    grid-template-rows: auto auto minmax(0, 1fr);
   }
   .booking-card-region {
     display: flex;
@@ -646,6 +658,10 @@ useHead(() => ({
     grid-template-rows: auto auto;
     align-content: start;
     overflow-y: auto;
+  }
+  .booking-content {
+    justify-content: flex-start; /* items start from the left/main start */
+    align-items: stretch; /* items stretch to fill the cross axis */
   }
 }
 .booking-panel {
