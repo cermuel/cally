@@ -69,7 +69,7 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
         <span class="h-4 w-24 rounded bg-white/10 motion-safe:animate-pulse" />
       </div>
       <div
-        class="block h-7 lg:w-40 w-3/4 rounded bg-white/10 motion-safe:animate-pulse"
+        class="block h-7 max-sm:hidden lg:w-40 w-3/4 rounded bg-white/10 motion-safe:animate-pulse"
       />
       <div
         class="block h-4 max-sm:hidden mb-0 lg:w-40 w-1/2 rounded bg-white/10 motion-safe:animate-pulse"
