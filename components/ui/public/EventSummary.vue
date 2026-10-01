@@ -62,14 +62,14 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
       class="max-lg:space-y-4 w-full lg:flex lg:items-center lg:flex-row lg:justify-between"
       aria-busy="true"
     >
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 max-sm:mb-0">
         <span
           class="size-8 rounded-full bg-white/10 motion-safe:animate-pulse"
         />
         <span class="h-4 w-24 rounded bg-white/10 motion-safe:animate-pulse" />
       </div>
       <div
-        class="block h-7 lg:w-40 w-3/4 max-sm:mb-0 rounded bg-white/10 motion-safe:animate-pulse"
+        class="block h-7 lg:w-40 w-3/4 rounded bg-white/10 motion-safe:animate-pulse"
       />
       <div
         class="block h-4 max-sm:hidden mb-0 lg:w-40 w-1/2 rounded bg-white/10 motion-safe:animate-pulse"
@@ -96,7 +96,7 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
       </div>
 
       <h1
-        class="text-2xl max-sm:text-xl max-sm:-mb-1 font-semibold leading-tight tracking-tight text-foreground"
+        class="text-2xl max-sm:hidden max-sm:text-xl max-sm:-mb-1 font-semibold leading-tight tracking-tight text-foreground"
       >
         {{ title }}
       </h1>

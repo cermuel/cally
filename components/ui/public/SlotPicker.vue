@@ -132,7 +132,7 @@ const label = (time: string) => {
 
 <template>
   <aside class="flex min-h-0 flex-col p-5 md:p-6">
-    <div class="mb-5 flex items-center justify-between gap-3">
+    <div class="mb-5 flex items-center justify-between gap-3 max-sm:hidden">
       <h2 class="text-sm font-medium">{{ heading }}</h2>
       <span class="slot-caption text-xs text-white/50">Available times</span>
     </div>
