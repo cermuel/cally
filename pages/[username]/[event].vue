@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import {
-  publicApi,
-  type PublicApiEvent,
-  type PublicApiUser,
-  type PublicScheduleResponse,
-} from "~/utils/api/public";
 import { bookingsApi } from "~/utils/api/bookings";
 import {
   getApiErrorMessage,
@@ -76,41 +70,34 @@ const profilePath = computed(() => ({
   query: isEmbed.value ? { embed: "true" } : undefined,
 }));
 
-const profile = ref<PublicApiUser | null>(null);
-const event = ref<PublicApiEvent | null>(null);
-const bookingError = ref<unknown>(null);
-const bookingPending = ref(true);
+const {
+  data: profileData,
+  error: profileError,
+  isPending: profilePending,
+} = usePublicProfile(username);
+const {
+  data: eventsData,
+  error: eventsError,
+  isPending: eventsPending,
+} = usePublicEvents(username);
 
-const loadBookingData = async () => {
-  bookingPending.value = true;
-  bookingError.value = null;
-  profile.value = null;
-  event.value = null;
-
-  try {
-    const [profileResponse, eventsResponse] = await Promise.all([
-      publicApi.profile(apiClient, username.value),
-      publicApi.events(apiClient, username.value),
-    ]);
-    const apiEvent = eventsResponse.events.find(
-      (item) => item.slug === eventSlug.value,
-    );
-
-    if (!apiEvent) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: "Event not found",
-      });
-    }
-
-    profile.value = profileResponse.user;
-    event.value = apiEvent;
-  } catch (error) {
-    bookingError.value = error;
-  } finally {
-    bookingPending.value = false;
-  }
-};
+const profile = computed(() => profileData.value?.user ?? null);
+const event = computed(
+  () =>
+    eventsData.value?.events.find((item) => item.slug === eventSlug.value) ??
+    null,
+);
+const bookingPending = computed(
+  () => profilePending.value || eventsPending.value,
+);
+const bookingError = computed(
+  () =>
+    profileError.value ||
+    eventsError.value ||
+    (!bookingPending.value && !event.value
+      ? createError({ statusCode: 404, statusMessage: "Event not found" })
+      : null),
+);
 
 const step = ref<BookingStep>("slots");
 const confirmationVisible = computed(() => step.value === "scheduled");
@@ -137,53 +124,38 @@ const scheduleError = ref("");
 const scheduleSubmitting = ref(false);
 
 const activeMonthKey = computed(() => toDateKey(activeMonth.value).slice(0, 7));
-const scheduleData = ref<PublicScheduleResponse | null>(null);
-const schedulePending = ref(false);
-let scheduleRequest = 0;
+const {
+  data: scheduleData,
+  isPending: schedulePending,
+  refetch: refetchSchedule,
+} = usePublicSchedule(
+  computed(() => event.value?.id ?? null),
+  activeMonthKey,
+);
 
-const loadSchedule = async () => {
-  const request = ++scheduleRequest;
+watch(
+  scheduleData,
+  (data) => {
+    if (!data) return;
 
-  if (!event.value) {
-    scheduleData.value = null;
-    schedulePending.value = false;
-    return;
-  }
+    const availableDateKeys = Object.entries(data.schedules)
+      .filter(
+        ([dateKey, slots]) =>
+          dateKey.startsWith(activeMonthKey.value) && slots.length > 0,
+      )
+      .map(([dateKey]) => dateKey)
+      .sort();
+    const today = toDateKey(new Date());
+    const isCurrentMonth = activeMonthKey.value === today.slice(0, 7);
 
-  const { id } = event.value;
-  schedulePending.value = true;
-
-  try {
-    const data = await publicApi.schedule(apiClient, id, activeMonthKey.value);
-    if (request === scheduleRequest) {
-      scheduleData.value = data;
-
-      const availableDateKeys = Object.entries(data.schedules)
-        .filter(
-          ([dateKey, slots]) =>
-            dateKey.startsWith(activeMonthKey.value) && slots.length > 0,
-        )
-        .map(([dateKey]) => dateKey)
-        .sort();
-      const today = toDateKey(new Date());
-      const isCurrentMonth = activeMonthKey.value === today.slice(0, 7);
-
-      selectedDate.value =
-        isCurrentMonth && availableDateKeys.includes(today)
-          ? today
-          : (availableDateKeys[0] ?? "");
-      selectedTime.value = "";
-    }
-  } catch {
-    if (request === scheduleRequest) {
-      scheduleData.value = null;
-      selectedDate.value = "";
-      selectedTime.value = "";
-    }
-  } finally {
-    if (request === scheduleRequest) schedulePending.value = false;
-  }
-};
+    selectedDate.value =
+      isCurrentMonth && availableDateKeys.includes(today)
+        ? today
+        : (availableDateKeys[0] ?? "");
+    selectedTime.value = "";
+  },
+  { immediate: true },
+);
 
 const calendarLoading = computed(
   () => bookingPending.value || schedulePending.value,
@@ -334,6 +306,7 @@ const scheduleBooking = async () => {
     });
 
     step.value = "scheduled";
+    void refetchSchedule();
   } catch (error) {
     const apiError = error as ApiError;
     scheduleErrors.value = getApiFieldErrors(error);
@@ -344,7 +317,7 @@ const scheduleBooking = async () => {
 
     if (apiError.response?.status === 409) {
       step.value = "slots";
-      await loadSchedule();
+      await refetchSchedule();
     }
   } finally {
     scheduleSubmitting.value = false;
@@ -358,11 +331,6 @@ const clearScheduleError = (field: string) => {
   delete nextErrors[field];
   scheduleErrors.value = nextErrors;
 };
-
-if (import.meta.client) {
-  watch([username, eventSlug], loadBookingData, { immediate: true });
-  watch([event, activeMonthKey], loadSchedule, { immediate: true });
-}
 
 const root = ref<HTMLElement | null>(null);
 let resizeObserver: ResizeObserver | undefined;

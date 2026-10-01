@@ -1,31 +1,17 @@
 <script setup lang="ts">
-import { publicApi } from "~/utils/api/public";
-
 const route = useRoute();
-const apiClient = useApiClient();
 const username = computed(() => String(route.params.username || ""));
 
 const {
-  data: profile,
+  data: profileData,
   error: profileError,
-  pending: profilePending,
-} = useLazyAsyncData(
-  () => `public-profile-${username.value}`,
-  async () => {
-    const response = await publicApi.profile(apiClient, username.value);
-    return response.user;
-  },
-  { server: false, watch: [username] },
-);
+  isPending: profilePending,
+} = usePublicProfile(username);
 
-const { data: eventsData, pending: eventsPending } = useLazyAsyncData(
-  () => `public-events-${username.value}`,
-  async () => {
-    const response = await publicApi.events(apiClient, username.value);
-    return response.events;
-  },
-  { server: false, watch: [username] },
-);
+const { data: eventsData, isPending: eventsPending } =
+  usePublicEvents(username);
+
+const profile = computed(() => profileData.value?.user);
 
 const isEmbed = computed(() =>
   ["true", "1"].includes(String(route.query.embed)),
@@ -116,7 +102,7 @@ useHead(() => ({
         />
 
         <UiPublicEventList
-          :events="eventsData ?? []"
+          :events="eventsData?.events ?? []"
           :is-embed="isEmbed"
           :pending="eventsPending"
           :username="username"
