@@ -83,9 +83,7 @@ useHead(() => ({
   <main
     ref="root"
     class="relative text-foreground antialiased"
-    :class="
-      isEmbed ? 'bg-transparent' : 'h-dvh overflow-y-auto bg-background'
-    "
+    :class="isEmbed ? 'bg-transparent' : 'h-dvh overflow-y-auto bg-background'"
   >
     <div
       v-if="!isEmbed"
@@ -125,13 +123,12 @@ useHead(() => ({
         />
       </template>
 
-      <footer v-if="!isEmbed" class="mt-auto pt-16">
+      <footer v-if="!isEmbed" class="booking-footer mt-4 px-2">
         <NuxtLink
           to="/"
-          class="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60 transition-colors hover:text-foreground"
+          class="inline-flex items-center gap-1.5 text-white/65 transition-colors hover:text-white"
         >
-          Powered by
-          <img src="/logo.png" alt="" class="size-4 rounded" />
+          <img src="/logo.png" alt="" class="size-5 rounded" />
           <span class="font-medium">Cally</span>
         </NuxtLink>
       </footer>

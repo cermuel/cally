@@ -117,8 +117,8 @@ const removeGuest = (index: number) => {
             type="email"
             placeholder="you@example.com"
             :error="
-              errors?.[`guests.${index + 1}.email`]?.[0]
-              || (showGuestErrors && guests[index]?.trim().length === 0
+              errors?.[`guests.${index + 1}.email`]?.[0] ||
+              (showGuestErrors && guests[index]?.trim().length === 0
                 ? 'Enter guest email'
                 : undefined)
             "

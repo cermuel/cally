@@ -57,17 +57,6 @@ const formatTimeRange = (
   return `${formatter.format(start).toLowerCase()} - ${formatter.format(end).toLowerCase()}`;
 };
 
-const formatSlotLabel = (time: string) => {
-  const [hour = 0, minute = 0] = time.split(":").map(Number);
-  const date = new Date();
-  date.setHours(hour, minute, 0, 0);
-  return new Intl.DateTimeFormat("en-GB", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(date).toLowerCase();
-};
-
 const addMinutesToTime = (time: string, minutesToAdd: number) => {
   const [hours = 0, minutes = 0] = time.split(":").map(Number);
   const totalMinutes = hours * 60 + minutes + minutesToAdd;
@@ -124,11 +113,21 @@ const loadBookingData = async () => {
 };
 
 const step = ref<BookingStep>("slots");
+const confirmationVisible = computed(() => step.value === "scheduled");
+const bookingPanel = useBookingPanelMotion(confirmationVisible);
 const selectedDate = ref("");
 const activeMonth = ref(
   new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12),
 );
 const selectedTime = ref("");
+const previewTime = ref("");
+const sceneTime = computed(
+  () =>
+    previewTime.value ||
+    selectedTime.value ||
+    slots.value[0]?.time.slice(0, 5) ||
+    "09:00",
+);
 const attendeeName = ref("");
 const attendeeEmail = ref("");
 const notes = ref("");
@@ -231,9 +230,7 @@ const calendarDays = computed(() => {
   return [...blanks, ...days];
 });
 
-const selectedDateLabel = computed(() =>
-  formatDateLabel(selectedDate.value),
-);
+const selectedDateLabel = computed(() => formatDateLabel(selectedDate.value));
 
 const selectedSlotHeading = computed(() =>
   selectedDate.value ? formatSlotHeading(selectedDate.value) : "",
@@ -251,12 +248,13 @@ const scheduledWhenLabel = computed(
   () => `${selectedDateLabel.value}\n${selectedTimeRange.value}`,
 );
 
-const slots = computed(() =>
-  (scheduleData.value?.schedules[selectedDate.value] ?? []).map((slot) => ({
-    value: slot.time.slice(0, 5),
-    label: formatSlotLabel(slot.time),
-  })),
+const slots = computed(
+  () => scheduleData.value?.schedules[selectedDate.value] ?? [],
 );
+
+watch([selectedDate, step], () => {
+  previewTime.value = "";
+});
 
 const showSlots = computed(
   () =>
@@ -276,7 +274,9 @@ const selectDate = async (dateKey: string) => {
   await nextTick();
   if (window.matchMedia("(max-width: 767px)").matches) {
     slotsPanel.value?.$el.scrollIntoView({
-      behavior: "smooth",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
       block: "nearest",
     });
   }
@@ -290,9 +290,9 @@ const moveMonth = (amount: number) => {
   selectedTime.value = "";
 };
 
-const chooseSlot = (slot: { label: string; value: string }) => {
-  selectedTime.value = slot.value;
-  step.value = "details";
+const chooseSlot = (time: string) => {
+  selectedTime.value = time;
+  previewTime.value = "";
 };
 
 const scheduleBooking = async () => {
@@ -305,9 +305,11 @@ const scheduleBooking = async () => {
   const additionalGuests = guests.value
     .map((email) => email.trim())
     .filter(Boolean)
-    .filter((email, index, list) =>
-      email.toLowerCase() !== attendeeEmail.value.trim().toLowerCase()
-      && list.findIndex((item) => item.toLowerCase() === email.toLowerCase()) === index,
+    .filter(
+      (email, index, list) =>
+        email.toLowerCase() !== attendeeEmail.value.trim().toLowerCase() &&
+        list.findIndex((item) => item.toLowerCase() === email.toLowerCase()) ===
+          index,
     );
 
   try {
@@ -316,7 +318,10 @@ const scheduleBooking = async () => {
       event_id: String(event.value.id),
       date: selectedDate.value,
       starts_at: selectedTime.value,
-      ends_at: addMinutesToTime(selectedTime.value, event.value.duration_minutes),
+      ends_at: addMinutesToTime(
+        selectedTime.value,
+        event.value.duration_minutes,
+      ),
       notes: notes.value.trim() || null,
       guests: [
         {
@@ -332,7 +337,10 @@ const scheduleBooking = async () => {
   } catch (error) {
     const apiError = error as ApiError;
     scheduleErrors.value = getApiFieldErrors(error);
-    scheduleError.value = getApiErrorMessage(error, "Could not schedule this meeting.");
+    scheduleError.value = getApiErrorMessage(
+      error,
+      "Could not schedule this meeting.",
+    );
 
     if (apiError.response?.status === 409) {
       step.value = "slots";
@@ -386,13 +394,26 @@ useHead(() => ({
 <template>
   <main
     ref="root"
-    class="text-foreground antialiased"
-    :class="isEmbed ? 'bg-transparent' : 'h-dvh overflow-hidden bg-[#101010]'"
+    class="booking-page booking-scenic dark relative isolate h-dvh text-foreground antialiased"
+    :class="
+      isEmbed
+        ? 'booking-embed bg-transparent'
+        : 'px-4 pb-8 pt-6 md:px-10 md:pb-12'
+    "
   >
+    <UiPublicBookingScene
+      v-if="!isEmbed"
+      :time="sceneTime"
+      :hide-clock="confirmationVisible"
+      :first-time="slots[0]?.time"
+      :last-time="slots.at(-1)?.time"
+      :date="selectedDate"
+      :timezone="profile?.timezone ?? 'Host’s local time'"
+    />
     <NuxtLink
-      v-if="step === 'scheduled' && !isEmbed"
+      v-if="!isEmbed"
       :to="profilePath"
-      class="fixed left-8 top-6 inline-flex items-center gap-2 text-base font-medium text-muted-foreground transition-colors hover:text-foreground"
+      class="relative z-10 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/15 px-3 py-2 text-xs font-medium text-white/85 backdrop-blur-xl transition-colors hover:bg-white/15"
     >
       <HugeiconsIcon
         :icon="ArrowLeft01Icon"
@@ -400,7 +421,7 @@ useHead(() => ({
         color="currentColor"
         :stroke-width="1.75"
       />
-      Back to bookings
+      {{ profile?.name ? profile.name : "All bookings" }}
     </NuxtLink>
 
     <section
@@ -409,7 +430,7 @@ useHead(() => ({
       :class="isEmbed ? '' : 'min-h-dvh'"
     >
       <SharedCard class="w-full border-white/10 bg-[#171717] p-8">
-        <h1 class="text-2xl font-bold tracking-normal text-white">
+        <h1 class="text-2xl font-bold tracking-normal text-foreground">
           This booking page is unavailable
         </h1>
         <p class="mt-3 text-sm leading-6 text-muted-foreground">
@@ -422,103 +443,268 @@ useHead(() => ({
     </section>
 
     <section
-      v-else-if="step !== 'scheduled'"
-      class="mx-auto flex h-full w-full max-w-240 justify-center overflow-hidden md:px-5 lg:px-0"
-      :class="
-        isEmbed
-          ? 'py-1'
-          : 'items-stretch max-md:bg-[#171717] md:items-center md:py-16'
-      "
+      v-else
+      class="booking-content relative w-full"
+      :class="[
+        'max-w-185',
+        isEmbed ? 'mx-auto py-1' : 'mt-8',
+        {
+          'booking-confirmation': confirmationVisible,
+          'booking-loading': calendarLoading && step === 'slots',
+        },
+      ]"
     >
-      <SharedCard
-        class="grid h-full w-full grid-cols-1 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden rounded-xl border-white/10 bg-[#171717] py-0 shadow-[inset_0_1px_0_oklch(1_0_0/0.02)] max-md:rounded-none max-md:border-none md:h-120 md:grid-cols-[17rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]"
+      <div
+        ref="bookingPanel"
+        class="booking-panel w-full"
+        :class="{ 'confirmation-panel': confirmationVisible }"
       >
-        <UiPublicEventSummary
-          :host-name="profile?.name ?? username"
-          :host-image="profile?.avatar ?? undefined"
-          :title="event?.name ?? 'Meeting'"
-          :description="event?.description ?? ''"
-          :duration-label="event ? `${event.duration_minutes}m` : ''"
-          :loading="bookingPending"
-          :hide-description-on-mobile="step === 'details'"
-          class="border-b border-white/10 p-4 md:min-h-0 md:border-b-0 md:border-r md:p-6"
-        />
-
         <div
-          v-if="step === 'slots'"
-          class="grid min-h-0 grid-cols-1 overflow-hidden md:grid-rows-[minmax(0,1fr)]"
-          :class="
-            showSlots
-              ? 'grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[27rem_minmax(0,1fr)]'
-              : 'grid-rows-1'
-          "
+          class="booking-card-region w-full flex flex-col items-center justify-center"
         >
-          <UiPublicCalendarSkeleton v-if="calendarLoading" />
-          <UiPublicBookingCalendar
-            v-else
-            :days="calendarDays"
-            :month-label="monthLabel"
-            :selected-date="selectedDate"
-            :no-availability="availableDates.size === 0"
-            @previous="moveMonth(-1)"
-            @next="moveMonth(1)"
-            @select="selectDate"
-          />
-
-          <Transition
-            enter-active-class="transition duration-200 ease-out motion-reduce:transition-none"
-            enter-from-class="opacity-0 md:translate-x-2"
+          <SharedCard
+            v-if="!confirmationVisible"
+            class="booking-glass grid w-full grid-cols-1 gap-0 overflow-hidden rounded-2xl border-white/20 bg-slate-950/55 py-0 text-white shadow-2xl backdrop-blur-2xl"
+            :class="{
+              'booking-schedule-error': scheduleError && step === 'slots',
+            }"
           >
-            <UiPublicTimeSlots
-              v-if="showSlots"
-              ref="slotsPanel"
-              :heading="selectedSlotHeading"
-              :slots="slots"
-              class="border-t border-white/10 md:border-l md:border-t-0"
-              @choose="chooseSlot"
+            <UiPublicEventSummary
+              :host-name="profile?.name ?? username"
+              :host-image="profile?.avatar ?? undefined"
+              :title="event?.name ?? 'Meeting'"
+              :description="event?.description ?? ''"
+              :duration-label="event ? `${event.duration_minutes}m` : ''"
+              :loading="bookingPending"
+              :hide-description-on-mobile="step === 'details'"
+              class="booking-summary border-b border-white/15 p-5 md:p-6"
             />
-          </Transition>
-        </div>
 
-        <div
-          v-else
-          class="grid min-h-0 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden md:grid-cols-[27rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]"
-        >
-          <UiPublicBookingDetailsForm
-            v-model:attendee-name="attendeeName"
-            v-model:attendee-email="attendeeEmail"
-            v-model:notes="notes"
-            :errors="scheduleErrors"
-            :error="scheduleError"
-            :submitting="scheduleSubmitting"
-            class="border-b border-white/10 md:min-h-0 md:overflow-y-auto md:border-b-0 md:border-r"
-            @back="step = 'slots'"
-            @clear-error="clearScheduleError"
-            @confirm="scheduleBooking"
-          />
+            <p
+              v-if="scheduleError && step === 'slots'"
+              role="alert"
+              class="px-6 pt-4 text-sm text-amber-200"
+            >
+              {{ scheduleError }}
+            </p>
 
-          <UiPublicBookingDetails
-            v-model:guests="guests"
-            :selected-date-label="selectedDateLabel"
-            :selected-time-label="selectedTimeRange"
-            :errors="scheduleErrors"
-            class="min-h-0"
+            <div
+              v-if="step === 'slots'"
+              class="booking-slots-layout grid min-h-0 grid-cols-1"
+              :class="
+                showSlots
+                  ? 'md:h-100 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]'
+                  : 'grid-rows-1'
+              "
+            >
+              <UiPublicCalendarSkeleton v-if="calendarLoading" />
+              <UiPublicBookingCalendar
+                v-else
+                :days="calendarDays"
+                :month-label="monthLabel"
+                :selected-date="selectedDate"
+                :no-availability="availableDates.size === 0"
+                @previous="moveMonth(-1)"
+                @next="moveMonth(1)"
+                @select="selectDate"
+              />
+
+              <Transition
+                enter-active-class="transition duration-200 ease-out motion-reduce:transition-none"
+                enter-from-class="opacity-0 md:translate-x-2"
+              >
+                <UiPublicSlotPicker
+                  v-if="showSlots"
+                  ref="slotsPanel"
+                  :heading="selectedSlotHeading"
+                  :slots="slots"
+                  :selected-time="selectedTime"
+                  class="border-t border-white/10 md:border-l md:border-t-0"
+                  @select="chooseSlot"
+                  @preview="previewTime = $event"
+                  @continue="step = 'details'"
+                />
+              </Transition>
+            </div>
+
+            <div
+              v-else
+              class="booking-details-layout max-md:flex flex-col grid min-h-0 grid-cols-1 md:min-h-100 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]"
+            >
+              <UiPublicBookingDetailsForm
+                v-model:attendee-name="attendeeName"
+                v-model:attendee-email="attendeeEmail"
+                v-model:notes="notes"
+                :errors="scheduleErrors"
+                :error="scheduleError"
+                :submitting="scheduleSubmitting"
+                class="border-b border-white/10 md:min-h-0 md:overflow-y-auto md:border-b-0 md:border-r"
+                @back="step = 'slots'"
+                @clear-error="clearScheduleError"
+                @confirm="scheduleBooking"
+              />
+
+              <UiPublicBookingDetails
+                v-model:guests="guests"
+                :selected-date-label="selectedDateLabel"
+                :selected-time-label="selectedTimeRange"
+                :errors="scheduleErrors"
+                class="min-h-0"
+              />
+            </div>
+          </SharedCard>
+          <UiPublicScheduledCard
+            v-else-if="event && profile"
+            :attendee-email="attendeeEmail"
+            :attendee-name="attendeeName"
+            :event="event"
+            :guests="guests"
+            :profile="profile"
+            :scheduled-when-label="scheduledWhenLabel"
+            :username="username"
+            @reschedule="step = 'slots'"
           />
         </div>
-      </SharedCard>
+        <div v-if="!isEmbed" class="booking-footer mt-4 px-2">
+          <NuxtLink
+            to="/"
+            class="inline-flex items-center gap-1.5 text-white/65 transition-colors hover:text-white"
+          >
+            <img src="/logo.png" alt="" class="size-5 rounded" />
+            <span class="font-medium">Cally</span>
+          </NuxtLink>
+        </div>
+      </div>
     </section>
-
-    <UiPublicScheduledCard
-      v-else-if="event && profile"
-      :attendee-email="attendeeEmail"
-      :attendee-name="attendeeName"
-      :event="event"
-      :guests="guests"
-      :profile="profile"
-      :scheduled-when-label="scheduledWhenLabel"
-      :username="username"
-      :class="isEmbed ? 'h-auto! py-4!' : ''"
-      @reschedule="step = 'slots'"
-    />
   </main>
 </template>
+
+<style scoped>
+.booking-scenic {
+  --foreground: oklch(0.985 0 0);
+  --background: oklch(0.18 0.015 250);
+  --card-foreground: oklch(0.985 0 0);
+  --muted-foreground: oklch(0.78 0.01 250);
+  --border: oklch(1 0 0 / 15%);
+  --input: oklch(1 0 0 / 15%);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.18 0 0);
+  --secondary: oklch(1 0 0 / 10%);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(1 0 0 / 10%);
+  --ring: oklch(1 0 0 / 65%);
+  color-scheme: dark;
+}
+.booking-summary :deep(dl) {
+  flex-direction: row;
+}
+@media (min-width: 768px) {
+  .booking-summary :deep(#event-description) {
+    max-height: 48px;
+    overflow-y: auto;
+  }
+}
+.booking-embed {
+  min-height: 0;
+}
+.booking-embed.booking-scenic .booking-glass {
+  background: #171c23;
+}
+@media (min-width: 1101px) {
+  .booking-content {
+    margin-top: 44px;
+  }
+}
+@media (max-width: 1100px) {
+  .booking-page:not(.booking-embed) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .booking-page:not(.booking-embed) > a:first-of-type {
+    position: relative;
+    top: auto;
+    left: auto;
+    flex: none;
+    align-self: flex-start;
+  }
+  .booking-content {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    margin-inline: auto;
+    margin-top: 16px;
+  }
+  .booking-panel {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+  .booking-glass {
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+  }
+  .booking-glass.booking-schedule-error {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .booking-card-region {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+  }
+  .booking-footer {
+    flex: none;
+  }
+  .booking-loading .booking-card-region {
+    align-items: center;
+  }
+  .booking-loading .booking-glass {
+    min-height: auto;
+    flex: none;
+    height: max-content;
+  }
+  .booking-embed .booking-content {
+    margin-top: 0;
+  }
+}
+@media (max-width: 767px) {
+  .booking-slots-layout {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .booking-details-layout {
+    grid-template-rows: auto auto;
+    align-content: start;
+    overflow-y: auto;
+  }
+}
+.booking-panel {
+  transform-origin: top left;
+}
+.booking-content.booking-confirmation {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 72px 16px;
+}
+.confirmation-panel {
+  max-width: 560px;
+  max-height: calc(100dvh - 144px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.booking-embed .booking-confirmation {
+  position: relative;
+  padding: 16px;
+}
+.booking-embed .confirmation-panel {
+  max-height: none;
+}
+</style>

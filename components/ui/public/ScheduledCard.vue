@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import {
-  ArrowUpRight01Icon,
-  CalendarPlus01Icon,
-  Location05Icon,
-  Time02Icon,
+  ComputerVideoCallIcon,
   UserIcon,
   UserMultipleIcon,
 } from "@hugeicons/core-free-icons";
@@ -45,27 +42,30 @@ const hiddenGuestCount = computed(() =>
 </script>
 
 <template>
-  <section
-    class="mx-auto flex h-dvh w-full max-w-150 flex-col items-center justify-center px-5 py-20"
-  >
+  <section>
     <SharedCard
-      class="overflow-hidden rounded-[18px] border-white/10 bg-[#202020] py-0 shadow-[inset_0_1px_0_oklch(1_0_0/0.03)]"
+      class="w-full overflow-hidden rounded-2xl border-white/20 bg-slate-950/65 py-0 text-white shadow-2xl backdrop-blur-2xl"
     >
-      <header class="grid place-items-center text-center pt-5">
-        <h1 class="text-xl font-medium tracking-normal">
+      <header class="grid place-items-center text-center pt-5 mb-0">
+        <h1
+          tabindex="-1"
+          class="px-5 text-xl font-medium tracking-normal outline-none"
+        >
           Your request was sent to {{ profile.name.split(" ")[0] }}
         </h1>
       </header>
 
-      <p class="px-8 text-center text-sm leading-6 text-muted-foreground">
-        You’ll receive a confirmation when the host accepts the booking.
+      <p
+        class="px-8 -mt-5 -mb-2 text-center text-sm leading-6 text-muted-foreground"
+      >
+        We've sent you a mail with more details about your event
       </p>
 
-      <section class="border-y border-white/10 bg-[#171717] px-10 py-9">
+      <section class="border-y border-white/10 bg-black/10 px-5 py-6 sm:px-8">
         <div class="space-y-7 text-base font-medium">
-          <section class="grid gap-3 sm:grid-cols-[32px_1fr]">
+          <section class="grid gap-3 grid-cols-[32px_1fr]">
             <HugeiconsIcon
-              :icon="Time02Icon"
+              :icon="ComputerVideoCallIcon"
               :size="22"
               color="currentColor"
               :stroke-width="1.75"
@@ -76,13 +76,10 @@ const hiddenGuestCount = computed(() =>
               <p class="mt-1 text-muted-foreground">
                 {{ scheduledDateLabel }} at {{ scheduledTimeLabel }}
               </p>
-              <p class="mt-1 text-muted-foreground">
-                {{ event.duration_minutes }}m duration
-              </p>
             </div>
           </section>
 
-          <section class="grid gap-3 sm:grid-cols-[32px_1fr]">
+          <section class="grid gap-3 grid-cols-[32px_1fr]">
             <HugeiconsIcon
               :icon="UserIcon"
               :size="22"
@@ -103,7 +100,7 @@ const hiddenGuestCount = computed(() =>
             </div>
           </section>
 
-          <section class="grid gap-3 sm:grid-cols-[32px_1fr]">
+          <section class="grid gap-3 grid-cols-[32px_1fr]">
             <HugeiconsIcon
               :icon="UserMultipleIcon"
               :size="22"
@@ -115,7 +112,7 @@ const hiddenGuestCount = computed(() =>
               <div
                 v-for="(guest, index) in visibleGuests"
                 :key="guest"
-                class="flex flex-wrap items-center justify-between gap-2"
+                class="flex flex-wrap items-center gap-2"
               >
                 <p class="min-w-0 break-all text-muted-foreground">
                   {{ guest }}
@@ -136,58 +133,8 @@ const hiddenGuestCount = computed(() =>
               </button>
             </div>
           </section>
-
-          <section class="grid gap-3 sm:grid-cols-[32px_1fr]">
-            <HugeiconsIcon
-              :icon="Location05Icon"
-              :size="22"
-              color="currentColor"
-              :stroke-width="1.75"
-              class="mt-0.5 text-muted-foreground"
-            />
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <a
-                href="#"
-                class="inline-flex items-center gap-2 transition-colors hover:text-primary"
-              >
-                Google Meet
-                <HugeiconsIcon
-                  :icon="ArrowUpRight01Icon"
-                  :size="19"
-                  color="currentColor"
-                  :stroke-width="1.75"
-                />
-              </a>
-              <SharedButton type="button" variant="ghost" size="sm">
-                <HugeiconsIcon
-                  :icon="CalendarPlus01Icon"
-                  :size="18"
-                  color="currentColor"
-                  :stroke-width="1.75"
-                />
-                Add to calendar
-              </SharedButton>
-            </div>
-          </section>
         </div>
       </section>
-
-      <footer
-        class="px-8 pb-6 text-center text-sm font-medium text-muted-foreground"
-      >
-        Unsure about your availability?
-        <button
-          type="button"
-          class="underline hover:text-foreground"
-          @click="$emit('reschedule')"
-        >
-          Reschedule
-        </button>
-        or
-        <NuxtLink :to="`/${username}`" class="underline hover:text-foreground">
-          Cancel
-        </NuxtLink>
-      </footer>
     </SharedCard>
   </section>
 </template>

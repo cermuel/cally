@@ -20,7 +20,10 @@ const descriptionOverflows = ref(false);
 const measureDescription = async () => {
   await nextTick();
 
-  if (!descriptionElement.value || !window.matchMedia("(max-width: 767px)").matches) {
+  if (
+    !descriptionElement.value ||
+    !window.matchMedia("(max-width: 767px)").matches
+  ) {
     descriptionOverflows.value = false;
     return;
   }
@@ -51,15 +54,26 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
 </script>
 
 <template>
-  <aside class="flex flex-col gap-4">
-    <div v-if="loading" class="space-y-4" aria-busy="true">
+  <aside
+    class="flex max-sm:h-max md:flex-row md:justify-between flex-col gap-4"
+  >
+    <div
+      v-if="loading"
+      class="max-lg:space-y-4 w-full lg:flex lg:items-center lg:flex-row lg:justify-between"
+      aria-busy="true"
+    >
       <div class="flex items-center gap-2">
-        <span class="size-8 rounded-full bg-white/10 motion-safe:animate-pulse" />
+        <span
+          class="size-8 rounded-full bg-white/10 motion-safe:animate-pulse"
+        />
         <span class="h-4 w-24 rounded bg-white/10 motion-safe:animate-pulse" />
       </div>
-      <span class="block h-7 w-3/4 rounded bg-white/10 motion-safe:animate-pulse" />
-      <span class="block h-4 w-1/2 rounded bg-white/10 motion-safe:animate-pulse" />
-      <span class="block h-4 w-2/5 rounded bg-white/10 motion-safe:animate-pulse" />
+      <div
+        class="block h-7 lg:w-40 w-3/4 rounded bg-white/10 motion-safe:animate-pulse"
+      />
+      <div
+        class="block h-4 mb-0 lg:w-40 w-1/2 rounded bg-white/10 motion-safe:animate-pulse"
+      />
     </div>
 
     <template v-else>
@@ -68,11 +82,15 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
         <p class="text-sm font-medium text-muted-foreground">{{ hostName }}</p>
       </div>
 
-      <h1 class="text-2xl font-semibold leading-tight tracking-tight text-foreground">
+      <h1
+        class="text-2xl font-semibold leading-tight tracking-tight text-foreground"
+      >
         {{ title }}
       </h1>
 
-      <dl class="flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium text-foreground/85 md:flex-col">
+      <dl
+        class="flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium text-foreground/85 md:flex-col"
+      >
         <div class="flex items-center gap-2">
           <dt class="grid size-5 place-items-center text-muted-foreground">
             <HugeiconsIcon
@@ -87,7 +105,9 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
           <dd>{{ durationLabel }}</dd>
         </div>
         <div class="flex items-center gap-2">
-          <dt class="grid size-5 place-items-center rounded bg-muted text-foreground">
+          <dt
+            class="grid size-5 place-items-center rounded bg-muted text-foreground"
+          >
             <HugeiconsIcon
               :icon="Video01Icon"
               :size="15"
@@ -110,9 +130,7 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
           id="event-description"
           ref="descriptionElement"
           class="min-h-0 md:flex-1 md:overflow-y-auto md:pe-1"
-          :class="
-            !expanded ? 'max-md:max-h-12.5 max-md:overflow-hidden' : ''
-          "
+          :class="!expanded ? 'max-md:max-h-12.5 max-md:overflow-hidden' : ''"
         >
           <PublicRichText :html="description" />
         </div>

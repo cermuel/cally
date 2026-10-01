@@ -9,15 +9,18 @@ const attendeeName = defineModel<string>("attendeeName", { required: true });
 const attendeeEmail = defineModel<string>("attendeeEmail", { required: true });
 const notes = defineModel<string>("notes", { required: true });
 
-const props = withDefaults(defineProps<{
-  errors?: Record<string, string[]>;
-  error?: string;
-  submitting?: boolean;
-}>(), {
-  errors: () => ({}),
-  error: "",
-  submitting: false,
-});
+const props = withDefaults(
+  defineProps<{
+    errors?: Record<string, string[]>;
+    error?: string;
+    submitting?: boolean;
+  }>(),
+  {
+    errors: () => ({}),
+    error: "",
+    submitting: false,
+  },
+);
 
 const emit = defineEmits<{
   back: [];
@@ -90,9 +93,7 @@ watch(
 </script>
 
 <template>
-  <div
-    class="flex flex-col space-y-3 p-4 md:space-y-4 md:p-6"
-  >
+  <div class="flex flex-col space-y-3 p-4 md:space-y-4 md:p-6">
     <div class="space-y-2">
       <SharedLabel for="public-booking-name">Full name</SharedLabel>
       <SharedInput
@@ -137,7 +138,9 @@ watch(
       />
     </div>
 
-    <p v-if="error" role="alert" class="text-sm text-destructive">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-destructive">
+      {{ error }}
+    </p>
 
     <div class="mt-auto flex justify-end gap-4 pt-2 md:pt-5">
       <SharedButton
@@ -149,8 +152,14 @@ watch(
       >
         Back
       </SharedButton>
-      <SharedButton type="button" class="h-9" :disabled="submitting" @click="confirm">
-        {{ submitting ? "Scheduling…" : "Schedule" }}
+      <SharedButton
+        type="button"
+        class="h-9"
+        :disabled="submitting"
+        :loading="submitting"
+        @click="confirm"
+      >
+        Schedule
       </SharedButton>
     </div>
   </div>
