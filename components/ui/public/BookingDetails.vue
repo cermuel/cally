@@ -15,6 +15,7 @@ defineProps<{
 
 const guests = defineModel<string[]>("guests", { required: true });
 const showGuestErrors = ref(false);
+const addGuestsOpen = ref(false);
 const guestList = ref<HTMLElement | null>(null);
 const guestInputs = ref<Array<{ focus: () => void } | null>>([]);
 const shouldAutoScrollGuestList = ref(true);
@@ -77,10 +78,16 @@ const removeGuest = (index: number) => {
     showGuestErrors.value = false;
   }
 };
+
+const addGuests = (emails: string[]) => {
+  guests.value.push(...emails);
+  shouldAutoScrollGuestList.value = true;
+  void scrollGuestListToBottom();
+};
 </script>
 
 <template>
-  <aside class="flex h-full min-h-0 flex-col overflow-hidden p-4 md:p-6">
+  <aside class="flex min-h-0 flex-1 flex-col overflow-hidden p-4 md:p-6">
     <div
       v-if="selectedDateLabel && selectedTimeLabel"
       class="mb-4 flex shrink-0 items-start gap-1.5 max-sm:my-2"
@@ -148,7 +155,7 @@ const removeGuest = (index: number) => {
         type="button"
         variant="secondary"
         size="sm"
-        class="mt-auto shrink-0"
+        class="mt-auto shrink-0 max-sm:hidden"
         @click="addGuest"
       >
         <HugeiconsIcon
@@ -159,6 +166,24 @@ const removeGuest = (index: number) => {
         />
         Add guest
       </SharedButton>
+
+      <SharedButton
+        type="button"
+        variant="secondary"
+        size="sm"
+        class="mt-auto shrink-0 sm:hidden"
+        @click="addGuestsOpen = true"
+      >
+        <HugeiconsIcon
+          :icon="AddTeamIcon"
+          :size="21"
+          color="currentColor"
+          :stroke-width="1.75"
+        />
+        Add guest
+      </SharedButton>
     </div>
+
+    <UiPublicAddGuestsDialog v-model:open="addGuestsOpen" @add="addGuests" />
   </aside>
 </template>

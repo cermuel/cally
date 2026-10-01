@@ -29,19 +29,28 @@ watch(open, (isOpen) => {
   }
 });
 
-const addGuest = async () => {
-  const emptyGuestIndex = emails.value.findIndex(
-    (email) => email.trim().length === 0,
+const validateEmails = () => {
+  const values = emails.value.map((email) => email.trim());
+  errors.value = values.map((email) =>
+    helpers.validateEmail(email) ? "" : "Enter a valid email address.",
   );
+  return {
+    values,
+    firstInvalidIndex: errors.value.findIndex(Boolean),
+  };
+};
 
-  if (emptyGuestIndex !== -1) {
-    errors.value[emptyGuestIndex] = "Enter guest email";
+const addGuest = async () => {
+  const { firstInvalidIndex } = validateEmails();
+
+  if (firstInvalidIndex !== -1) {
     await nextTick();
-    guestInputs.value[emptyGuestIndex]?.focus();
+    guestInputs.value[firstInvalidIndex]?.focus();
     return;
   }
 
   emails.value.push("");
+  errors.value.push("");
   await nextTick();
   guestList.value?.scrollTo({ top: guestList.value.scrollHeight });
   guestInputs.value[emails.value.length - 1]?.focus();
@@ -61,11 +70,7 @@ const clearError = (index: number) => {
 };
 
 const submit = async () => {
-  const values = emails.value.map((email) => email.trim());
-  errors.value = values.map((email) =>
-    helpers.validateEmail(email) ? "" : "Enter a valid email address.",
-  );
-  const firstInvalidIndex = errors.value.findIndex(Boolean);
+  const { values, firstInvalidIndex } = validateEmails();
 
   if (firstInvalidIndex !== -1) {
     await nextTick();
@@ -87,7 +92,7 @@ const submit = async () => {
       <DialogContent
         class="fixed left-1/2 top-1/4 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl border border-border bg-background p-5 shadow-lg outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
       >
-        <form @submit.prevent="submit">
+        <form novalidate @submit.prevent="submit">
           <DialogTitle class="font-semibold">Add guests</DialogTitle>
           <DialogDescription class="mt-1 text-sm text-muted-foreground">
             We'll email each guest an invitation.

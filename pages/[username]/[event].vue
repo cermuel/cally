@@ -273,9 +273,7 @@ const selectDate = async (dateKey: string) => {
   mobileSlotStep.value = "times";
 
   await nextTick();
-  if (
-    window.matchMedia("(min-width: 640px) and (max-width: 767px)").matches
-  ) {
+  if (window.matchMedia("(min-width: 640px) and (max-width: 767px)").matches) {
     slotsPanel.value?.$el.scrollIntoView({
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ? "instant"
@@ -454,6 +452,7 @@ useHead(() => ({
         isEmbed ? 'mx-auto py-1' : 'mt-8',
         {
           'booking-confirmation': confirmationVisible,
+          'booking-details': step === 'details',
           'booking-loading': calendarLoading && step === 'slots',
           'booking-mobile-slots': step === 'slots',
         },
@@ -480,6 +479,7 @@ useHead(() => ({
               :loading="bookingPending"
               :hide-description-on-mobile="step === 'details'"
               class="booking-summary border-b border-white/15 p-5 md:p-6"
+              :class="step !== 'slots' && 'max-sm:hidden'"
             />
 
             <div
@@ -680,6 +680,9 @@ useHead(() => ({
   }
 }
 @media (max-width: 639px) {
+  .booking-details .booking-glass {
+    grid-template-rows: minmax(0, 1fr);
+  }
   .booking-mobile-slots .booking-glass {
     min-height: auto;
     height: max-content;
