@@ -11,7 +11,17 @@ const GOOGLE_ICON = "/svg/google.svg";
 <template>
   <div class="space-y-6">
     <SharedButton
-      v-if="ob.calendar.connected"
+      v-if="ob.calendar.checking"
+      type="button"
+      loading
+      disabled
+      class="h-11 w-full"
+    >
+      Checking Google Calendar
+    </SharedButton>
+
+    <SharedButton
+      v-else-if="ob.calendar.connected"
       type="button"
       variant="outline"
       disabled

@@ -49,6 +49,11 @@ export const queryKeys = {
     list: (bookingId: QueryKeyId) => [...queryKeys.guests.all(), 'list', bookingId] as const,
     detail: (bookingId: QueryKeyId, email: string) => [...queryKeys.guests.all(), 'detail', bookingId, email] as const,
   },
+
+  connections: {
+    all: () => [...queryKeys.all, 'connections'] as const,
+    list: () => [...queryKeys.connections.all(), 'list'] as const,
+  },
 } as const
 
 export type QueryKeyId = string | number

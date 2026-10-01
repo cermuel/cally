@@ -20,10 +20,11 @@ export type ChangePasswordPayload = {
 }
 
 export const usersApi = {
-  me(client: AxiosInstance) {
+  me(client: AxiosInstance, token?: string) {
     return apiRequest<AuthUserResponse>(client, {
       method: 'GET',
       url: '/users/me',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     })
   },
 

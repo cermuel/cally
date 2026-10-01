@@ -30,9 +30,9 @@ const signOut = async () => {
         class="flex min-w-0 lg:w-150 flex-col overflow-hidden max-lg:flex-1"
       >
         <header
-          class="flex items-center justify-between gap-4 px-6 pt-6 sm:px-10 sm:pt-8"
+          class="flex sm:items-center justify-between gap-4 px-6 pt-6 sm:px-10 sm:pt-8"
         >
-          <div class="flex items-center gap-3">
+          <div class="flex max-sm:flex-col sm:items-center gap-3">
             <UiOnboardingProgress
               :current="ob.stepIndex"
               :total="STEPS.length"

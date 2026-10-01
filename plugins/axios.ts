@@ -21,7 +21,7 @@ export default defineNuxtPlugin(() => {
       ? localStorage.getItem('cally-auth-token') || tokenCookie.value
       : tokenCookie.value
 
-    if (token) {
+    if (token && !request.headers.Authorization) {
       request.headers.Authorization = `Bearer ${token}`
     }
 

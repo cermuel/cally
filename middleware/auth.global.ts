@@ -1,9 +1,10 @@
 export default defineNuxtRouteMiddleware((to) => {
   const auth = useAuth()
   const isAuthRoute = to.path === '/auth' || to.path.startsWith('/auth/')
+  const isAuthCallbackRoute = to.path === '/auth/callback'
   const isAppRoute = to.path === '/app' || to.path.startsWith('/app/')
 
-  if (isAuthRoute && auth.token.value) {
+  if (isAuthRoute && !isAuthCallbackRoute && auth.token.value) {
     return navigateTo(auth.getAuthenticatedHomePath(), { replace: true })
   }
 

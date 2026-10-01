@@ -1,29 +1,25 @@
 <script setup lang="ts">
-definePageMeta({ layout: false })
-useHead({ title: 'Settings | Cally' })
+definePageMeta({ layout: false });
+useHead({ title: "Settings | Cally" });
+
+const section = ref("connections");
 </script>
 
 <template>
   <UiAppShell>
-    <UiAppPageHeader
-      title="Settings"
-      description="Control account preferences, calendar connections, notifications, and security options."
-    />
+    <SharedTabs v-model="section" class="mx-auto w-full max-w-5xl gap-6">
+      <SharedTabsList aria-label="Settings sections">
+        <SharedTabsTrigger value="connections"> Connections </SharedTabsTrigger>
+        <SharedTabsTrigger value="account"> Account </SharedTabsTrigger>
+      </SharedTabsList>
 
-    <section class="divide-y divide-border rounded-lg border border-border bg-card shadow-xs">
-      <UiSettingsCalendarConnection />
-      <div class="p-5">
-        <h2 class="text-base font-medium">Notifications</h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Choose when Cally sends confirmations, reminders, and booking updates.
-        </p>
-      </div>
-      <div class="p-5">
-        <h2 class="text-base font-medium">Security</h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Manage password changes and active sessions from one place.
-        </p>
-      </div>
-    </section>
+      <SharedTabsContent value="connections">
+        <UiSettingsConnectionsList />
+      </SharedTabsContent>
+
+      <SharedTabsContent value="account">
+        <UiSettingsPasswordForm />
+      </SharedTabsContent>
+    </SharedTabs>
   </UiAppShell>
 </template>
