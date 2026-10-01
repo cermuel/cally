@@ -77,7 +77,7 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
     </div>
 
     <template v-else>
-      <div class="flex items-center gap-2 max-sm:-mt-1">
+      <div class="flex items-center gap-2 max-sm:-my-1">
         <UiPublicProfileAvatar :image="hostImage" :name="hostName" size="sm" />
         <p class="text-sm font-medium text-muted-foreground">{{ hostName }}</p>
         <div class="flex ml-auto sm:hidden items-center gap-2">
@@ -96,7 +96,7 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
       </div>
 
       <h1
-        class="text-2xl max-sm:hidden max-sm:text-xl max-sm:-mb-1 font-semibold leading-tight tracking-tight text-foreground"
+        class="text-2xl max-sm:hidden font-semibold leading-tight tracking-tight text-foreground"
       >
         {{ title }}
       </h1>
