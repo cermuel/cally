@@ -13,19 +13,19 @@ const minutesOfDay = (time: string) => {
   return hours * 60 + minutes;
 };
 
-const cameraTransform = computed(() => {
-  const start = minutesOfDay(props.firstTime ?? "00:00");
-  const end = minutesOfDay(props.lastTime ?? "23:59");
-  const progress =
-    end > start
-      ? Math.max(
-          0,
-          Math.min(1, (minutesOfDay(props.time) - start) / (end - start)),
-        )
-      : 0.5;
-
-  return `translate3d(${(0.5 - progress) * 24}%, ${(progress - 0.5) * 3}%, 0) scale(1.28)`;
-});
+// const cameraTransform = computed(() => {
+//   const start = minutesOfDay(props.firstTime ?? "00:00");
+//   const end = minutesOfDay(props.lastTime ?? "23:59");
+//   const progress =
+//     end > start
+//       ? Math.max(
+//           0,
+//           Math.min(1, (minutesOfDay(props.time) - start) / (end - start)),
+//         )
+//       : 0.5;
+//
+//   return `translate3d(${(0.5 - progress) * 24}%, ${(progress - 0.5) * 3}%, 0) scale(1.28)`;
+// });
 
 const lightingStops = [
   { minute: 0, evening: 0, night: 1 },
@@ -69,7 +69,8 @@ const dateLabel = computed(() =>
 
 <template>
   <div class="scene" aria-hidden="true">
-    <div class="scene-camera" :style="{ transform: cameraTransform }">
+    <!-- :style="{ transform: cameraTransform }" disabled to keep the background still. -->
+    <div class="scene-camera">
       <div class="scene-photo" />
       <div
         class="scene-light scene-evening"
@@ -105,8 +106,9 @@ const dateLabel = computed(() =>
 .scene-camera {
   position: absolute;
   inset: 0;
-  transition: transform 280ms var(--ease-out);
-  will-change: transform;
+  transform: scale(1.28);
+  /* transition: transform 280ms var(--ease-out); */
+  /* will-change: transform; */
 }
 .scene-photo {
   position: absolute;

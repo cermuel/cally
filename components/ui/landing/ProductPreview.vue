@@ -48,7 +48,7 @@ import { HugeiconsIcon } from "@hugeicons/vue";
         </div>
 
         <img
-          src="/cally-booking-page.png"
+          src="/cally-public-page.png"
           alt="A Cally booking page showing a profile and three meeting types"
           class="block aspect-video w-full object-cover"
         />
