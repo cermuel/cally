@@ -118,7 +118,12 @@ const hiddenGuestCount = computed(() =>
                   {{ guest }}
                 </p>
                 <span
-                  class="rounded-md bg-white/10 px-1.5 py-0.5 text-sm font-medium text-foreground/80"
+                  :class="[
+                    'rounded-md px-1.5 py-0.5 text-xs font-medium',
+                    index === 0
+                      ? 'bg-emerald-500/10 text-emerald-600'
+                      : 'bg-amber-500/10 text-amber-600',
+                  ]"
                 >
                   {{ index === 0 ? "Confirmed" : "Pending" }}
                 </span>
