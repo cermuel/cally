@@ -38,6 +38,19 @@
         <p class="mt-4 text-sm leading-6 text-muted-foreground">
           Less back-and-forth. More time for the conversation.
         </p>
+        <a
+          href="https://usefulshelf.co/?utm_source=cally.cermuel.dev&amp;utm_medium=referral&amp;utm_campaign=badge&amp;utm_content=lime"
+          target="_blank"
+          rel="noopener"
+          class="mt-6 block w-fit transition-opacity hover:opacity-80"
+        >
+          <img
+            src="https://usefulshelf.co/badge/usefulshelf.svg?theme=lime"
+            alt="Featured on UsefulShelf"
+            width="248"
+            height="66"
+          />
+        </a>
       </div>
 
       <nav
