@@ -1,16 +1,25 @@
 <script setup lang="ts">
-import { InformationCircleIcon } from "@hugeicons/core-free-icons";
+import {
+  Delete02Icon,
+  InformationCircleIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import type { Link, UpdateLinkPayload } from "~/utils/api/links";
 
-const props = defineProps<{
-  link: Link;
-  username?: string | null;
-  saving?: boolean;
-  errors?: Record<string, string[]>;
-}>();
+const props = withDefaults(
+  defineProps<{
+    link: Link;
+    username?: string | null;
+    saving?: boolean;
+    deleting?: boolean;
+    errors?: Record<string, string[]>;
+    sheet?: boolean;
+  }>(),
+  { deleting: false, saving: false, sheet: false },
+);
 
 const emit = defineEmits<{
+  delete: [link: Link];
   save: [payload: UpdateLinkPayload];
 }>();
 
@@ -23,6 +32,19 @@ const published = ref(props.link.status === "published");
 const visibility = ref(props.link.visibility);
 const localError = ref("");
 
+const resetForm = (link: Link) => {
+  name.value = link.name;
+  slug.value = link.slug;
+  duration.value = String(link.duration_minutes);
+  description.value = link.description ?? "";
+  color.value = link.color;
+  published.value = link.status === "published";
+  visibility.value = link.visibility;
+  localError.value = "";
+};
+
+watch(() => props.link, resetForm);
+
 const fieldError = (field: string) => props.errors?.[field]?.[0];
 
 const changedPayload = computed<UpdateLinkPayload>(() => {
@@ -33,7 +55,7 @@ const changedPayload = computed<UpdateLinkPayload>(() => {
     duration_minutes: Number(duration.value),
     description: description.value.trim() || null,
     color: color.value,
-    status: published.value ? "published" as const : "draft" as const,
+    status: published.value ? ("published" as const) : ("draft" as const),
     visibility: visibility.value,
   };
 
@@ -74,18 +96,29 @@ const save = () => {
 
 <template>
   <form
-    class="rounded-xl border border-border bg-card shadow-xs"
+    :class="
+      sheet
+        ? 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'
+        : 'min-w-0 rounded-xl border border-border bg-card shadow-xs'
+    "
     @submit.prevent="save"
   >
-    <header class="border-b border-border px-5 py-4 sm:px-6">
+    <header v-if="!sheet" class="border-b border-border px-5 py-4 sm:px-6">
       <h2 class="font-semibold">Link details</h2>
       <p class="mt-1 text-sm text-muted-foreground">
         Review the settings for this booking link.
       </p>
     </header>
 
-    <div class="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-      <div>
+    <div
+      class="grid min-w-0 grid-cols-1 gap-4"
+      :class="
+        sheet
+          ? 'min-h-0 flex-1 overscroll-contain overflow-y-auto px-5 py-4'
+          : 'p-5 pb-0 sm:p-4 sm:pb-0'
+      "
+    >
+      <div class="min-w-0">
         <SharedLabel for="detail-link-name" class="mb-1.5 text-sm"
           >Name</SharedLabel
         >
@@ -96,21 +129,13 @@ const save = () => {
           :error="fieldError('name')"
         />
       </div>
-      <div>
-        <SharedLabel for="detail-link-duration" class="mb-1.5 text-sm"
-          >Duration</SharedLabel
-        >
-        <SharedInput
-          id="detail-link-duration"
-          v-model="duration"
-          type="number"
-          :disabled="saving"
-          :error="fieldError('duration_minutes')"
-        >
-          <template #suffix><span class="text-xs">minutes</span></template>
-        </SharedInput>
-      </div>
-      <div class="sm:col-span-2">
+      <UiLinksDurationSelect
+        v-model="duration"
+        id="detail-link-duration"
+        :disabled="saving"
+        :error="fieldError('duration_minutes')"
+      />
+      <div class="min-w-0">
         <SharedLabel for="detail-link-slug" class="mb-1.5 text-sm"
           >Link</SharedLabel
         >
@@ -122,7 +147,7 @@ const save = () => {
         >
           <template #prefix>
             <span
-              class="flex h-full select-none items-center border-r border-border bg-muted px-3 text-sm text-muted-foreground"
+              class="flex h-full min-w-0 select-none items-center truncate border-r border-border bg-muted px-3 text-sm text-muted-foreground"
             >
               cally.cermuel.dev/{{ username || "username" }}/
             </span>
@@ -145,7 +170,7 @@ const save = () => {
           </SharedSelectContent>
         </SharedSelect>
       </div>
-      <div class="sm:col-span-2">
+      <div class="">
         <SharedLabel for="detail-link-description" class="mb-1.5 text-sm"
           >Description</SharedLabel
         >
@@ -158,58 +183,60 @@ const save = () => {
         />
       </div>
       <label
-        class="flex items-start gap-3 rounded-lg border border-border p-4 sm:col-span-2"
+        class="flex items-start gap-3 rounded-lg border border-border p-4 h-max"
       >
-        <SharedCheckbox
-          v-model="published"
-          class="mt-0.5"
-          :disabled="saving"
-        />
-        <span>
-          <span class="block text-sm font-medium">Published</span>
-          <span class="mt-0.5 block text-sm text-muted-foreground"
-            >This link is
-            {{ published ? "published" : "saved as a draft" }}.</span
-          >
-        </span>
+        <SharedCheckbox v-model="published" class="mt-0.5" :disabled="saving" />
+        <span class="block text-sm font-medium">Published</span>
       </label>
       <div
         v-if="localError"
         role="alert"
-        class="rounded-lg bg-destructive/10 p-4 text-sm text-destructive sm:col-span-2"
+        class="rounded-lg bg-destructive/10 p-4 text-sm text-destructive"
       >
         {{ localError }}
       </div>
       <div
         v-if="errors?.slug?.[0] || errors?.name?.[0]"
         role="alert"
-        class="rounded-lg bg-destructive/10 p-4 text-sm text-destructive sm:col-span-2"
+        class="rounded-lg bg-destructive/10 p-4 text-sm text-destructive"
       >
         {{ errors?.slug?.[0] || errors?.name?.[0] }}
       </div>
-      <div
-        class="flex items-start gap-2 rounded-lg bg-muted/60 p-4 text-sm text-muted-foreground sm:col-span-2"
+    </div>
+
+    <footer
+      class="flex shrink-0 gap-2"
+      :class="
+        sheet
+          ? 'border-t border-border bg-background/50 p-4 md:px-6'
+          : 'justify-end px-5 py-5 sm:px-6 sm:py-6'
+      "
+    >
+      <SharedButton
+        type="submit"
+        :class="sheet && 'flex-1'"
+        :disabled="!hasChanges || deleting"
+        :loading="saving"
+      >
+        Save changes
+      </SharedButton>
+      <SharedButton
+        v-if="sheet"
+        type="button"
+        variant="outline"
+        size="icon"
+        class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+        :disabled="saving || deleting"
+        aria-label="Delete link"
+        @click="emit('delete', link)"
       >
         <HugeiconsIcon
-          :icon="InformationCircleIcon"
+          :icon="Delete02Icon"
           :size="17"
           :stroke-width="1.75"
-          class="mt-0.5 shrink-0"
           aria-hidden="true"
         />
-        <p>
-          Changes update this link for your account and invalidate the cached
-          sidebar list.
-        </p>
-      </div>
-      <footer class="flex justify-end sm:col-span-2">
-        <SharedButton
-          type="submit"
-          :disabled="!hasChanges"
-          :loading="saving"
-          >Save changes</SharedButton
-        >
-      </footer>
-    </div>
+      </SharedButton>
+    </footer>
   </form>
 </template>

@@ -36,6 +36,13 @@ export const queryKeys = {
     detail: (id: QueryKeyId) => [...queryKeys.links.details(), id] as const,
   },
 
+  automations: {
+    all: () => [...queryKeys.all, 'automations'] as const,
+    list: () => [...queryKeys.automations.all(), 'list'] as const,
+    templates: () => [...queryKeys.automations.all(), 'templates'] as const,
+    variables: () => [...queryKeys.automations.all(), 'variables'] as const,
+  },
+
   bookings: {
     all: () => [...queryKeys.all, 'bookings'] as const,
     lists: () => [...queryKeys.bookings.all(), 'list'] as const,

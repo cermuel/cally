@@ -107,7 +107,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="space-y-1.5">
+  <div class="min-w-0 space-y-1.5">
     <div
       class="relative"
       :class="

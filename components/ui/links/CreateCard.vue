@@ -82,7 +82,7 @@ const cancel = () => {
         class="fixed inset-0 z-50 bg-black/60 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
       />
       <DialogContent
-        class="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-120 -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-border bg-card shadow-xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+        class="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-120 -translate-x-1/2 -translate-y-1/2 overflow-x-hidden overflow-y-auto rounded-xl border border-border bg-card shadow-xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
       >
         <div class="p-6 py-4 pb-0">
           <DialogTitle class="font-semibold text-lg"
@@ -93,10 +93,10 @@ const cancel = () => {
           </DialogDescription>
         </div>
         <form
-          class="grid gap-5 p-5 sm:grid-cols-2 sm:p-6"
+          class="grid min-w-0 grid-cols-1 gap-5 p-5 sm:grid-cols-2 sm:p-6"
           @submit.prevent="submit"
         >
-          <div class="col-span-2">
+          <div class="min-w-0 sm:col-span-2">
             <SharedLabel for="link-name" class="mb-1.5 text-sm"
               >Name</SharedLabel
             >
@@ -110,37 +110,14 @@ const cancel = () => {
             />
           </div>
 
-          <div class="col-span-2">
-            <SharedLabel for="link-duration" class="mb-1.5 text-sm"
-              >Duration</SharedLabel
-            >
-            <SharedSelect v-model="duration">
-              <SharedSelectTrigger
-                id="link-duration"
-                class="w-full"
-                :aria-invalid="Boolean(fieldError('duration_minutes'))"
-              >
-                <SharedSelectValue placeholder="Select duration" />
-              </SharedSelectTrigger>
-              <SharedSelectContent>
-                <SharedSelectItem
-                  v-for="minutes in [15, 30, 45, 60, 90]"
-                  :key="minutes"
-                  :value="String(minutes)"
-                >
-                  {{ minutes }} minutes
-                </SharedSelectItem>
-              </SharedSelectContent>
-            </SharedSelect>
-            <p
-              v-if="fieldError('duration_minutes')"
-              class="mt-1.5 text-xs text-destructive"
-            >
-              {{ fieldError("duration_minutes") }}
-            </p>
-          </div>
+          <UiLinksDurationSelect
+            v-model="duration"
+            id="link-duration"
+            class="sm:col-span-2"
+            :error="fieldError('duration_minutes')"
+          />
 
-          <div class="sm:col-span-2">
+          <div class="min-w-0 sm:col-span-2">
             <SharedLabel for="link-slug" class="mb-1.5 text-sm"
               >Link</SharedLabel
             >
@@ -155,7 +132,7 @@ const cancel = () => {
             >
               <template #prefix>
                 <span
-                  class="flex h-full select-none items-center border-r border-border bg-muted px-3 text-sm text-muted-foreground"
+                  class="flex h-full min-w-0 select-none items-center truncate border-r border-border bg-muted px-3 text-sm text-muted-foreground"
                 >
                   cally.cermuel.dev/{{ username || "username" }}/
                 </span>

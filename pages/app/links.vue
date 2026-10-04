@@ -9,7 +9,12 @@ import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 import type { LinkListView } from "~/types/links";
 import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
-import { linksApi, type CreateLinkPayload, type Link } from "~/utils/api/links";
+import {
+  linksApi,
+  type CreateLinkPayload,
+  type Link,
+  type UpdateLinkPayload,
+} from "~/utils/api/links";
 import { queryKeys } from "~/utils/api/query-keys";
 import { getDuplicateName, getDuplicateSlug } from "~/utils/links";
 
@@ -25,6 +30,9 @@ const createErrors = ref<Record<string, string[]>>({});
 const deleteTarget = ref<Link | null>(null);
 const deleteOpen = ref(false);
 const updatingId = ref<number | null>(null);
+const selectedLink = ref<Link | null>(null);
+const editOpen = ref(false);
+const editErrors = ref<Record<string, string[]>>({});
 const desktopLinkView = ref<LinkListView>("ticket");
 const isMobile = ref(true);
 
@@ -69,7 +77,9 @@ const deleteMutation = useMutation({
   onSuccess: async () => {
     await queryClient.invalidateQueries({ queryKey: queryKeys.links.all() });
     deleteOpen.value = false;
+    editOpen.value = false;
     deleteTarget.value = null;
+    selectedLink.value = null;
     toast.success("Link deleted");
   },
   onError: (error) =>
@@ -99,6 +109,41 @@ const requestDelete = (link: Link) => {
   deleteTarget.value = link;
   deleteOpen.value = true;
 };
+
+const openLink = (link: Link) => {
+  selectedLink.value = link;
+  editErrors.value = {};
+  editOpen.value = true;
+};
+
+watch(editOpen, (isOpen) => {
+  if (!isOpen) {
+    selectedLink.value = null;
+    editErrors.value = {};
+  }
+});
+
+const editMutation = useMutation({
+  mutationFn: (payload: UpdateLinkPayload) => {
+    if (!selectedLink.value) throw new Error("No link selected");
+    return linksApi.update(client, selectedLink.value.id, payload);
+  },
+  onSuccess: async (response) => {
+    queryClient.setQueryData(
+      queryKeys.links.detail(response.link.id),
+      response,
+    );
+    await queryClient.invalidateQueries({ queryKey: queryKeys.links.all() });
+    editOpen.value = false;
+    selectedLink.value = null;
+    editErrors.value = {};
+    toast.success("Link updated");
+  },
+  onError: (error) => {
+    editErrors.value = getApiFieldErrors(error);
+    toast.error(getApiErrorMessage(error, "Could not update the link."));
+  },
+});
 
 const updateMutation = useMutation({
   mutationFn: ({
@@ -135,7 +180,7 @@ const updateVisibility = (link: Link, visibility: Link["visibility"]) => {
 
 <template>
   <UiAppShell>
-    <div class="sm:mb-8 flex items-start justify-between gap-4 relative">
+    <div class="mb-8 flex items-center justify-between gap-4 relative">
       <UiAppPageHeader
         title="Links"
         description="Create and manage the booking links you share with guests."
@@ -223,7 +268,19 @@ const updateVisibility = (link: Link, visibility: Link["visibility"]) => {
       @create="createOpen = true"
       @delete="requestDelete"
       @duplicate="duplicateMutation.mutate($event)"
+      @open="openLink"
       @visibility="updateVisibility"
+    />
+
+    <UiLinksEditSheet
+      v-model:open="editOpen"
+      :link="selectedLink"
+      :username="auth.user.value?.username"
+      :saving="editMutation.isPending.value"
+      :deleting="deleteMutation.isPending.value"
+      :errors="editErrors"
+      @delete="requestDelete"
+      @save="editMutation.mutate($event)"
     />
 
     <UiLinksDeleteDialog

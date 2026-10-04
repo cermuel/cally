@@ -8,34 +8,34 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type { Link } from "~/utils/api/links";
+import type { Automation } from "~/utils/api/automations";
 
 defineProps<{
-  link: Link | null;
+  automation: Automation | null;
   deleting: boolean;
 }>();
+
+const open = defineModel<boolean>("open", { default: false });
 
 const emit = defineEmits<{
   confirm: [];
 }>();
-
-const open = defineModel<boolean>("open", { default: false });
 </script>
 
 <template>
   <DialogRoot v-model:open="open">
     <DialogPortal>
       <DialogOverlay
-        class="fixed inset-0 z-60 bg-black/60 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        class="fixed inset-0 z-60 bg-black/60 data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
       />
       <DialogContent
-        class="fixed left-1/2 top-1/3 z-60 w-[calc(100%-2rem)] max-w-125 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-background dark:bg-[#151515] p-6 shadow-xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+        class="fixed left-1/2 top-1/3 z-60 w-[calc(100%-2rem)] max-w-125 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-background p-6 shadow-xl outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
       >
-        <DialogTitle class="text-lg font-semibold">Delete link</DialogTitle>
+        <DialogTitle class="text-lg font-semibold">Delete automation</DialogTitle>
         <DialogDescription class="mt-2 text-sm leading-6 text-muted-foreground">
-          Are you sure you want to delete <strong>{{ link?.name }}</strong
-          >? <br />
-          Anyone you’ve shared it with won’t be able to use it to book anymore.
+          Are you sure you want to delete
+          <strong>{{ automation?.name }}</strong>? It will stop running and this
+          can’t be undone.
         </DialogDescription>
         <div class="mt-6 flex justify-end gap-2">
           <DialogClose as-child>
@@ -49,7 +49,7 @@ const open = defineModel<boolean>("open", { default: false });
             :loading="deleting"
             @click="emit('confirm')"
           >
-            Delete link
+            Delete automation
           </SharedButton>
         </div>
       </DialogContent>

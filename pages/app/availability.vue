@@ -24,10 +24,11 @@ const save = () => {
 
 <template>
   <UiAppShell>
-    <div class="mx-auto max-w-3xl">
+    <div class="mx-auto max-w-2xl">
       <UiAppPageHeader
         title="Availability"
         description="Set the weekly windows when guests can book time with you."
+        class="mb-8"
       />
 
       <div
@@ -43,7 +44,9 @@ const save = () => {
         >
           <div class="h-5 w-10 animate-pulse rounded-full bg-muted" />
           <div class="h-4 w-20 animate-pulse rounded bg-muted" />
-          <div class="ml-auto h-8 w-52 max-w-[45%] animate-pulse rounded bg-muted" />
+          <div
+            class="ml-auto h-8 w-52 max-w-[45%] animate-pulse rounded bg-muted"
+          />
         </div>
       </div>
 

@@ -16,6 +16,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   delete: [link: Link];
   duplicate: [link: Link];
+  open: [link: Link];
   visibility: [link: Link, visibility: Link["visibility"]];
 }>();
 
@@ -106,9 +107,17 @@ watch(
         : 'grid-cols-[1.25rem_minmax(0,1fr)_auto] gap-x-4 rounded-xl bg-transparent px-3 py-3 max-sm:dark:bg-muted/50 max-sm:bg-muted dark:hover:bg-muted/50 hover:bg-muted md:grid-cols-[1.25rem_minmax(0,1.2fr)_minmax(0,1.5fr)_6rem_auto]'
     "
   >
+    <button
+      type="button"
+      class="absolute inset-0 z-0 rounded-[inherit] outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+      :aria-label="`Edit ${link.name}`"
+      @click="emit('open', link)"
+    />
+
     <div
       data-flip="swatch"
       aria-hidden="true"
+      class="pointer-events-none"
       :class="[
         !link.color && (isTicket ? 'bg-muted' : 'bg-foreground/20'),
         isTicket
@@ -121,7 +130,7 @@ watch(
 
     <div
       data-flip="name"
-      class="flex min-w-0 items-center gap-2"
+      class="pointer-events-none flex min-w-0 items-center gap-2"
       :class="
         isTicket
           ? 'col-start-2 row-start-1 self-end px-4 pt-4 sm:px-5'
@@ -132,12 +141,7 @@ watch(
         class="truncate font-semibold"
         :class="isTicket ? 'text-sm sm:text-base' : 'text-sm'"
       >
-        <NuxtLink
-          :to="`/app/links/${link.id}`"
-          class="rounded-sm after:absolute after:inset-0 focus-visible:outline-none"
-        >
-          {{ link.name }}
-        </NuxtLink>
+        {{ link.name }}
       </h2>
       <span
         v-if="link.status === 'draft'"
@@ -148,7 +152,7 @@ watch(
 
     <p
       data-flip="url"
-      class="truncate text-sm text-muted-foreground"
+      class="pointer-events-none truncate text-sm text-muted-foreground"
       :class="
         isTicket
           ? 'col-start-2 row-start-2 self-start px-4 pb-4 sm:px-5'

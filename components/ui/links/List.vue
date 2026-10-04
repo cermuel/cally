@@ -15,6 +15,7 @@ const emit = defineEmits<{
   create: [];
   delete: [link: Link];
   duplicate: [link: Link];
+  open: [link: Link];
   visibility: [link: Link, visibility: Link["visibility"]];
 }>();
 
@@ -64,6 +65,7 @@ const emitVisibility = (link: Link, visibility: Link["visibility"]) => {
         :view="view"
         @delete="emit('delete', $event)"
         @duplicate="emit('duplicate', $event)"
+        @open="emit('open', $event)"
         @visibility="emitVisibility"
       />
 
