@@ -38,6 +38,7 @@ const registerMutation = useMutation({
       email: email.value.trim(),
       password: password.value,
       password_confirmation: passwordConfirmation.value,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     }),
   onSuccess: (response) => {
     registeredEmail.value = response.user.email;

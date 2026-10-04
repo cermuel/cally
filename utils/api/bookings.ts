@@ -40,6 +40,7 @@ export type Booking = {
   event_id: number | string;
   starts_at: string | null;
   ends_at: string | null;
+  booking_timezone: string | null;
   status: BookingStatus;
   provider_event_id: string | null;
   meeting_url: string | null;
@@ -102,6 +103,7 @@ export type PublicSchedulePayload = {
   date: string;
   starts_at: string;
   ends_at: string;
+  timezone: string;
   notes?: string | null;
   guests: [
     {

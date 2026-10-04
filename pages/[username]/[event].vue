@@ -3,6 +3,7 @@ import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import { toast } from "vue-sonner";
 import { bookingsApi, type Booking } from "~/utils/api/bookings";
+import type { PublicScheduleSlot } from "~/utils/api/public";
 import {
   getApiErrorMessage,
   getApiFieldErrors,
@@ -36,33 +37,30 @@ const formatSlotHeading = (dateKey: string) =>
     .replace(",", "");
 
 const formatTimeRange = (
-  dateKey: string,
-  selectedTime: string,
-  durationMinutes: number,
+  startsAt: string | undefined,
+  endsAt: string | undefined,
+  timezone: string,
 ) => {
-  const [hour = 0, minute = 0] = selectedTime.split(":").map(Number);
-  const start = new Date(
-    `${dateKey}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`,
-  );
-  const end = new Date(start.getTime() + durationMinutes * 60_000);
+  if (!startsAt || !endsAt) return "";
+
   const formatter = new Intl.DateTimeFormat("en-GB", {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZone: timezone,
   });
-  return `${formatter.format(start).toLowerCase()} - ${formatter.format(end).toLowerCase()}`;
-};
-
-const addMinutesToTime = (time: string, minutesToAdd: number) => {
-  const [hours = 0, minutes = 0] = time.split(":").map(Number);
-  const totalMinutes = hours * 60 + minutes + minutesToAdd;
-  return `${String(Math.floor(totalMinutes / 60) % 24).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+  return `${formatter.format(new Date(startsAt)).toLowerCase()} - ${formatter.format(new Date(endsAt)).toLowerCase()}`;
 };
 
 const route = useRoute();
 const apiClient = useApiClient();
 const username = computed(() => String(route.params.username || ""));
 const eventSlug = computed(() => String(route.params.event || "15min"));
+const viewerTimezone = ref(
+  import.meta.client
+    ? Intl.DateTimeFormat().resolvedOptions().timeZone
+    : "UTC",
+);
 
 const isEmbed = computed(() =>
   ["true", "1"].includes(String(route.query.embed)),
@@ -109,7 +107,11 @@ const selectedDate = ref("");
 const activeMonth = ref(
   new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12),
 );
-const selectedTime = ref("");
+const selectedSlotId = ref("");
+const selectedSlot = computed(() =>
+  slots.value.find((slot) => slot.starts_at === selectedSlotId.value),
+);
+const selectedTime = computed(() => selectedSlot.value?.time ?? "");
 const previewTime = ref("");
 const sceneTime = computed(
   () =>
@@ -134,6 +136,7 @@ const {
 } = usePublicSchedule(
   computed(() => event.value?.id ?? null),
   activeMonthKey,
+  viewerTimezone,
 );
 
 watch(
@@ -155,7 +158,7 @@ watch(
       isCurrentMonth && availableDateKeys.includes(today)
         ? today
         : (availableDateKeys[0] ?? "");
-    selectedTime.value = "";
+    selectedSlotId.value = "";
   },
   { immediate: true },
 );
@@ -213,9 +216,9 @@ const selectedSlotHeading = computed(() =>
 
 const selectedTimeRange = computed(() =>
   formatTimeRange(
-    selectedDate.value,
-    selectedTime.value,
-    event.value?.duration_minutes ?? 0,
+    selectedSlot.value?.starts_at,
+    selectedSlot.value?.ends_at,
+    viewerTimezone.value,
   ),
 );
 
@@ -225,7 +228,7 @@ const scheduledWhenLabel = computed(() => {
     return `${selectedDateLabel.value}\n${selectedTimeRange.value}`;
   }
 
-  const timeZone = profile.value?.timezone;
+  const timeZone = booking.booking_timezone ?? viewerTimezone.value;
   const date = new Date(booking.starts_at);
   const dateLabel = new Intl.DateTimeFormat("en-GB", {
     weekday: "long",
@@ -269,7 +272,7 @@ const selectDate = async (dateKey: string) => {
   }
 
   selectedDate.value = dateKey;
-  selectedTime.value = "";
+  selectedSlotId.value = "";
   mobileSlotStep.value = "times";
 
   await nextTick();
@@ -288,22 +291,22 @@ const moveMonth = (amount: number) => {
   nextMonth.setMonth(nextMonth.getMonth() + amount, 1);
   activeMonth.value = nextMonth;
   selectedDate.value = "";
-  selectedTime.value = "";
+  selectedSlotId.value = "";
   mobileSlotStep.value = "calendar";
 };
 
 const showMobileCalendar = () => {
   mobileSlotStep.value = "calendar";
-  selectedTime.value = "";
+  selectedSlotId.value = "";
 };
 
-const chooseSlot = (time: string) => {
-  selectedTime.value = time;
+const chooseSlot = (slot: PublicScheduleSlot) => {
+  selectedSlotId.value = slot.starts_at;
   previewTime.value = "";
 };
 
 const scheduleBooking = async () => {
-  if (!event.value || !selectedDate.value || !selectedTime.value) return;
+  if (!event.value || !selectedDate.value || !selectedSlot.value) return;
 
   scheduleSubmitting.value = true;
   scheduleErrors.value = {};
@@ -323,11 +326,9 @@ const scheduleBooking = async () => {
       username: username.value,
       event_id: String(event.value.id),
       date: selectedDate.value,
-      starts_at: selectedTime.value,
-      ends_at: addMinutesToTime(
-        selectedTime.value,
-        event.value.duration_minutes,
-      ),
+      starts_at: selectedSlot.value.starts_at,
+      ends_at: selectedSlot.value.ends_at,
+      timezone: viewerTimezone.value,
       notes: notes.value.trim() || null,
       guests: [
         {
@@ -408,7 +409,7 @@ useHead(() => ({
       :first-time="slots[0]?.time"
       :last-time="slots.at(-1)?.time"
       :date="selectedDate"
-      :timezone="profile?.timezone ?? 'Host’s local time'"
+      :timezone="viewerTimezone"
     />
     <NuxtLink
       v-if="!isEmbed"
@@ -513,7 +514,7 @@ useHead(() => ({
                   ref="slotsPanel"
                   :heading="selectedSlotHeading"
                   :slots="slots"
-                  :selected-time="selectedTime"
+                  :selected-slot="selectedSlotId"
                   class="border-t border-white/10 md:border-l md:border-t-0"
                   :class="mobileSlotStep === 'calendar' && 'max-sm:hidden'"
                   @select="chooseSlot"

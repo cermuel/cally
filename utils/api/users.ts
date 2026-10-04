@@ -11,6 +11,7 @@ export type EditProfilePayload = {
   username?: string
   description?: string | null
   avatar_url?: string
+  timezone?: string
 }
 
 export type ChangePasswordPayload = {

@@ -6,11 +6,11 @@ import type { PublicScheduleSlot } from "~/utils/api/public";
 const props = defineProps<{
   heading: string;
   slots: PublicScheduleSlot[];
-  selectedTime: string;
+  selectedSlot: string;
 }>();
 const emit = defineEmits<{
   back: [];
-  select: [time: string];
+  select: [slot: PublicScheduleSlot];
   preview: [time: string];
   continue: [];
 }>();
@@ -93,10 +93,10 @@ const positionHighlight = () => {
   highlightClip.value = `inset(${top}px ${grid.clientWidth - left - width}px ${grid.clientHeight - top - height}px ${left}px round 8px)`;
 };
 
-watch(() => [props.selectedTime, props.slots], positionHighlight, {
+watch(() => [props.selectedSlot, props.slots], positionHighlight, {
   flush: "post",
 });
-watch(() => [props.selectedTime, props.slots], centerSelection, {
+watch(() => [props.selectedSlot, props.slots], centerSelection, {
   flush: "post",
 });
 onMounted(() => {
@@ -124,7 +124,7 @@ const navigateSlots = (event: KeyboardEvent, index: number) => {
   slotList.value
     ?.querySelectorAll<HTMLButtonElement>("button")
     [nextIndex]?.focus({ preventScroll: true });
-  emit("select", slot.time.slice(0, 5));
+  emit("select", slot);
 };
 
 const label = (time: string) => {
@@ -171,19 +171,19 @@ const label = (time: string) => {
       >
         <button
           v-for="(slot, index) in slots"
-          :key="slot.time"
+          :key="slot.starts_at"
           type="button"
           class="slot-button flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors duration-150"
           :class="
-            selectedTime === slot.time.slice(0, 5)
+            selectedSlot === slot.starts_at
               ? 'border-transparent text-white'
               : 'border-white/15 bg-white/5 text-white/85 hover:border-white/50 hover:bg-white/10'
           "
-          :aria-pressed="selectedTime === slot.time.slice(0, 5)"
+          :aria-pressed="selectedSlot === slot.starts_at"
           @pointermove="previewSlot($event, slot.time)"
           @focus="$emit('preview', slot.time.slice(0, 5))"
           @blur="$emit('preview', '')"
-          @click="$emit('select', slot.time.slice(0, 5))"
+          @click="$emit('select', slot)"
           @keydown="navigateSlots($event, index)"
         >
           {{ label(slot.time) }}
@@ -196,12 +196,12 @@ const label = (time: string) => {
         >
           <span
             v-for="slot in slots"
-            :key="slot.time"
+            :key="slot.starts_at"
             class="relative flex min-h-10 items-center justify-center rounded-lg border border-transparent px-3 py-2 text-sm font-medium text-slate-900"
           >
             {{ label(slot.time) }}
             <span
-              v-if="selectedTime === slot.time.slice(0, 5)"
+              v-if="selectedSlot === slot.starts_at"
               class="absolute right-3"
               >✓</span
             >
@@ -212,10 +212,10 @@ const label = (time: string) => {
     <button
       type="button"
       class="mt-4 h-9 w-full rounded-lg bg-white px-4 text-sm font-semibold text-slate-900 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-      :disabled="!selectedTime"
+      :disabled="!selectedSlot"
       @click="$emit('continue')"
     >
-      {{ selectedTime ? "Continue →" : "Choose a time" }}
+      {{ selectedSlot ? "Continue →" : "Choose a time" }}
     </button>
   </aside>
 </template>

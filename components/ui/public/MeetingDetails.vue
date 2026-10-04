@@ -13,7 +13,9 @@ const props = defineProps<{
   booking: Booking;
 }>();
 
-const timezone = computed(() => props.booking.host?.timezone ?? "UTC");
+const timezone = computed(
+  () => props.booking.booking_timezone ?? props.booking.host?.timezone ?? "UTC",
+);
 const dateLabel = computed(() =>
   props.booking.starts_at
     ? new Intl.DateTimeFormat("en-GB", {

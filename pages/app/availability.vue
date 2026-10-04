@@ -6,11 +6,6 @@ definePageMeta({ layout: false });
 useHead({ title: "Availability | Cally" });
 
 const settings = useAvailabilitySettings();
-const timezone = ref("");
-
-onMounted(() => {
-  timezone.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
-});
 
 const save = () => {
   toast.promise(settings.save(), {
@@ -78,7 +73,7 @@ const save = () => {
         :availability="settings.availability.value"
         :day-errors="settings.dayErrors.value"
         :availability-error="settings.availabilityError.value"
-        :timezone="timezone"
+        :timezone="settings.timezone.value"
         :has-changes="settings.hasChanges.value"
         :saving="settings.saving.value"
         @toggle="settings.toggleDay"

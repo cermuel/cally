@@ -34,14 +34,25 @@ export function usePublicEvents(username: MaybeRefOrGetter<string>) {
 export function usePublicSchedule(
   eventId: MaybeRefOrGetter<number | null>,
   month: MaybeRefOrGetter<string>,
+  timezone: MaybeRefOrGetter<string>,
 ) {
   const client = useApiClient()
 
   return useQuery({
     queryKey: computed(() =>
-      queryKeys.public.schedule(toValue(eventId) ?? 'pending', toValue(month)),
+      queryKeys.public.schedule(
+        toValue(eventId) ?? 'pending',
+        toValue(month),
+        toValue(timezone),
+      ),
     ),
-    queryFn: () => publicApi.schedule(client, toValue(eventId)!, toValue(month)),
+    queryFn: () =>
+      publicApi.schedule(
+        client,
+        toValue(eventId)!,
+        toValue(month),
+        toValue(timezone),
+      ),
     enabled: computed(() => import.meta.client && toValue(eventId) !== null),
     staleTime: PUBLIC_SCHEDULE_STALE_TIME,
     gcTime: PUBLIC_SCHEDULE_STALE_TIME,

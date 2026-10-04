@@ -8,6 +8,7 @@ import {
   type AvailabilitySlot,
 } from "~/utils/api/availability";
 import { queryKeys } from "~/utils/api/query-keys";
+import { usersApi } from "~/utils/api/users";
 
 const normalizeTime = (value: string | null, fallback: string) =>
   value?.slice(0, 5) || fallback;
@@ -40,10 +41,16 @@ const availabilitySignature = (availability: Availability) =>
 
 export const useAvailabilitySettings = () => {
   const client = useApiClient();
+  const auth = useAuth();
   const queryClient = useQueryClient();
   const editor = useAvailabilityEditor();
   const baseline = ref("");
   const serverSlots = ref<AvailabilitySlot[]>([]);
+  const timezone = ref("");
+
+  onMounted(() => {
+    timezone.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  });
 
   const query = useQuery({
     queryKey: queryKeys.availability.mine(),
@@ -58,7 +65,9 @@ export const useAvailabilitySettings = () => {
   };
 
   const hasChanges = computed(
-    () => availabilitySignature(editor.availability.value) !== baseline.value,
+    () =>
+      availabilitySignature(editor.availability.value) !== baseline.value ||
+      (!!timezone.value && auth.user.value?.timezone !== timezone.value),
   );
 
   watch(
@@ -116,6 +125,13 @@ export const useAvailabilitySettings = () => {
         }),
       );
 
+      if (timezone.value && auth.user.value?.timezone !== timezone.value) {
+        const response = await usersApi.editProfile(client, {
+          timezone: timezone.value,
+        });
+        auth.setUser(response.user);
+      }
+
       return availabilityApi.list(client);
     },
     onSuccess: (response) => {
@@ -129,6 +145,7 @@ export const useAvailabilitySettings = () => {
   return {
     ...editor,
     query,
+    timezone,
     hasChanges,
     saving: saveMutation.isPending,
     save: saveMutation.mutateAsync,

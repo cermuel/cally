@@ -36,6 +36,8 @@ export type PublicApiEvent = {
 
 export type PublicScheduleSlot = {
   time: string
+  starts_at: string
+  ends_at: string
 }
 
 export type PublicSchedulePagination = {
@@ -57,6 +59,8 @@ export type PublicEventsResponse = {
 export type PublicScheduleResponse = {
   message: string
   schedules: Record<string, PublicScheduleSlot[]>
+  timezone: string
+  host_timezone: string
   pagination: PublicSchedulePagination
 }
 
@@ -76,11 +80,11 @@ export const publicApi = {
     })
   },
 
-  schedule(client: AxiosInstance, eventId: number, month: string) {
+  schedule(client: AxiosInstance, eventId: number, month: string, timezone: string) {
     return apiRequest<PublicScheduleResponse>(client, {
       method: 'GET',
       url: `/public/events/${eventId}/schedule`,
-      params: { month },
+      params: { month, timezone },
     })
   },
 }

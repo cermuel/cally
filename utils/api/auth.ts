@@ -16,6 +16,7 @@ export type RegisterPayload = {
   email: string
   password: string
   password_confirmation: string
+  timezone: string
 }
 
 export type LoginPayload = {

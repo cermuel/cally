@@ -137,6 +137,7 @@ export const useOnboarding = () => {
       const response = await usersApi.editProfile(apiClient, {
         name: profile.name.trim(),
         username: profile.username,
+        timezone: timezone.value,
       });
 
       auth.setUser(response.user);
