@@ -9,6 +9,10 @@ import { HugeiconsIcon } from "@hugeicons/vue";
 import { Placeholder } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
+import {
+  convertVariablesToTokens,
+  VariableToken,
+} from "~/utils/variable-token";
 
 const props = withDefaults(
   defineProps<{
@@ -20,9 +24,12 @@ const props = withDefaults(
 );
 
 const model = defineModel<string>({ default: "" });
+const editorContainer = ref<HTMLElement | null>(null);
+const variableListboxId = `automation-variable-suggestions-${useId()}`;
 const editorVersion = ref(0);
 const variableQuery = ref("");
 const variableRange = ref<{ from: number; to: number } | null>(null);
+const variableMenuPosition = ref<{ top: number; left: number } | null>(null);
 
 const serialize = (html: string) => (html === "<p></p>" ? "" : html);
 
@@ -38,6 +45,23 @@ const updateVariableSuggestion = () => {
   variableRange.value = match
     ? { from: $from.pos - match[0].length, to: $from.pos }
     : null;
+
+  if (!match || !editorContainer.value) {
+    variableMenuPosition.value = null;
+    return;
+  }
+
+  const caret = currentEditor.view.coordsAtPos($from.pos);
+  const container = editorContainer.value.getBoundingClientRect();
+  const menuWidth = Math.min(256, container.width - 16);
+
+  variableMenuPosition.value = {
+    top: caret.bottom - container.top + 4,
+    left: Math.max(
+      0,
+      Math.min(caret.left - container.left, container.width - menuWidth),
+    ),
+  };
 };
 
 const editor = useEditor({
@@ -53,6 +77,7 @@ const editor = useEditor({
       strike: false,
       link: false,
     }),
+    VariableToken,
     Placeholder.configure({
       placeholder: "Write the email guests will receive…",
     }),
@@ -61,12 +86,16 @@ const editor = useEditor({
     attributes: {
       class: "min-h-36 px-3.5 py-3 text-sm leading-6 outline-none",
       "aria-label": "Email message",
+      "aria-autocomplete": "list",
+      "aria-expanded": "false",
     },
+    handleKeyDown: (_view, event) => handleVariableKeydown(event),
   },
   onUpdate: ({ editor }) => {
     model.value = serialize(editor.getHTML());
     updateVariableSuggestion();
   },
+  onCreate: ({ editor }) => convertVariablesToTokens(editor),
   onSelectionUpdate: updateVariableSuggestion,
   onTransaction: () => {
     editorVersion.value += 1;
@@ -77,6 +106,7 @@ watch(model, (value) => {
   const currentEditor = editor.value;
   if (currentEditor && value !== serialize(currentEditor.getHTML())) {
     currentEditor.commands.setContent(value, { emitUpdate: false });
+    convertVariablesToTokens(currentEditor);
   }
 });
 
@@ -102,7 +132,7 @@ const insertVariable = (variable: string) => {
       .chain()
       .focus()
       .deleteRange(variableRange.value)
-      .insertContent(variable)
+      .insertContent({ type: "variableToken", attrs: { value: variable } })
       .run();
   } else {
     currentEditor.chain().focus().insertContent(variable).run();
@@ -110,7 +140,47 @@ const insertVariable = (variable: string) => {
 
   variableRange.value = null;
   variableQuery.value = "";
+  variableMenuPosition.value = null;
 };
+
+const closeVariableSuggestions = () => {
+  variableRange.value = null;
+  variableQuery.value = "";
+  variableMenuPosition.value = null;
+};
+
+const {
+  activeIndex: activeVariableIndex,
+  handleKeydown: handleVariableKeydown,
+  setActiveIndex: setActiveVariableIndex,
+} = useVariableSuggestionNavigation(
+  filteredVariables,
+  insertVariable,
+  closeVariableSuggestions,
+);
+
+watch(
+  [variableRange, activeVariableIndex, filteredVariables],
+  () => {
+    const editorElement = editor.value?.view.dom;
+    if (!editorElement) return;
+
+    if (variableRange.value && filteredVariables.value.length) {
+      editorElement.setAttribute("aria-controls", variableListboxId);
+      editorElement.setAttribute("aria-expanded", "true");
+      editorElement.setAttribute(
+        "aria-activedescendant",
+        `${variableListboxId}-option-${activeVariableIndex.value}`,
+      );
+      return;
+    }
+
+    editorElement.removeAttribute("aria-controls");
+    editorElement.removeAttribute("aria-activedescendant");
+    editorElement.setAttribute("aria-expanded", "false");
+  },
+  { flush: "post" },
+);
 
 const tools = computed(() => {
   editorVersion.value;
@@ -146,7 +216,7 @@ const tools = computed(() => {
 
 <template>
   <div class="space-y-1.5">
-    <div class="relative">
+    <div ref="editorContainer" class="relative">
       <div
         class="overflow-hidden rounded-lg border bg-background shadow-xs transition-[border-color,box-shadow] focus-within:ring-3"
         :class="
@@ -200,7 +270,11 @@ const tools = computed(() => {
 
       <UiAutomationsVariableSuggestions
         v-if="variableRange"
+        :id="variableListboxId"
         :variables="filteredVariables"
+        :active-index="activeVariableIndex"
+        :position="variableMenuPosition ?? undefined"
+        @activate="setActiveVariableIndex"
         @select="insertVariable"
       />
     </div>
@@ -233,5 +307,24 @@ const tools = computed(() => {
   height: 0;
   pointer-events: none;
   color: var(--muted-foreground);
+}
+.automation-rich-text :deep([data-variable-token]) {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--primary) 22%, transparent);
+  color: var(--primary);
+  padding-inline: 0.375rem;
+  font-family: "Geist Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+  white-space: nowrap;
+}
+.automation-rich-text
+  :deep([data-variable-token].ProseMirror-selectednode) {
+  box-shadow: inset 0 0 0 2px var(--ring);
 }
 </style>

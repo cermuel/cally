@@ -49,9 +49,9 @@ const guestType = ref<GuestType | "all">("all");
 const contactEmail = ref("");
 const contactName = ref("");
 const localErrors = ref<Record<string, string>>({});
-const subjectField = ref<HTMLElement | null>(null);
-const subjectVariableRange = ref<{ from: number; to: number } | null>(null);
-const subjectVariableQuery = ref("");
+const subjectEditor = ref<{ insertVariable: (variable: string) => void } | null>(
+  null,
+);
 
 const availableActions = computed(() =>
   trigger.value
@@ -62,14 +62,6 @@ const availableActions = computed(() =>
       )
     : automationActions,
 );
-
-const subjectSuggestions = computed(() => {
-  if (!subjectVariableRange.value) return [];
-  const query = subjectVariableQuery.value.toLowerCase();
-  return props.variables.filter((variable) =>
-    variable.toLowerCase().includes(query),
-  );
-});
 
 const fieldError = (field: string) =>
   localErrors.value[field] || props.errors?.[field]?.[0];
@@ -90,7 +82,6 @@ const resetForm = () => {
   contactEmail.value = contactPayload?.email ?? "";
   contactName.value = contactPayload?.name ?? "";
   localErrors.value = {};
-  subjectVariableRange.value = null;
 };
 
 watch(open, (isOpen) => {
@@ -111,30 +102,8 @@ watch(trigger, (value) => {
   }
 });
 
-const updateSubjectSuggestion = () => {
-  const input = subjectField.value?.querySelector("input");
-  if (!input) return;
-
-  const cursor = input.selectionStart ?? subject.value.length;
-  const match = subject.value.slice(0, cursor).match(/\{\{([a-z_]*)$/i);
-  subjectVariableQuery.value = match?.[1] ?? "";
-  subjectVariableRange.value = match
-    ? { from: cursor - match[0].length, to: cursor }
-    : null;
-};
-
-const insertSubjectVariable = async (variable: string) => {
-  const input = subjectField.value?.querySelector("input");
-  const range = subjectVariableRange.value;
-  const from = range?.from ?? input?.selectionStart ?? subject.value.length;
-  const to = range?.to ?? input?.selectionEnd ?? subject.value.length;
-
-  subject.value = `${subject.value.slice(0, from)}${variable}${subject.value.slice(to)}`;
-  subjectVariableRange.value = null;
-  await nextTick();
-  input?.focus();
-  input?.setSelectionRange(from + variable.length, from + variable.length);
-};
+const insertSubjectVariable = (variable: string) =>
+  subjectEditor.value?.insertVariable(variable);
 
 const submit = () => {
   localErrors.value = {};
@@ -333,23 +302,13 @@ const submit = () => {
                       @select="insertSubjectVariable"
                     />
                   </div>
-                  <div ref="subjectField" class="relative">
-                    <SharedInput
-                      id="edit-automation-subject"
-                      v-model="subject"
-                      autocomplete="off"
-                      placeholder="Thanks for meeting, {{guest_name}}"
-                      :error="fieldError('payload.subject')"
-                      @input="updateSubjectSuggestion"
-                      @click="updateSubjectSuggestion"
-                      @keyup="updateSubjectSuggestion"
-                    />
-                    <UiAutomationsVariableSuggestions
-                      v-if="subjectVariableRange"
-                      :variables="subjectSuggestions"
-                      @select="insertSubjectVariable"
-                    />
-                  </div>
+                  <UiAutomationsVariableTextInput
+                    ref="subjectEditor"
+                    v-model="subject"
+                    :variables="variables"
+                    placeholder="Thanks for meeting, {{guest_name}}"
+                    :error="fieldError('payload.subject')"
+                  />
                 </div>
 
                 <div>
