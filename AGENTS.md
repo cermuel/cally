@@ -21,6 +21,12 @@ Keep pages and layout shells focused on composition. Extract independently meani
 
 Treat Tailwind IntelliSense's `suggestCanonicalClasses` diagnostics as errors. Use canonical Tailwind utilities in every new or edited class list.
 
+## Input Validation
+
+Do not rely on native HTML form submission or browser validation in new or edited UI. Use explicit Vue event handlers and the project's validation helpers instead of `<form>`, `required`, or other browser-managed validation behavior.
+
+Show field-level validation through the shared input components' `error` props. For controls without an `error` prop, set `aria-invalid` and render the error message beside the control.
+
 ## Preserve API Response Shapes
 
 Use API response objects directly throughout the application. Do not create mapping or normalization helpers such as `mapPublicMeeting`, `mapPublicEvent`, or `mapPublicProfile`, and do not introduce parallel view-model types that rename API fields.

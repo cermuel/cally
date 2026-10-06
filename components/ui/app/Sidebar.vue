@@ -117,28 +117,26 @@ const trapMobileFocus = (event: KeyboardEvent) => {
       :class="compact ? 'flex flex-col items-center' : 'px-3'"
       aria-label="Primary"
     >
-      <template v-for="item in appNavigationItems" :key="item.to">
+      <UiAppSidebarItem
+        v-for="item in appNavigationItems"
+        :key="item.to"
+        :label="item.label"
+        :to="item.to"
+        :icon="item.icon"
+        :active="
+          route.path === item.to || route.path.startsWith(`${item.to}/`)
+        "
+        :compact="compact"
+        :has-children="item.to === '/app/links'"
+        :hide-copy="hideCopy"
+        :settling="isSettling"
+      >
         <UiAppSidebarLinks
           v-if="item.to === '/app/links'"
-          :active="
-            route.path === item.to || route.path.startsWith(`${item.to}/`)
-          "
-          :compact="compact"
-          :enabled="!unavailable"
+          :enabled="!unavailable && !compact"
           :hide-copy="hideCopy"
-          :settling="isSettling"
         />
-        <UiAppSidebarItem
-          v-else
-          :label="item.label"
-          :to="item.to"
-          :icon="item.icon"
-          :active="route.path === item.to"
-          :compact="compact"
-          :hide-copy="hideCopy"
-          :settling="isSettling"
-        />
-      </template>
+      </UiAppSidebarItem>
     </nav>
 
     <div class="p-3">

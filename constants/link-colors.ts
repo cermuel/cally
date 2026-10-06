@@ -1,7 +1,7 @@
 export type LinkColor = {
-  label: string
-  value: string
-}
+  label: string;
+  value: string;
+};
 
 export const linkColors = [
   { label: 'Cream', value: '#ffdf5c' },
@@ -16,4 +16,4 @@ export const linkColors = [
   { label: 'Mint', value: '#8de0a6' },
   { label: 'Sage', value: '#c0d8a8' },
   { label: 'Slate', value: '#cdd2dc' },
-] satisfies readonly LinkColor[]
+] as const satisfies readonly LinkColor[];

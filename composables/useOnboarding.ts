@@ -8,8 +8,9 @@ import {
 } from "~/constants/onboarding";
 import { getUsernameError } from "~/helpers/onboarding";
 import { availabilityApi } from "~/utils/api/availability";
-import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
+import { getApiErrorMessage } from "~/utils/api/client";
 import { usersApi } from "~/utils/api/users";
+import type { EditProfilePayload } from "~/utils/api/users";
 import type { UsernameStatus } from "~/types/onboarding";
 
 export const useOnboarding = () => {
@@ -134,26 +135,20 @@ export const useOnboarding = () => {
     submitting.value = true;
 
     try {
-      const response = await usersApi.editProfile(apiClient, {
+      const payload: EditProfilePayload = {
         name: profile.name.trim(),
-        username: profile.username,
         timezone: timezone.value,
-      });
+      };
+
+      if (profile.username !== auth.user.value?.username) {
+        payload.username = profile.username;
+      }
+
+      const response = await usersApi.editProfile(apiClient, payload);
 
       auth.setUser(response.user);
       return true;
     } catch (error) {
-      const usernameErrors = getApiFieldErrors(error).username ?? [];
-      const isCurrentUsernameTakenError =
-        auth.user.value?.username === profile.username &&
-        usernameErrors.some((message) =>
-          message.toLowerCase().includes("already been taken"),
-        );
-
-      if (isCurrentUsernameTakenError) {
-        return true;
-      }
-
       toast.error(
         getApiErrorMessage(error, "Unable to save your profile. Please try again."),
       );

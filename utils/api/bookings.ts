@@ -1,4 +1,5 @@
 import type { AxiosInstance } from "axios";
+import type { Contact } from "./contacts";
 import { apiRequest } from "./client";
 
 export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
@@ -37,6 +38,7 @@ export type BookingHost = {
 export type Booking = {
   id: number;
   user_id: number;
+  contact_id: number | null;
   event_id: number | string;
   starts_at: string | null;
   ends_at: string | null;
@@ -44,11 +46,13 @@ export type Booking = {
   status: BookingStatus;
   provider_event_id: string | null;
   meeting_url: string | null;
+  provider: string | null;
   notes: string | null;
   cancellation_reason: string | null;
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
+  contact?: Contact | null;
   event?: BookingEvent;
   host?: BookingHost;
   guests?: BookingGuest[];
@@ -81,14 +85,24 @@ export type BookingListParams = {
   date?: string;
   event_id?: string | number;
   page?: number;
+  per_page?: number;
 };
 
 export type BookingResponse = {
   message: string;
-  booking?: Booking;
+  booking: Booking;
+};
+
+export type CreateBookingPayload = {
+  event_id: string | number;
+  starts_at: string;
+  ends_at: string;
+  timezone: string;
+  notes?: string | null;
 };
 
 export type UpdateBookingPayload = {
+  contact_id?: number | null;
   status?: BookingStatus;
   starts_at?: string | null;
   ends_at?: string | null;
@@ -126,6 +140,14 @@ export type PublicScheduleResponse = {
 };
 
 export const bookingsApi = {
+  create(client: AxiosInstance, payload: CreateBookingPayload) {
+    return apiRequest<BookingResponse>(client, {
+      method: "POST",
+      url: "/bookings",
+      data: payload,
+    });
+  },
+
   list(client: AxiosInstance, params: BookingListParams = {}) {
     return apiRequest<BookingListResponse>(client, {
       method: "GET",

@@ -51,6 +51,15 @@ export const queryKeys = {
     detail: (id: QueryKeyId) => [...queryKeys.bookings.details(), id] as const,
   },
 
+  contacts: {
+    all: () => [...queryKeys.all, 'contacts'] as const,
+    lists: () => [...queryKeys.contacts.all(), 'list'] as const,
+    list: (filters?: QueryKeyFilters) => [...queryKeys.contacts.lists(), filters ?? {}] as const,
+    details: () => [...queryKeys.contacts.all(), 'detail'] as const,
+    detail: (id: QueryKeyId) => [...queryKeys.contacts.details(), id] as const,
+    bookings: (id: QueryKeyId, filters?: QueryKeyFilters) => [...queryKeys.contacts.detail(id), 'bookings', filters ?? {}] as const,
+  },
+
   guests: {
     all: () => [...queryKeys.all, 'guests'] as const,
     list: (bookingId: QueryKeyId) => [...queryKeys.guests.all(), 'list', bookingId] as const,
