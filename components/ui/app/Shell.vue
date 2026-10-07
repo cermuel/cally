@@ -1,4 +1,15 @@
 <script setup lang="ts">
+const props = withDefaults(
+  defineProps<{
+    contentOverflow?: "auto" | "hidden";
+    fullWidth?: boolean;
+  }>(),
+  {
+    contentOverflow: "auto",
+    fullWidth: false,
+  },
+);
+
 const {
   closeSidebar,
   hideSidebarCopy,
@@ -13,6 +24,54 @@ const {
   sidebarWidth,
   startResize,
 } = useAppSidebar();
+
+const content = useTemplateRef("content");
+let widthAnimation: Animation | undefined;
+
+watch(
+  () => props.fullWidth,
+  async () => {
+    const element = content.value;
+    if (!element || !import.meta.client) return;
+
+    const previousWidth = element.getBoundingClientRect().width;
+    widthAnimation?.cancel();
+
+    await nextTick();
+
+    const nextWidth = element.getBoundingClientRect().width;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const styles = getComputedStyle(document.documentElement);
+    const easing = styles.getPropertyValue(
+      reduceMotion ? "--ease-out" : "--ease-in-out",
+    );
+
+    if (!reduceMotion && Math.abs(previousWidth - nextWidth) < 1) return;
+
+    widthAnimation = element.animate(
+      reduceMotion
+        ? [{ opacity: 0.92 }, { opacity: 1 }]
+        : [
+            { transform: `scaleX(${previousWidth / nextWidth})` },
+            { transform: "scaleX(1)" },
+          ],
+      {
+        duration: reduceMotion ? 150 : 240,
+        easing: easing.trim(),
+      },
+    );
+
+    const animation = widthAnimation;
+    animation.onfinish = () => {
+      if (widthAnimation === animation) widthAnimation = undefined;
+    };
+  },
+  { flush: "pre" },
+);
+
+onBeforeUnmount(() => widthAnimation?.cancel());
 </script>
 
 <template>
@@ -61,14 +120,28 @@ const {
         :show-sidebar-toggle="isMobile || mode === 'hidden'"
         :sidebar-open="mobileOpen"
         @open-sidebar="openSidebar"
-      />
+      >
+        <template #actions>
+          <slot name="navbar-actions" />
+        </template>
+      </UiAppNavbar>
 
       <main
         id="app-content"
-        class="min-h-0 flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8"
+        class="min-h-0 flex-1 px-4 py-8 sm:px-6 lg:px-8"
+        :class="
+          contentOverflow === 'hidden' ? 'overflow-y-hidden' : 'overflow-y-auto'
+        "
         tabindex="-1"
       >
-        <div class="mx-auto w-full max-w-5xl">
+        <div
+          ref="content"
+          class="mx-auto w-full origin-center"
+          :class="[
+            !fullWidth && 'max-w-5xl',
+            contentOverflow === 'hidden' && 'h-full min-h-0',
+          ]"
+        >
           <slot />
         </div>
       </main>

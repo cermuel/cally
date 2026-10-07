@@ -8,7 +8,10 @@ import {
 } from '~/utils/api/bookings'
 import { queryKeys } from '~/utils/api/query-keys'
 
-const filterBookings = (bookings: Booking[], scope: BookingScope) => {
+export const filterBookingsForScope = (
+  bookings: Booking[],
+  scope: BookingScope,
+) => {
   const now = Date.now()
 
   if (scope === 'upcoming') {
@@ -57,10 +60,7 @@ export function useBookings(
     queryFn: () => bookingsApi.list(client, params.value),
     select: (response) => ({
       ...response,
-      bookings: {
-        ...response.bookings,
-        data: filterBookings(response.bookings.data, activeScope.value),
-      },
+      bookings: filterBookingsForScope(response.bookings, activeScope.value),
     }),
     placeholderData: keepPreviousData,
   })

@@ -13,7 +13,7 @@ const tabs: Array<{ label: string; value: BookingScope }> = [
 </script>
 
 <template>
-  <SharedTabs v-model="scope" class="mb-6 overflow-x-auto pb-1">
+  <SharedTabs v-model="scope" class="min-w-0 overflow-x-auto pb-1">
     <SharedTabsList
       variant="default"
       class="w-max justify-start"

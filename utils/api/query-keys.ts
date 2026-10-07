@@ -71,6 +71,13 @@ export const queryKeys = {
     all: () => [...queryKeys.all, 'connections'] as const,
     list: () => [...queryKeys.connections.all(), 'list'] as const,
   },
+
+  notifications: {
+    all: () => [...queryKeys.all, 'notifications'] as const,
+    lists: () => [...queryKeys.notifications.all(), 'list'] as const,
+    list: (filters?: QueryKeyFilters) => [...queryKeys.notifications.lists(), filters ?? {}] as const,
+    unreadCount: () => [...queryKeys.notifications.all(), 'unread-count'] as const,
+  },
 } as const
 
 export type QueryKeyId = string | number

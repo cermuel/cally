@@ -1,5 +1,10 @@
 import type { AxiosInstance } from 'axios'
-import type { AuthUser, AuthUserResponse, MessageResponse } from './auth'
+import type {
+  AuthUser,
+  AuthUserResponse,
+  MessageResponse,
+  NotificationPreferences,
+} from './auth'
 import { apiRequest } from './client'
 
 export type CheckUsernameResponse = MessageResponse & {
@@ -12,6 +17,9 @@ export type EditProfilePayload = {
   description?: string | null
   avatar_url?: string
   timezone?: string
+  notification_preference?: Partial<{
+    [Key in keyof NotificationPreferences]: Partial<NotificationPreferences[Key]>
+  }> | null
 }
 
 export type ChangePasswordPayload = {

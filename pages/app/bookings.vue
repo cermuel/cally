@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 import {
   bookingsApi,
@@ -9,15 +9,39 @@ import {
 import { getApiErrorMessage } from "~/utils/api/client";
 import { guestsApi } from "~/utils/api/guests";
 import { queryKeys } from "~/utils/api/query-keys";
+import type { BookingsView } from "~/components/ui/bookings/ViewTabs.vue";
 
 definePageMeta({ layout: false });
 useHead({ title: "Bookings | Cally" });
 
 const client = useApiClient();
+const route = useRoute();
+const router = useRouter();
 const queryClient = useQueryClient();
 const scope = ref<BookingScope>("all");
+const view = ref<BookingsView>("list");
 const page = ref(1);
 const bookingsQuery = useBookings(scope, page);
+const calendarBookingsQuery = useCalendarBookings(
+  "all",
+  computed(() => view.value === "calendar"),
+);
+const linkedBookingId = computed(() => {
+  const value = route.query.booking_id;
+  const rawId = Array.isArray(value) ? value[0] : value;
+  if (!rawId || !/^\d+$/.test(rawId)) return null;
+
+  const id = Number(rawId);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+});
+const linkedBookingQuery = useQuery({
+  queryKey: computed(() =>
+    queryKeys.bookings.detail(linkedBookingId.value ?? "none"),
+  ),
+  enabled: computed(() => linkedBookingId.value !== null),
+  queryFn: () => bookingsApi.details(client, linkedBookingId.value!),
+});
+const linkedDetailsOpen = ref(false);
 const actionTarget = ref<Booking | null>(null);
 const declineOpen = ref(false);
 const cancelOpen = ref(false);
@@ -29,6 +53,39 @@ const busyId = ref<number | null>(null);
 watch(scope, () => {
   page.value = 1;
 });
+
+watch(view, (currentView) => {
+  if (currentView === "calendar") scope.value = "all";
+});
+
+watch(
+  [linkedBookingId, () => linkedBookingQuery.data.value?.booking],
+  ([bookingId, booking]) => {
+    linkedDetailsOpen.value = booking?.id === bookingId;
+  },
+  { immediate: true },
+);
+
+watch(
+  () => linkedBookingQuery.error.value,
+  (error) => {
+    if (error) {
+      toast.error(getApiErrorMessage(error, "Could not load the booking."));
+    }
+  },
+);
+
+const setLinkedDetailsOpen = (open: boolean) => {
+  linkedDetailsOpen.value = open;
+  if (open || linkedBookingId.value === null) return;
+
+  void router.replace({
+    query: {
+      ...route.query,
+      booking_id: undefined,
+    },
+  });
+};
 
 const refreshBookings = () =>
   queryClient.invalidateQueries({
@@ -130,7 +187,7 @@ const acceptBooking = (booking: Booking) => {
     {
       loading: "Accepting booking...",
       success: "Booking accepted",
-      error: (error) =>
+      error: (error: unknown) =>
         getApiErrorMessage(error, "Could not accept the booking."),
     },
   );
@@ -154,7 +211,7 @@ const declineBooking = (reason?: string) => {
     {
       loading: "Declining invitation...",
       success: "Invitation declined",
-      error: (error) =>
+      error: (error: unknown) =>
         getApiErrorMessage(error, "Could not decline the invitation."),
     },
   );
@@ -178,7 +235,7 @@ const cancelBooking = (reason?: string) => {
     {
       loading: "Cancelling event...",
       success: "Event cancelled",
-      error: (error) =>
+      error: (error: unknown) =>
         getApiErrorMessage(error, "Could not cancel the event."),
     },
   );
@@ -215,70 +272,128 @@ const rescheduleBooking = (startsAt: string, endsAt: string) => {
 </script>
 
 <template>
-  <UiAppShell>
-    <UiBookingsTabs v-model="scope" />
+  <UiAppShell
+    content-overflow="hidden"
+    :full-width="view === 'calendar'"
+  >
+    <template #navbar-actions>
+      <UiBookingsViewTabs v-if="view === 'calendar'" v-model="view" />
+    </template>
 
-    <div
-      v-if="bookingsQuery.isError.value"
-      role="alert"
-      class="mb-5 flex items-center justify-between gap-4 rounded-lg border border-destructive/30 bg-destructive/5 p-4"
-    >
-      <p class="text-sm text-destructive">
-        {{
-          getApiErrorMessage(
-            bookingsQuery.error.value,
-            "Could not load your bookings.",
-          )
-        }}
-      </p>
-      <SharedButton
-        type="button"
-        variant="outline"
-        size="sm"
-        @click="bookingsQuery.refetch()"
+    <div class="flex h-full min-h-0 flex-col overflow-y-hidden">
+      <div
+        v-if="view === 'list'"
+        class="mb-6 flex shrink-0 items-start justify-between gap-4"
       >
-        Try again
-      </SharedButton>
+        <UiBookingsTabs v-model="scope" />
+        <UiBookingsViewTabs class="ms-auto" v-model="view" />
+      </div>
+
+      <div
+        v-if="bookingsQuery.isError.value"
+        role="alert"
+        class="mb-5 shrink-0 items-center justify-between gap-4 rounded-lg border border-destructive/30 bg-destructive/5 p-4"
+        :class="view === 'calendar' ? 'flex md:hidden' : 'flex'"
+      >
+        <p class="text-sm text-destructive">
+          {{
+            getApiErrorMessage(
+              bookingsQuery.error.value,
+              "Could not load your bookings.",
+            )
+          }}
+        </p>
+        <SharedButton
+          type="button"
+          variant="outline"
+          size="sm"
+          @click="bookingsQuery.refetch()"
+        >
+          Try again
+        </SharedButton>
+      </div>
+
+      <div
+        v-if="view === 'calendar' && calendarBookingsQuery.isError.value"
+        role="alert"
+        class="mb-5 hidden shrink-0 items-center justify-between gap-4 rounded-lg border border-destructive/30 bg-destructive/5 p-4 md:flex"
+      >
+        <p class="text-sm text-destructive">
+          {{
+            getApiErrorMessage(
+              calendarBookingsQuery.error.value,
+              "Could not load the booking calendar.",
+            )
+          }}
+        </p>
+        <SharedButton
+          type="button"
+          variant="outline"
+          size="sm"
+          @click="calendarBookingsQuery.refetch()"
+        >
+          Try again
+        </SharedButton>
+      </div>
+
+      <div
+        class="min-h-0 flex-1 flex-col"
+        :class="view === 'calendar' ? 'flex md:hidden' : 'flex'"
+      >
+        <UiBookingsList
+          :bookings="bookingsQuery.data.value?.bookings"
+          :pagination="bookingsQuery.data.value?.pagination"
+          :loading="bookingsQuery.isPending.value"
+          :busy-id="busyId"
+          :scope="scope"
+          @accept="acceptBooking"
+          @add-guests="requestAddGuests"
+          @cancel="requestCancel"
+          @decline="requestDecline"
+          @delete="requestDelete"
+          @page="page = $event"
+          @reschedule="requestReschedule"
+        />
+      </div>
+
+      <UiBookingsCalendar
+        v-if="view === 'calendar'"
+        class="hidden md:grid"
+        :bookings="calendarBookingsQuery.data.value"
+        :loading="calendarBookingsQuery.isPending.value"
+      />
+
+      <UiBookingsDetailsSheet
+        :open="linkedDetailsOpen"
+        :booking="linkedBookingQuery.data.value?.booking ?? null"
+        @update:open="setLinkedDetailsOpen"
+      />
+
+      <UiBookingsActionDialog
+        v-model:open="declineOpen"
+        action="decline"
+        :submitting="updateMutation.isPending.value"
+        @confirm="declineBooking"
+      />
+      <UiBookingsActionDialog
+        v-model:open="cancelOpen"
+        action="cancel"
+        :submitting="updateMutation.isPending.value"
+        @confirm="cancelBooking"
+      />
+      <UiBookingsActionDialog
+        v-model:open="deleteOpen"
+        action="delete"
+        :submitting="deleteMutation.isPending.value"
+        @confirm="actionTarget && deleteMutation.mutate(actionTarget)"
+      />
+      <UiPublicAddGuestsDialog v-model:open="addGuestsOpen" @add="addGuests" />
+      <UiBookingsRescheduleDialog
+        v-model:open="rescheduleOpen"
+        :booking="actionTarget"
+        :submitting="rescheduleMutation.isPending.value"
+        @submit="rescheduleBooking"
+      />
     </div>
-
-    <UiBookingsList
-      :paginator="bookingsQuery.data.value?.bookings"
-      :loading="bookingsQuery.isPending.value"
-      :busy-id="busyId"
-      :scope="scope"
-      @accept="acceptBooking"
-      @add-guests="requestAddGuests"
-      @cancel="requestCancel"
-      @decline="requestDecline"
-      @delete="requestDelete"
-      @page="page = $event"
-      @reschedule="requestReschedule"
-    />
-
-    <UiBookingsActionDialog
-      v-model:open="declineOpen"
-      action="decline"
-      :submitting="updateMutation.isPending.value"
-      @confirm="declineBooking"
-    />
-    <UiBookingsActionDialog
-      v-model:open="cancelOpen"
-      action="cancel"
-      :submitting="updateMutation.isPending.value"
-      @confirm="cancelBooking"
-    />
-    <UiBookingsActionDialog
-      v-model:open="deleteOpen"
-      action="delete"
-      :submitting="deleteMutation.isPending.value"
-      @confirm="actionTarget && deleteMutation.mutate(actionTarget)"
-    />
-    <UiPublicAddGuestsDialog v-model:open="addGuestsOpen" @add="addGuests" />
-    <UiBookingsRescheduleDialog
-      v-model:open="rescheduleOpen"
-      :booking="actionTarget"
-      :submitting="rescheduleMutation.isPending.value"
-      @submit="rescheduleBooking"
-    />
   </UiAppShell>
 </template>

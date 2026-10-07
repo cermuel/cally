@@ -30,6 +30,7 @@ const open = ref(false);
 
 const pending = computed(() => props.booking.status === "pending");
 const confirmed = computed(() => props.booking.status === "confirmed");
+const completed = computed(() => props.booking.status === "completed");
 const cancelled = computed(() => props.booking.status === "cancelled");
 const canModify = computed(
   () =>
@@ -96,31 +97,34 @@ const eventName = computed(
 
 const item =
   "flex min-h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-sm outline-none hover:bg-accent focus-visible:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50";
+
+const badge =
+  "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset";
 </script>
 
 <template>
   <article
-    class="group relative overflow-hidden rounded-xl border border-border bg-card text-sm shadow-[0_1px_2px_oklch(0_0_0/0.04)] transition-[border-color,box-shadow] hover:border-foreground/20 hover:shadow-[0_8px_24px_oklch(0_0_0/0.08)] focus-within:border-ring/50 sm:rounded-2xl"
+    class="group relative overflow-hidden rounded-xl border border-border bg-card text-sm shadow-xs transition-[border-color,box-shadow] hover:border-foreground/20 hover:shadow-sm focus-within:border-ring/50"
   >
     <button
       type="button"
-      class="absolute inset-0 z-0 rounded-xl focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:rounded-2xl"
+      class="absolute inset-0 z-0 rounded-xl focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
       :aria-label="`View details for ${eventName} on ${dateLabel}`"
       @click="emit('open', booking)"
     />
 
     <div class="pointer-events-none relative z-10 flex min-w-0 items-stretch">
       <div
-        class="hidden w-24 shrink-0 place-items-center border-e border-border bg-muted/35 px-3 py-5 text-center sm:grid"
+        class="hidden w-20 shrink-0 place-items-center border-e border-border bg-muted/30 px-3 py-5 text-center sm:grid"
         :class="cancelled && 'text-muted-foreground'"
       >
         <div>
           <p
-            class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground"
           >
             {{ dateParts.month }}
           </p>
-          <p class="mt-0.5 text-2xl font-semibold tabular-nums leading-none">
+          <p class="mt-1 text-2xl font-semibold tabular-nums leading-none">
             {{ dateParts.day }}
           </p>
         </div>
@@ -132,26 +136,41 @@ const item =
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-2">
             <h2
-              class="truncate text-[15px] font-semibold"
+              class="truncate text-[15px] font-medium"
               :class="cancelled && 'text-muted-foreground line-through'"
             >
               {{ eventName }}
             </h2>
             <span
               v-if="pending"
-              class="shrink-0 rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300"
+              :class="[
+                badge,
+                'bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-300',
+              ]"
             >
               Needs confirmation
             </span>
             <span
+              v-else-if="completed"
+              :class="[
+                badge,
+                'bg-blue-500/10 text-blue-700 ring-blue-500/20 dark:text-blue-300',
+              ]"
+            >
+              Completed
+            </span>
+            <span
               v-else-if="cancelled"
-              class="shrink-0 rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive"
+              :class="[
+                badge,
+                'bg-destructive/10 text-destructive ring-destructive/20',
+              ]"
             >
               Cancelled
             </span>
           </div>
 
-          <p class="mt-1 text-sm text-muted-foreground">
+          <p class="mt-1 text-sm tabular-nums text-muted-foreground">
             {{ dateLabel }} · {{ timeLabel }}
           </p>
 
@@ -183,7 +202,7 @@ const item =
               <HugeiconsIcon
                 :icon="Video01Icon"
                 :size="15"
-                :stroke-width="1.75"
+                :stroke-width="1.5"
                 aria-hidden="true"
               />
               Join
@@ -202,7 +221,7 @@ const item =
                 <HugeiconsIcon
                   :icon="MoreHorizontalIcon"
                   :size="18"
-                  :stroke-width="1.75"
+                  :stroke-width="1.5"
                   aria-hidden="true"
                 />
               </SharedButton>

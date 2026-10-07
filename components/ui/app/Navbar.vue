@@ -9,6 +9,10 @@ defineProps<{
   sidebarOpen: boolean;
 }>();
 
+defineSlots<{
+  actions?: () => unknown;
+}>();
+
 const emit = defineEmits<{
   openSidebar: [];
 }>();
@@ -74,5 +78,11 @@ const breadcrumbItems = computed<readonly BreadcrumbItem[]>(() => {
     </SharedButton>
 
     <UiAppBreadcrumb :items="breadcrumbItems" />
+
+    <div class="ms-auto flex items-center gap-2">
+      <slot name="actions" />
+      <UiNotificationsTestButton />
+      <UiAppNotificationButton />
+    </div>
   </header>
 </template>

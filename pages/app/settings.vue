@@ -10,6 +10,7 @@ const section = ref("connections");
     <SharedTabs v-model="section" class="mx-auto w-full max-w-5xl gap-6">
       <SharedTabsList aria-label="Settings sections">
         <SharedTabsTrigger value="connections"> Connections </SharedTabsTrigger>
+        <SharedTabsTrigger value="notifications"> Notifications </SharedTabsTrigger>
         <SharedTabsTrigger value="account"> Account </SharedTabsTrigger>
       </SharedTabsList>
 
@@ -19,6 +20,10 @@ const section = ref("connections");
 
       <SharedTabsContent value="account">
         <UiSettingsPasswordForm />
+      </SharedTabsContent>
+
+      <SharedTabsContent value="notifications">
+        <UiSettingsNotificationPreferences />
       </SharedTabsContent>
     </SharedTabs>
   </UiAppShell>

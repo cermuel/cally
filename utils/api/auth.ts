@@ -1,7 +1,20 @@
 import type { AxiosInstance } from 'axios'
 import { apiRequest } from './client'
 
+export type NotificationChannelPreference = {
+  in_app: boolean
+  email: boolean
+}
+
+export type NotificationPreferences = {
+  booking_created: NotificationChannelPreference
+  booking_cancelled: NotificationChannelPreference
+  booking_rescheduled: NotificationChannelPreference
+  guest_added: NotificationChannelPreference
+}
+
 export type AuthUser = {
+  id: number
   name: string | null
   username: string | null
   description: string | null
@@ -10,6 +23,7 @@ export type AuthUser = {
   email_verified_at: string | null
   onboarding_completed_at: string | null
   timezone: string
+  notification_preference: NotificationPreferences
 }
 
 export type RegisterPayload = {

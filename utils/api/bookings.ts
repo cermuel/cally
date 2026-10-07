@@ -58,25 +58,21 @@ export type Booking = {
   guests?: BookingGuest[];
 };
 
-export type BookingPaginator = {
+export type BookingPagination = {
   current_page: number;
-  data: Booking[];
-  first_page_url: string;
-  from: number | null;
-  last_page: number;
-  last_page_url: string;
-  links: Array<{ active: boolean; label: string; url: string | null }>;
-  next_page_url: string | null;
-  path: string;
   per_page: number;
-  prev_page_url: string | null;
-  to: number | null;
   total: number;
+  last_page: number;
+  from: number | null;
+  to: number | null;
+  previous_page_url: string | null;
+  next_page_url: string | null;
 };
 
 export type BookingListResponse = {
   message: string;
-  bookings: BookingPaginator;
+  bookings: Booking[];
+  pagination: BookingPagination;
 };
 
 export type BookingListParams = {
