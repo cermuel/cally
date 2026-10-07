@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import {
   Delete02Icon,
-  PlusSignIcon,
   Search01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
 import {
   contactsApi,
   type Contact,
+  type ContactImport,
   type ContactListParams,
   type CreateContactBookingPayload,
   type ContactSortDirection,
@@ -31,6 +31,8 @@ const sortBy = ref<ContactSortField>("created_at");
 const direction = ref<ContactSortDirection>("desc");
 const page = ref(1);
 const perPage = ref(20);
+const searching = ref(false);
+const sortingField = ref<ContactSortField | null>(null);
 const selectedIds = ref<number[]>([]);
 const selectedContact = ref<Contact | null>(null);
 const detailContactId = ref<number | null>(null);
@@ -42,6 +44,9 @@ const formOpen = ref(false);
 const formErrors = ref<Record<string, string[]>>({});
 const deleteOpen = ref(false);
 const deleteTarget = ref<Contact | null>(null);
+const contactImport = ref<ContactImport | null>(null);
+const importActivityOpen = ref(false);
+const templateDownloading = ref(false);
 
 const params = computed<ContactListParams>(() => ({
   ...(search.value ? { search: search.value } : {}),
@@ -67,11 +72,23 @@ let searchTimer: ReturnType<typeof setTimeout> | undefined;
 watch(searchInput, (value) => {
   if (searchTimer) clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
-    search.value = value.trim();
+    const nextSearch = value.trim();
+    if (nextSearch === search.value) return;
+    searching.value = true;
+    search.value = nextSearch;
     page.value = 1;
     selectedIds.value = [];
   }, 300);
 });
+
+watch(
+  () => contactsQuery.isFetching.value,
+  (isFetching) => {
+    if (isFetching) return;
+    searching.value = false;
+    sortingField.value = null;
+  },
+);
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer);
 });
@@ -221,7 +238,110 @@ const confirmDelete = () => {
   deleteMutation.mutate({ target: deleteTarget.value, ids });
 };
 
+const importStatusQuery = useQuery({
+  queryKey: queryKeys.contacts.importStatus(),
+  queryFn: () => contactsApi.importStatus(client),
+  refetchOnWindowFocus: false,
+  refetchInterval: (query) => {
+    const status = query.state.data?.import?.status;
+    return status === "pending" || status === "processing" ? 1500 : false;
+  },
+});
+
+watch(
+  () => importStatusQuery.data.value?.import,
+  (nextImport) => {
+    if (!nextImport) return;
+
+    const isActive =
+      nextImport.status === "pending" || nextImport.status === "processing";
+
+    if (!contactImport.value || nextImport.id !== contactImport.value.id) {
+      if (isActive) {
+        contactImport.value = nextImport;
+        importActivityOpen.value = true;
+      }
+      return;
+    }
+
+    contactImport.value = nextImport;
+    if (nextImport.status === "completed") refreshContacts();
+  },
+);
+
+const startImportMutation = useMutation({
+  mutationFn: (file: File) => contactsApi.import(client, file),
+  onSuccess: (response) => {
+    contactImport.value = response.import;
+    importActivityOpen.value = true;
+    queryClient.setQueryData(queryKeys.contacts.importStatus(), {
+      import: response.import,
+      progress: 0,
+    });
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not start the contact import.")),
+});
+
+const importContacts = (file: File) => {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (!extension || !["csv", "txt", "xlsx", "xls"].includes(extension)) {
+    toast.error("Upload a CSV, TXT, XLSX, or XLS file.");
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    toast.error("The import file must be 10 MB or smaller.");
+    return;
+  }
+  startImportMutation.mutate(file);
+};
+
+const downloadTemplate = async () => {
+  templateDownloading.value = true;
+  try {
+    const blob = await contactsApi.downloadImportTemplate(client);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "cally-contacts-template.csv";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    window.setTimeout(() => {
+      link.remove();
+      URL.revokeObjectURL(url);
+    }, 1000);
+  } catch (error) {
+    toast.error(getApiErrorMessage(error, "Could not download the template."));
+  } finally {
+    templateDownloading.value = false;
+  }
+};
+
+const cancelImportMutation = useMutation({
+  mutationFn: (id: number) => contactsApi.deleteImport(client, id),
+  onSuccess: () => {
+    importActivityOpen.value = false;
+    contactImport.value = null;
+    queryClient.setQueryData(queryKeys.contacts.importStatus(), {
+      import: null,
+      progress: null,
+    });
+    toast.success("Contact import cancelled");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not cancel the contact import.")),
+});
+
+const cancelImport = () => {
+  if (!contactImport.value) return;
+  cancelImportMutation.mutate(contactImport.value.id);
+};
+
+const reviewImportErrors = () => navigateTo("/app/contacts/review");
+
 const updateSort = (field: ContactSortField) => {
+  sortingField.value = field;
   if (sortBy.value === field) {
     direction.value = direction.value === "asc" ? "desc" : "asc";
   } else {
@@ -240,15 +360,13 @@ const updateSort = (field: ContactSortField) => {
         description="Keep track of the people you schedule meetings with."
         class="mb-0"
       />
-      <SharedButton type="button" @click="openCreate">
-        <HugeiconsIcon
-          :icon="PlusSignIcon"
-          :size="16"
-          :stroke-width="1.75"
-          aria-hidden="true"
-        />
-        Add contact
-      </SharedButton>
+      <UiContactsCreateMenu
+        :uploading="startImportMutation.isPending.value"
+        :downloading="templateDownloading"
+        @add-single="openCreate"
+        @import="importContacts"
+        @template="downloadTemplate"
+      />
     </div>
 
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -258,7 +376,7 @@ const updateSort = (field: ContactSortField) => {
         class="sm:max-w-sm"
         placeholder="Search contacts"
         aria-label="Search contacts"
-        :loading="contactsQuery.isFetching.value"
+        :loading="searching"
       >
         <template #prefix>
           <span class="flex items-center pl-3 text-muted-foreground">
@@ -274,6 +392,7 @@ const updateSort = (field: ContactSortField) => {
 
       <div v-if="selectedIds.length" class="flex items-center gap-3 sm:ml-auto">
         <SharedButton
+          v-if="selectedIds.length"
           type="button"
           variant="destructive"
           size="sm"
@@ -318,12 +437,15 @@ const updateSort = (field: ContactSortField) => {
       v-model:selected-ids="selectedIds"
       :contacts="contacts"
       :pagination="contactsQuery.data.value?.pagination"
+      :per-page="perPage"
       :loading="contactsQuery.isPending.value"
       :sort-by="sortBy"
+      :sorting-field="sortingField"
       :direction="direction"
       @delete="requestDelete"
       @edit="openEdit"
       @page="page = $event"
+      @per-page="perPage = $event; page = 1; selectedIds = []"
       @sort="updateSort"
       @view="openDetails"
     />
@@ -361,6 +483,14 @@ const updateSort = (field: ContactSortField) => {
       :count="deleteTarget ? 1 : selectedIds.length"
       :deleting="deleteMutation.isPending.value"
       @confirm="confirmDelete"
+    />
+
+    <UiContactsImportActivity
+      v-if="importActivityOpen && contactImport"
+      :contact-import="contactImport"
+      :cancelling="cancelImportMutation.isPending.value"
+      @cancel="cancelImport"
+      @review="reviewImportErrors"
     />
   </UiAppShell>
 </template>

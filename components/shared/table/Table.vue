@@ -424,7 +424,6 @@ const visibleColumnIndex = (columnIndex: number) => {
   left: 50%;
   width: 2px;
   border-radius: 9999px;
-  background: var(--ring);
   opacity: 0.28;
   transform: translateX(-50%) scaleY(0.88);
   transition:

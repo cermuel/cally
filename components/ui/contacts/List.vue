@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { ArrowDown02Icon, ArrowUp02Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowDown02Icon,
+  ArrowUp02Icon,
+  Loading03Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import { getContactTagColor } from "~/constants/contact-tags";
 import type {
@@ -16,8 +20,10 @@ import type {
 const props = defineProps<{
   contacts: Contact[];
   pagination?: ContactPagination;
+  perPage: number;
   loading: boolean;
   sortBy: ContactSortField;
+  sortingField?: ContactSortField | null;
   direction: ContactSortDirection;
 }>();
 
@@ -31,6 +37,7 @@ const emit = defineEmits<{
   page: [page: number];
   sort: [field: ContactSortField];
   view: [contact: Contact];
+  "per-page": [value: number];
 }>();
 
 const selectedSet = computed(() => new Set(selectedIds.value));
@@ -161,7 +168,15 @@ const initials = (contact: Contact) => {
       <template v-else>
         <span class="truncate">{{ column.header }}</span>
         <HugeiconsIcon
-          v-if="column.id === sortBy"
+          v-if="column.id === sortingField"
+          :icon="Loading03Icon"
+          :size="14"
+          :stroke-width="1.75"
+          class="ml-1.5 shrink-0 animate-spin"
+          aria-hidden="true"
+        />
+        <HugeiconsIcon
+          v-else-if="column.id === sortBy"
           :icon="direction === 'asc' ? ArrowUp02Icon : ArrowDown02Icon"
           :size="14"
           :stroke-width="1.75"
@@ -241,31 +256,50 @@ const initials = (contact: Contact) => {
     </template>
   </SharedTable>
 
-  <nav
-    v-if="pagination && pagination.last_page > 1"
-    class="mt-5 flex items-center justify-between gap-4"
+  <div
+    v-if="pagination"
+    class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
     aria-label="Contact pages"
   >
-    <SharedButton
-      type="button"
-      variant="outline"
-      size="sm"
-      :disabled="pagination.current_page === 1"
-      @click="emit('page', pagination.current_page - 1)"
-    >
-      Previous
-    </SharedButton>
-    <p class="text-sm text-muted-foreground">
-      Page {{ pagination.current_page }} of {{ pagination.last_page }}
-    </p>
-    <SharedButton
-      type="button"
-      variant="outline"
-      size="sm"
-      :disabled="pagination.current_page === pagination.last_page"
-      @click="emit('page', pagination.current_page + 1)"
-    >
-      Next
-    </SharedButton>
-  </nav>
+    <div class="flex items-center gap-2 text-sm text-muted-foreground">
+      <span>Rows per page</span>
+      <SharedSelect
+        :model-value="String(perPage)"
+        @update:model-value="emit('per-page', Number($event))"
+      >
+        <SharedSelectTrigger size="sm" aria-label="Rows per page">
+          <SharedSelectValue />
+        </SharedSelectTrigger>
+        <SharedSelectContent>
+          <SharedSelectItem v-for="size in [10, 20, 50, 100]" :key="size" :value="String(size)">
+            {{ size }}
+          </SharedSelectItem>
+        </SharedSelectContent>
+      </SharedSelect>
+    </div>
+
+    <div v-if="pagination.last_page > 1" class="flex items-center justify-between gap-4 sm:justify-end">
+      <SharedButton
+        type="button"
+        variant="outline"
+        size="sm"
+        :disabled="pagination.current_page === 1"
+        @click="emit('page', pagination.current_page - 1)"
+      >
+        Previous
+      </SharedButton>
+      <p class="text-sm text-muted-foreground">
+        Page {{ pagination.current_page }} of {{ pagination.last_page }}
+      </p>
+      <SharedButton
+        type="button"
+        variant="outline"
+        size="sm"
+        :disabled="pagination.current_page === pagination.last_page"
+        @click="emit('page', pagination.current_page + 1)"
+      >
+        Next
+      </SharedButton>
+    </div>
+  </div>
 </template>

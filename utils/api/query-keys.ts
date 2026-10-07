@@ -58,6 +58,7 @@ export const queryKeys = {
     details: () => [...queryKeys.contacts.all(), 'detail'] as const,
     detail: (id: QueryKeyId) => [...queryKeys.contacts.details(), id] as const,
     bookings: (id: QueryKeyId, filters?: QueryKeyFilters) => [...queryKeys.contacts.detail(id), 'bookings', filters ?? {}] as const,
+    importStatus: () => [...queryKeys.contacts.all(), 'import-status'] as const,
   },
 
   guests: {

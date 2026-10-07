@@ -111,6 +111,38 @@ export type CreateContactPayload = {
 
 export type UpdateContactPayload = Partial<CreateContactPayload>;
 
+export type ContactImportStatus = "pending" | "processing" | "completed" | "failed";
+
+export type ContactImportError = {
+  row: number;
+  email: string | null;
+  errors: Record<string, string[]>;
+};
+
+export type ContactImport = {
+  id: number;
+  user_id: number;
+  type: "contacts";
+  status: ContactImportStatus;
+  total_rows: number;
+  processed_rows: number;
+  imported_rows: number;
+  skipped_rows: number;
+  errors: ContactImportError[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type ContactImportStartResponse = {
+  message: string;
+  import: ContactImport;
+};
+
+export type ContactImportStatusResponse = {
+  import: ContactImport | null;
+  progress: number | null;
+};
+
 export const contactsApi = {
   list(client: AxiosInstance, params: ContactListParams = {}) {
     return apiRequest<ContactListResponse>(client, {
@@ -179,6 +211,42 @@ export const contactsApi = {
       method: "DELETE",
       url: "/contacts",
       data: { ids },
+    });
+  },
+
+  import(client: AxiosInstance, file: File) {
+    const data = new FormData();
+    data.append("file", file);
+
+    return apiRequest<ContactImportStartResponse>(client, {
+      method: "POST",
+      url: "/contacts/import",
+      data,
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
+  importStatus(client: AxiosInstance) {
+    return apiRequest<ContactImportStatusResponse>(client, {
+      method: "GET",
+      url: "/contacts/import/status",
+    });
+  },
+
+  deleteImport(client: AxiosInstance, id: number) {
+    return apiRequest<{ message: string }>(client, {
+      method: "DELETE",
+      url: `/contacts/import/${id}`,
+    });
+  },
+
+  downloadImportTemplate(client: AxiosInstance) {
+    return apiRequest<Blob>(client, {
+      method: "GET",
+      url: "/contacts/import/template",
+      responseType: "blob",
     });
   },
 };
