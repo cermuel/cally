@@ -48,9 +48,7 @@ const isProfileNotFound = computed(() => {
   );
 });
 const pageTitle = computed(() =>
-  profile.value
-    ? `${profile.value.name} | Cally`
-    : `@${username.value} | Cally`,
+  profile.value ? profile.value.name : `@${username.value}`,
 );
 
 const description = computed(() => profile.value?.description ?? "");

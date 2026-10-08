@@ -89,6 +89,9 @@ importers:
       tw-animate-css:
         specifier: latest
         version: 1.4.0
+      ultrahtml:
+        specifier: ^1.7.0
+        version: 1.7.0
       vue:
         specifier: latest
         version: 3.5.43(typescript@7.0.2)

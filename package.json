@@ -38,6 +38,7 @@
     "tailwind-merge": "latest",
     "tailwindcss": "latest",
     "tw-animate-css": "latest",
+    "ultrahtml": "^1.7.0",
     "vue": "latest",
     "vue-sonner": "^2.0.9"
   },

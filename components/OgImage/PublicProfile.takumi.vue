@@ -1,5 +1,25 @@
 <script setup lang="ts">
+import {
+  ELEMENT_NODE,
+  TEXT_NODE,
+  parse,
+  type ElementNode,
+  type Node as HtmlNode,
+} from "ultrahtml";
 import type { PublicProfileResponse } from "~/utils/api/public";
+
+type RichTextRun = {
+  bold?: boolean;
+  image?: string;
+  link?: boolean;
+  text?: string;
+};
+
+type RichTextBlock = {
+  kind: "paragraph" | "bullet" | "numbered" | "heading" | "blockquote";
+  runs: RichTextRun[];
+  number?: number;
+};
 
 const props = withDefaults(
   defineProps<{
@@ -34,6 +54,78 @@ const avatarUrl = profile?.avatar
     : `${siteUrl}${profile.avatar.startsWith("/") ? "" : "/"}${profile.avatar}`
   : "";
 const avatarFallbackUrl = `https://api.dicebear.com/10.x/glass/svg?seed=${encodeURIComponent(profile?.name || props.username || "Cally")}`;
+const resolveImageUrl = (source: string) =>
+  source.startsWith("http") || source.startsWith("data:")
+    ? source
+    : `${siteUrl}${source.startsWith("/") ? "" : "/"}${source}`;
+
+const collectRuns = (
+  node: HtmlNode,
+  marks: Pick<RichTextRun, "bold" | "link"> = {},
+): RichTextRun[] => {
+  if (node.type === TEXT_NODE) {
+    const text = node.value.replace(/\s+/g, " ");
+    return text ? [{ ...marks, text }] : [];
+  }
+
+  if (node.type !== ELEMENT_NODE) return [];
+
+  const element = node as ElementNode;
+  if (element.name === "br") return [{ ...marks, text: "\n" }];
+  if (element.name === "img" && element.attributes.src) {
+    return [{ ...marks, image: element.attributes.src }];
+  }
+
+  const nextMarks = {
+    bold: marks.bold || ["b", "strong"].includes(element.name),
+    link: marks.link || element.name === "a",
+  };
+
+  return element.children.flatMap((child) => collectRuns(child, nextMarks));
+};
+
+const descriptionBlocks = computed<RichTextBlock[]>(() => {
+  if (!profile?.description) return [];
+
+  const document = parse(profile.description);
+  const blocks: RichTextBlock[] = [];
+
+  const addElement = (element: ElementNode) => {
+    if (element.name === "ul" || element.name === "ol") {
+      let number = 0;
+      for (const child of element.children) {
+        if (child.type !== ELEMENT_NODE || child.name !== "li") continue;
+        number += 1;
+        blocks.push({
+          kind: element.name === "ul" ? "bullet" : "numbered",
+          number,
+          runs: collectRuns(child),
+        });
+      }
+      return;
+    }
+
+    if (["p", "h1", "h2", "h3", "blockquote"].includes(element.name)) {
+      const kind = element.name.startsWith("h")
+        ? "heading"
+        : element.name === "blockquote"
+          ? "blockquote"
+          : "paragraph";
+      blocks.push({ kind, runs: collectRuns(element) });
+      return;
+    }
+
+    for (const child of element.children) {
+      if (child.type === ELEMENT_NODE) addElement(child);
+    }
+  };
+
+  for (const child of document.children) {
+    if (child.type === ELEMENT_NODE) addElement(child);
+  }
+
+  return blocks.filter((block) => block.runs.length > 0);
+});
 </script>
 
 <template>
@@ -73,17 +165,54 @@ const avatarFallbackUrl = `https://api.dicebear.com/10.x/glass/svg?seed=${encode
     </div>
 
     <div
-      v-if="profile?.description"
-      class="profile-description relative mt-[46px] max-w-[1050px] overflow-hidden text-[28px] leading-[1.45] text-[#a3a3a3]"
-      style="
-        display: -webkit-box;
-        max-height: 286px;
-        overflow: hidden;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 7;
-      "
-      v-html="profile.description"
-    />
+      v-if="descriptionBlocks.length"
+      class="relative mt-[46px] flex max-w-[1050px] flex-col overflow-hidden text-[28px] leading-[1.45] text-[#a3a3a3]"
+      style="max-height: 286px"
+    >
+      <div
+        v-for="(block, blockIndex) in descriptionBlocks"
+        :key="blockIndex"
+        class="flex items-start"
+        :class="blockIndex === 0 ? '' : 'mt-[14px]'"
+      >
+        <span
+          v-if="block.kind === 'bullet'"
+          class="mr-[18px] shrink-0 text-[#555]"
+        >•</span>
+        <span
+          v-else-if="block.kind === 'numbered'"
+          class="mr-[14px] shrink-0 text-[#777]"
+        >{{ block.number }}.</span>
+        <span
+          v-else-if="block.kind === 'blockquote'"
+          class="mr-[16px] h-full w-[3px] shrink-0 rounded-full bg-[#555]"
+        />
+
+        <div class="flex min-w-0 flex-wrap items-center">
+          <template v-for="(run, runIndex) in block.runs" :key="runIndex">
+            <img
+              v-if="run.image"
+              :src="resolveImageUrl(run.image)"
+              alt=""
+              width="28"
+              height="28"
+              class="mx-[5px] size-[28px] shrink-0 rounded-md object-cover"
+            />
+            <span
+              v-else
+              :class="[
+                run.bold || block.kind === 'heading'
+                  ? 'font-semibold text-white'
+                  : '',
+                run.link ? 'text-white underline' : '',
+                block.kind === 'blockquote' ? 'italic' : '',
+              ]"
+              style="white-space: pre-wrap"
+            >{{ run.text }}</span>
+          </template>
+        </div>
+      </div>
+    </div>
 
     <div
       class="relative mt-auto flex items-center gap-3 text-[24px] text-[#a3a3a3]"
@@ -103,82 +232,3 @@ const avatarFallbackUrl = `https://api.dicebear.com/10.x/glass/svg?seed=${encode
     </div>
   </div>
 </template>
-
-<style>
-.profile-description > * + * {
-  margin-top: 0.75em;
-}
-
-.profile-description p,
-.profile-description ul,
-.profile-description ol,
-.profile-description blockquote {
-  margin-top: 0.75em;
-}
-
-.profile-description:first-child,
-.profile-description > :first-child {
-  margin-top: 0;
-}
-
-.profile-description strong {
-  color: #fff;
-  font-weight: 600;
-}
-
-.profile-description h1,
-.profile-description h2,
-.profile-description h3 {
-  color: #fff;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.profile-description ul,
-.profile-description ol {
-  padding-left: 1.25em;
-}
-
-.profile-description ul {
-  list-style: disc;
-}
-
-.profile-description ol {
-  list-style: decimal;
-}
-
-.profile-description li + li {
-  margin-top: 0.25em;
-}
-
-.profile-description a {
-  color: #fff;
-  text-decoration: underline;
-}
-
-.profile-description blockquote {
-  border-left: 3px solid #555;
-  padding-left: 1em;
-  font-style: italic;
-}
-
-.profile-description code {
-  border-radius: 4px;
-  background: rgb(255 255 255 / 0.08);
-  padding: 0.1em 0.35em;
-  color: #fff;
-  font-size: 0.9em;
-}
-
-.profile-description hr {
-  border-color: rgb(255 255 255 / 0.1);
-}
-
-.profile-description img {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  margin-top: 0.75em;
-  border-radius: 8px;
-}
-</style>
