@@ -1,9 +1,22 @@
 <script setup lang="ts">
+const title = "Privacy Policy for Scheduling and Bookings";
+const description =
+  "Read how Cally handles account, booking, guest, and Google Calendar information, why it is used, and the privacy choices available to you.";
+const url = "https://cally.cermuel.dev/privacy";
+
 useSeoMeta({
-  title: "Privacy Policy | Cally",
-  description:
-    "Learn what information Cally collects, how it is used, and the choices available to you.",
+  title,
+  description,
+  ogTitle: title,
+  ogDescription: description,
+  ogType: "website",
+  ogUrl: url,
+  twitterCard: "summary_large_image",
+  twitterTitle: title,
+  twitterDescription: description,
 });
+useHead({ link: [{ rel: "canonical", href: url }] });
+defineOgImage("Cally", { title: "Cally Privacy Policy", description });
 </script>
 
 <template>

@@ -15,9 +15,15 @@ import { HugeiconsIcon } from "@hugeicons/vue";
         class="pointer-events-none absolute -inset-16 -z-10 bg-[radial-gradient(circle_at_center,oklch(1_0_0/0.06),transparent_62%)]"
       />
       <div class="overflow-hidden rounded-3xl bg-[#0d0d0d] ring-1 ring-white/8">
-        <img
+        <NuxtImg
           src="/cally-mobile-booking-page.png"
           alt="A mobile Cally booking page showing a profile and three meeting types"
+          width="640"
+          height="826"
+          format="webp"
+          loading="eager"
+          fetchpriority="high"
+          sizes="100vw sm:384px"
           class="block w-full"
         />
       </div>
@@ -47,9 +53,15 @@ import { HugeiconsIcon } from "@hugeicons/vue";
           <span class="w-9" aria-hidden="true" />
         </div>
 
-        <img
+        <NuxtImg
           src="/cally-public-page.png"
           alt="A Cally booking page showing a profile and three meeting types"
+          width="1764"
+          height="1002"
+          format="webp"
+          loading="eager"
+          fetchpriority="high"
+          sizes="sm:100vw lg:1280px"
           class="block aspect-video w-full object-cover"
         />
       </div>

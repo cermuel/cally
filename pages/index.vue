@@ -2,14 +2,35 @@
 import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 
+const title = "Meeting Scheduling Without the Back-and-Forth";
+const description =
+  "Share your availability, let guests book a meeting, and keep every appointment in sync with Google Calendar. Create your free Cally booking page.";
+const url = "https://cally.cermuel.dev/";
+
 useSeoMeta({
-  title: "Cally — Scheduling, without the back-and-forth",
-  description:
-    "Share your availability, let people book a time, and keep every meeting in sync with Google Calendar.",
-  ogTitle: "Cally — Scheduling, without the back-and-forth",
-  ogDescription:
-    "A beautifully simple way to share your availability and book meetings.",
+  title,
+  description,
+  ogTitle: title,
+  ogDescription: description,
+  ogType: "website",
+  ogUrl: url,
+  twitterCard: "summary_large_image",
+  twitterTitle: title,
+  twitterDescription: description,
 });
+useHead({ link: [{ rel: "canonical", href: url }] });
+defineOgImage("Cally", {
+  title: "Scheduling, without the back-and-forth",
+  description:
+    "Share your availability, let people book a time, and keep every meeting in sync.",
+});
+useSchemaOrg([
+  defineWebPage({
+    name: title,
+    description,
+    url,
+  }),
+]);
 </script>
 
 <template>
@@ -63,9 +84,9 @@ useSeoMeta({
       </section>
 
       <UiLandingProductPreview />
-      <UiLandingFeatures />
-      <UiLandingHowItWorks />
-      <UiLandingFaq />
+      <LazyUiLandingFeatures />
+      <LazyUiLandingHowItWorks />
+      <LazyUiLandingFaq />
       <UiLandingFooter />
     </div>
   </main>

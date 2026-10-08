@@ -1,9 +1,22 @@
 <script setup lang="ts">
+const title = "Terms of Service for Meeting Scheduling and Bookings";
+const description =
+  "Read the terms that apply when you access or use Cally for public booking pages, calendar connections, and meeting scheduling services.";
+const url = "https://cally.cermuel.dev/terms";
+
 useSeoMeta({
-  title: "Terms of Service | Cally",
-  description:
-    "Read the terms that apply when you access or use Cally's scheduling service.",
+  title,
+  description,
+  ogTitle: title,
+  ogDescription: description,
+  ogType: "website",
+  ogUrl: url,
+  twitterCard: "summary_large_image",
+  twitterTitle: title,
+  twitterDescription: description,
 });
+useHead({ link: [{ rel: "canonical", href: url }] });
+defineOgImage("Cally", { title: "Cally Terms of Service", description });
 </script>
 
 <template>

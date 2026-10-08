@@ -28,9 +28,13 @@
           class="flex w-fit items-center gap-2.5"
           aria-label="Cally home"
         >
-          <img
+          <NuxtImg
             src="/logo.png"
             alt=""
+            width="28"
+            height="28"
+            format="webp"
+            loading="lazy"
             class="size-7 rounded-lg outline outline-foreground/10"
           />
           <span class="font-semibold text-foreground">Cally</span>
@@ -65,6 +69,9 @@
           >Features</a
         >
         <a class="transition-colors hover:text-foreground" href="#faq">FAQ</a>
+        <NuxtLink class="transition-colors hover:text-foreground" to="/blog"
+          >Blog</NuxtLink
+        >
       </nav>
 
       <nav

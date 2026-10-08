@@ -390,6 +390,10 @@ useHead(() => ({
   htmlAttrs: { style: isEmbed.value ? "background:transparent" : undefined },
   bodyAttrs: { style: isEmbed.value ? "background:transparent" : undefined },
 }));
+useSeoMeta({ robots: "noindex, follow" });
+if (import.meta.server) {
+  useResponseHeader("X-Robots-Tag").value = "noindex, follow";
+}
 </script>
 
 <template>
@@ -567,8 +571,8 @@ useHead(() => ({
             to="/"
             class="inline-flex items-center gap-1.5 text-white/65 transition-colors hover:text-white"
           >
-            <img src="/logo.png" alt="" class="size-5 rounded" />
-            <span class="font-medium">Cally</span>
+            <NuxtImg src="/logo.png" alt="" width="20" height="20" format="webp" class="size-5 rounded" />
+            <span class="font-medium">Powered by Cally</span>
           </NuxtLink>
         </div>
       </div>

@@ -33,9 +33,13 @@ onUnmounted(() => {
         class="flex items-center gap-2.5"
         aria-label="Cally home"
       >
-        <img
+        <NuxtImg
           src="/logo.png"
           alt=""
+          width="32"
+          height="32"
+          format="webp"
+          loading="eager"
           class="size-8 rounded-lg outline outline-foreground/10"
         />
         <span class="text-base font-semibold tracking-[-0.02em] text-foreground"
