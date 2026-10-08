@@ -62,11 +62,11 @@ const avatarFallbackUrl = `https://api.dicebear.com/10.x/glass/svg?seed=${encode
         />
       </div>
 
-      <div class="min-w-0">
-        <div class="truncate text-[48px] font-semibold leading-tight">
+      <div class="flex min-w-0 flex-col items-start">
+        <div class="truncate text-[40px] font-semibold leading-tight">
           {{ profile?.name || props.username || "Cally" }}
         </div>
-        <div class="mt-2 truncate text-[30px] text-[#a3a3a3]">
+        <div class="truncate text-[30px] leading-tight text-[#a3a3a3]">
           @{{ profile?.username || props.username }}
         </div>
       </div>
@@ -74,7 +74,7 @@ const avatarFallbackUrl = `https://api.dicebear.com/10.x/glass/svg?seed=${encode
 
     <div
       v-if="profile?.description"
-      class="relative mt-[46px] max-w-[1050px] overflow-hidden text-[28px] leading-[1.45] text-[#a3a3a3]"
+      class="profile-description relative mt-[46px] max-w-[1050px] overflow-hidden text-[28px] leading-[1.45] text-[#a3a3a3]"
       style="
         display: -webkit-box;
         max-height: 286px;
@@ -103,3 +103,46 @@ const avatarFallbackUrl = `https://api.dicebear.com/10.x/glass/svg?seed=${encode
     </div>
   </div>
 </template>
+
+<style>
+.profile-description > * + * {
+  margin-top: 0.75em;
+}
+
+.profile-description strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.profile-description h1,
+.profile-description h2,
+.profile-description h3 {
+  color: #fff;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.profile-description ul,
+.profile-description ol {
+  padding-left: 1.25em;
+}
+
+.profile-description ul {
+  list-style: disc;
+}
+
+.profile-description ol {
+  list-style: decimal;
+}
+
+.profile-description a {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.profile-description blockquote {
+  border-left: 3px solid #555;
+  padding-left: 1em;
+  font-style: italic;
+}
+</style>
