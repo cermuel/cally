@@ -109,6 +109,18 @@ const avatarFallbackUrl = `https://api.dicebear.com/10.x/glass/svg?seed=${encode
   margin-top: 0.75em;
 }
 
+.profile-description p,
+.profile-description ul,
+.profile-description ol,
+.profile-description blockquote {
+  margin-top: 0.75em;
+}
+
+.profile-description:first-child,
+.profile-description > :first-child {
+  margin-top: 0;
+}
+
 .profile-description strong {
   color: #fff;
   font-weight: 600;
@@ -135,6 +147,10 @@ const avatarFallbackUrl = `https://api.dicebear.com/10.x/glass/svg?seed=${encode
   list-style: decimal;
 }
 
+.profile-description li + li {
+  margin-top: 0.25em;
+}
+
 .profile-description a {
   color: #fff;
   text-decoration: underline;
@@ -144,5 +160,25 @@ const avatarFallbackUrl = `https://api.dicebear.com/10.x/glass/svg?seed=${encode
   border-left: 3px solid #555;
   padding-left: 1em;
   font-style: italic;
+}
+
+.profile-description code {
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.08);
+  padding: 0.1em 0.35em;
+  color: #fff;
+  font-size: 0.9em;
+}
+
+.profile-description hr {
+  border-color: rgb(255 255 255 / 0.1);
+}
+
+.profile-description img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-top: 0.75em;
+  border-radius: 8px;
 }
 </style>
