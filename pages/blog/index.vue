@@ -24,11 +24,6 @@ useSeoMeta({
   twitterDescription: description,
 });
 useHead({ link: [{ rel: "canonical", href: url }] });
-defineOgImage("Cally", {
-  title: "Practical meeting scheduling guides",
-  description: "Useful advice for booking pages, calendars, and easier scheduling.",
-  label: "Cally Blog",
-});
 </script>
 
 <template>

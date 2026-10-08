@@ -16,7 +16,6 @@ useSeoMeta({
   twitterDescription: description,
 });
 useHead({ link: [{ rel: "canonical", href: url }] });
-defineOgImage("Cally", { title: "Cally Privacy Policy", description });
 </script>
 
 <template>

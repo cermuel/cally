@@ -58,6 +58,10 @@ const registrationPath = computed(
   () => `/auth/register?username=${encodeURIComponent(username.value)}`,
 );
 
+defineOgImage("PublicProfile", {
+  username: username.value,
+});
+
 useHead(() => ({
   title: pageTitle.value,
   htmlAttrs: { style: isEmbed.value ? "background:transparent" : undefined },

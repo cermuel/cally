@@ -14,16 +14,15 @@ useSeoMeta({
   ogDescription: description,
   ogType: "website",
   ogUrl: url,
+  ogImage: "https://cally.cermuel.dev/cally-public-page.png",
+  ogImageAlt: "Cally public booking page",
   twitterCard: "summary_large_image",
   twitterTitle: title,
   twitterDescription: description,
+  twitterImage: "https://cally.cermuel.dev/cally-public-page.png",
+  twitterImageAlt: "Cally public booking page",
 });
 useHead({ link: [{ rel: "canonical", href: url }] });
-defineOgImage("Cally", {
-  title: "Scheduling, without the back-and-forth",
-  description:
-    "Share your availability, let people book a time, and keep every meeting in sync.",
-});
 useSchemaOrg([
   defineWebPage({
     name: title,

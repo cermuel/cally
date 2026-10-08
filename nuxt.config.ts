@@ -109,7 +109,7 @@ export default defineNuxtConfig({
   },
   ogImage: {
     defaults: { width: 1200, height: 630, extension: "png" },
-    zeroRuntime: true,
+    zeroRuntime: false,
   },
   schemaOrg: {
     identity: {

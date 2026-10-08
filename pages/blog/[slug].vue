@@ -26,11 +26,6 @@ useSeoMeta({
   twitterDescription: description,
 });
 useHead({ link: [{ rel: "canonical", href: url }] });
-defineOgImage("Cally", {
-  title,
-  description,
-  label: "Cally Blog",
-});
 useSchemaOrg([
   defineArticle({
     "@type": "BlogPosting",
