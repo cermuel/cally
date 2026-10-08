@@ -32,7 +32,7 @@ useSchemaOrg([
     headline: title,
     description,
     url,
-    image: "https://cally.cermuel.dev/cally-public-page.png",
+    image: "https://cally.cermuel.dev/cally-public-og.png",
     datePublished: post.value.date,
     dateModified: post.value.updated,
     author: { "@type": "Organization", name: post.value.author },

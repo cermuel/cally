@@ -52,10 +52,10 @@ export default defineNuxtConfig({
         { name: "color-scheme", content: "light dark" },
         // Use the booking-page artwork as the default link preview image.
         // Keep the logo reserved for the favicon and app branding.
-        { property: "og:image", content: `${siteUrl}/cally-public-page.png` },
+        { property: "og:image", content: `${siteUrl}/cally-public-og.png` },
         { property: "og:image:alt", content: "Cally public booking page" },
         { property: "og:image:type", content: "image/png" },
-        { name: "twitter:image", content: `${siteUrl}/cally-public-page.png` },
+        { name: "twitter:image", content: `${siteUrl}/cally-public-og.png` },
         { name: "twitter:image:alt", content: "Cally public booking page" },
       ],
       link: [

@@ -14,12 +14,12 @@ useSeoMeta({
   ogDescription: description,
   ogType: "website",
   ogUrl: url,
-  ogImage: "https://cally.cermuel.dev/cally-public-page.png",
+  ogImage: "https://cally.cermuel.dev/cally-public-og.png",
   ogImageAlt: "Cally public booking page",
   twitterCard: "summary_large_image",
   twitterTitle: title,
   twitterDescription: description,
-  twitterImage: "https://cally.cermuel.dev/cally-public-page.png",
+  twitterImage: "https://cally.cermuel.dev/cally-public-og.png",
   twitterImageAlt: "Cally public booking page",
 });
 useHead({ link: [{ rel: "canonical", href: url }] });
