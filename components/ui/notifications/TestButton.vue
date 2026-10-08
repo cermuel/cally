@@ -1,25 +1,28 @@
 <script setup lang="ts">
-import { TestTube01Icon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/vue'
-import { useMutation } from '@tanstack/vue-query'
-import { toast } from 'vue-sonner'
-import { getApiErrorMessage } from '~/utils/api/client'
-import { notificationsApi } from '~/utils/api/notifications'
+import { TestTube01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { notificationsApi } from "~/utils/api/notifications";
 
-const client = useApiClient()
+const client = useApiClient();
 
 const testNotificationMutation = useMutation({
   mutationFn: () => notificationsApi.test(client),
   onError: (error) => {
-    toast.error(getApiErrorMessage(error, 'Could not send a test notification.'))
+    toast.error(
+      getApiErrorMessage(error, "Could not send a test notification."),
+    );
   },
-})
+});
 </script>
 
 <template>
   <SharedButton
     variant="outline"
     size="sm"
+    class="hidden"
     :loading="testNotificationMutation.isPending.value"
     @click="testNotificationMutation.mutate()"
   >
