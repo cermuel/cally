@@ -12,11 +12,13 @@ import { getApiErrorMessage } from "~/utils/api/client";
 import { usersApi } from "~/utils/api/users";
 import type { EditProfilePayload } from "~/utils/api/users";
 import type { UsernameStatus } from "~/types/onboarding";
+import { useGoogleCalendar } from "./useGoogleCalendar";
 
 export const useOnboarding = () => {
   const route = useRoute();
   const apiClient = useApiClient();
   const auth = useAuth();
+  const authReturnPath = useAuthReturnPath();
   const requestedStepIndex = STEPS.findIndex(
     (item) => item.id === route.query.step,
   );
@@ -167,7 +169,7 @@ export const useOnboarding = () => {
       const onboardingResponse = await usersApi.completeOnboarding(apiClient);
 
       auth.setUser(onboardingResponse.user);
-      await navigateTo(auth.getAuthenticatedHomePath());
+      await navigateTo(authReturnPath.take(auth.getAuthenticatedHomePath()));
     } catch (error) {
       toast.error(
         getApiErrorMessage(error, "Unable to finish onboarding. Please try again."),

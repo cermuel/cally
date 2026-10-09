@@ -178,11 +178,13 @@ const descriptionBlocks = computed<RichTextBlock[]>(() => {
         <span
           v-if="block.kind === 'bullet'"
           class="mr-[18px] shrink-0 text-[#555]"
-        >•</span>
+          >•</span
+        >
         <span
           v-else-if="block.kind === 'numbered'"
           class="mr-[14px] shrink-0 text-[#777]"
-        >{{ block.number }}.</span>
+          >{{ block.number }}.</span
+        >
         <span
           v-else-if="block.kind === 'blockquote'"
           class="mr-[16px] h-full w-[3px] shrink-0 rounded-full bg-[#555]"
@@ -208,7 +210,8 @@ const descriptionBlocks = computed<RichTextBlock[]>(() => {
                 block.kind === 'blockquote' ? 'italic' : '',
               ]"
               style="white-space: pre-wrap"
-            >{{ run.text }}</span>
+              >{{ run.text }}</span
+            >
           </template>
         </div>
       </div>

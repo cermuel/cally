@@ -6,6 +6,7 @@ import SharedInput from "../../components/shared/input/Input.vue";
 import SharedLabel from "../../components/shared/label/Label.vue";
 import { authApi } from "../../utils/api/auth";
 import { getApiErrorMessage, getApiFieldErrors } from "../../utils/api/client";
+import { isSafeAuthReturnPath } from "../../utils/auth-redirect";
 import { helpers } from "../../utils/helpers";
 
 type InputField = {
@@ -14,7 +15,13 @@ type InputField = {
 
 const route = useRoute();
 const googleOAuth = useGoogleOAuth();
-const email = ref("");
+const authReturnPath = useAuthReturnPath();
+const requestedReturnPath = computed(() =>
+  isSafeAuthReturnPath(route.query.redirect) ? route.query.redirect : undefined,
+);
+const email = ref(
+  typeof route.query.email === "string" ? route.query.email : "",
+);
 const password = ref("");
 const emailInput = ref<InputField | null>(null);
 const passwordInput = ref<InputField | null>(null);
@@ -35,14 +42,15 @@ const loginMutation = useMutation({
   onSuccess: async (response) => {
     if (response.token) {
       auth.setAuth(response.token, response.user);
-      const redirect =
-        typeof route.query.redirect === "string" &&
-        (route.query.redirect === "/app" ||
-          route.query.redirect.startsWith("/app/"))
-          ? route.query.redirect
-          : auth.getAuthenticatedHomePath();
+      const redirect = authReturnPath.peek(
+        requestedReturnPath.value ?? auth.getAuthenticatedHomePath(),
+      );
 
-      await navigateTo(redirect);
+      await navigateTo(
+        auth.authState.value === "needs_onboarding"
+          ? auth.getAuthenticatedHomePath()
+          : redirect,
+      );
       return;
     }
 
@@ -65,15 +73,21 @@ const isLoginPending = computed(() => loginMutation.isPending.value);
 const isGooglePending = computed(() => googleOAuth.pending.value);
 
 const startGoogleLogin = () => {
-  const redirect =
-    typeof route.query.redirect === "string" &&
-    (route.query.redirect === "/app" ||
-      route.query.redirect.startsWith("/app/"))
-      ? route.query.redirect
-      : undefined;
-
-  return googleOAuth.startAuth("login", redirect);
+  return googleOAuth.startAuth(
+    "login",
+    requestedReturnPath.value ?? authReturnPath.peek("/app/bookings"),
+  );
 };
+
+const registerLocation = computed(() => ({
+  path: "/auth/register",
+  query: {
+    ...(email.value ? { email: email.value } : {}),
+    ...(requestedReturnPath.value
+      ? { redirect: requestedReturnPath.value }
+      : {}),
+  },
+}));
 
 const isValidEmail = computed(() => {
   return helpers.validateEmail(email.value);
@@ -130,6 +144,12 @@ const handleSubmit = async () => {
 useHead({
   title: "Login | Cally",
 });
+
+onMounted(() => {
+  if (requestedReturnPath.value) {
+    authReturnPath.remember(requestedReturnPath.value);
+  }
+});
 </script>
 
 <template>
@@ -163,7 +183,7 @@ useHead({
 
       <UiAuthDivider />
 
-      <form class="space-y-5" @submit.prevent="handleSubmit">
+      <div class="space-y-5">
         <div class="space-y-2">
           <SharedLabel for="email"> Email </SharedLabel>
           <SharedInput
@@ -177,6 +197,7 @@ useHead({
             :error="errors.email"
             :disabled="isLoginPending"
             @update:model-value="errors.email = ''"
+            @keydown.enter="handleSubmit"
           />
         </div>
 
@@ -200,23 +221,25 @@ useHead({
             :error="errors.password"
             :disabled="isLoginPending"
             @update:model-value="errors.password = ''"
+            @keydown.enter="handleSubmit"
           />
         </div>
 
         <SharedButton
-          type="submit"
+          type="button"
           class="w-full"
           :loading="isLoginPending"
           :disabled="isGooglePending"
+          @click="handleSubmit"
         >
           Login
         </SharedButton>
-      </form>
+      </div>
 
       <p class="text-center text-sm text-muted-foreground">
         New to Cally?
         <NuxtLink
-          to="/auth/register"
+          :to="registerLocation"
           class="font-medium text-primary underline-offset-4 hover:underline"
         >
           Create an account

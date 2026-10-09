@@ -15,6 +15,7 @@ import { helpers } from "../../utils/helpers";
 const route = useRoute();
 const apiClient = useApiClient();
 const auth = useAuth();
+const authReturnPath = useAuthReturnPath();
 
 const token = computed(() => {
   return typeof route.query.token === "string" ? route.query.token : "";
@@ -54,7 +55,12 @@ const verifyEmailMutation = useMutation({
     }),
   onSuccess: async (response) => {
     auth.setAuth(response.token, response.user);
-    await navigateTo(auth.getAuthenticatedHomePath());
+    const fallback = auth.getAuthenticatedHomePath();
+    const destination =
+      auth.authState.value === "needs_onboarding"
+        ? fallback
+        : authReturnPath.take(fallback);
+    await navigateTo(destination);
   },
   onError: (error) => {
     toast.error(getApiErrorMessage(error, "Invalid or expired token"));
@@ -77,7 +83,12 @@ const resendEmailMutation = useMutation({
 const isResendingEmail = computed(() => resendEmailMutation.isPending.value);
 
 const continueToApp = async () => {
-  await navigateTo(auth.getAuthenticatedHomePath());
+  const fallback = auth.getAuthenticatedHomePath();
+  await navigateTo(
+    auth.authState.value === "needs_onboarding"
+      ? fallback
+      : authReturnPath.take(fallback),
+  );
 };
 
 const requestNewVerificationLink = () => {

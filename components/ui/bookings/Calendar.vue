@@ -20,6 +20,10 @@ const props = defineProps<{
   loading: boolean;
 }>();
 
+const emit = defineEmits<{
+  open: [booking: Booking];
+}>();
+
 const HOUR = 96; // px per hour
 const PAD = 12;
 const MAX_W = "16rem"; // max card width
@@ -28,8 +32,6 @@ const INSET = 4; // px between an event and the hour line it starts/ends on
 const EMPTY_DAY_START_MINUTES = 8 * 60;
 const SCROLL_LEAD = 60;
 
-const selectedBooking = ref<Booking | null>(null);
-const detailsOpen = ref(false);
 const scroller = ref<HTMLElement | null>(null);
 
 const timezone = computed(
@@ -307,8 +309,7 @@ const moveMonth = (n: number) => {
 const selectToday = () => selectDay(todayKey.value);
 
 const openDetails = (booking: Booking) => {
-  selectedBooking.value = booking;
-  detailsOpen.value = true;
+  emit("open", booking);
 };
 
 const scrollTopForMinutes = (minutes: number) =>
@@ -672,11 +673,6 @@ onMounted(scrollToRelevant);
           </div>
         </div>
       </div>
-
-      <UiBookingsDetailsSheet
-        v-model:open="detailsOpen"
-        :booking="selectedBooking"
-      />
     </section>
   </div>
 </template>

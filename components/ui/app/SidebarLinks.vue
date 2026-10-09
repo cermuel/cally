@@ -31,10 +31,11 @@ const links = computed(() => data.value?.links.slice(0, 3) ?? []);
       <NuxtLink
         v-for="link in links"
         :key="link.id"
-        :to="`/app/links/${link.id}`"
+        :to="{ path: '/app/links', query: { link_id: link.id } }"
         class="flex h-8 min-w-0 items-center gap-2 rounded-lg px-2 text-sm text-muted-foreground outline-none transition-[background-color,color] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
         :class="
-          route.path === `/app/links/${link.id}` &&
+          route.path === '/app/links' &&
+          String(route.query.link_id) === String(link.id) &&
           'bg-sidebar-accent text-sidebar-accent-foreground'
         "
       >

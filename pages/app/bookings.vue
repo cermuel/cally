@@ -87,6 +87,19 @@ const setLinkedDetailsOpen = (open: boolean) => {
   });
 };
 
+const openBooking = (booking: Booking) => {
+  queryClient.setQueryData(queryKeys.bookings.detail(booking.id), {
+    message: "",
+    booking,
+  });
+  void router.push({
+    query: {
+      ...route.query,
+      booking_id: String(booking.id),
+    },
+  });
+};
+
 const refreshBookings = () =>
   queryClient.invalidateQueries({
     queryKey: queryKeys.bookings.all(),
@@ -351,6 +364,7 @@ const rescheduleBooking = (startsAt: string, endsAt: string) => {
           @cancel="requestCancel"
           @decline="requestDecline"
           @delete="requestDelete"
+          @open="openBooking"
           @page="page = $event"
           @reschedule="requestReschedule"
         />
@@ -361,6 +375,7 @@ const rescheduleBooking = (startsAt: string, endsAt: string) => {
         class="hidden md:grid"
         :bookings="calendarBookingsQuery.data.value"
         :loading="calendarBookingsQuery.isPending.value"
+        @open="openBooking"
       />
 
       <UiBookingsDetailsSheet

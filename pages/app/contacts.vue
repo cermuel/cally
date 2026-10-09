@@ -24,6 +24,8 @@ definePageMeta({ layout: false });
 useHead({ title: "Contacts | Cally" });
 
 const client = useApiClient();
+const route = useRoute();
+const router = useRouter();
 const queryClient = useQueryClient();
 const searchInput = ref("");
 const search = ref("");
@@ -35,8 +37,15 @@ const searching = ref(false);
 const sortingField = ref<ContactSortField | null>(null);
 const selectedIds = ref<number[]>([]);
 const selectedContact = ref<Contact | null>(null);
-const detailContactId = ref<number | null>(null);
-const detailsOpen = ref(false);
+const detailContactId = computed(() => {
+  const value = route.query.contact_id;
+  const rawId = Array.isArray(value) ? value[0] : value;
+  if (!rawId || !/^\d+$/.test(rawId)) return null;
+
+  const id = Number(rawId);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+});
+const detailsOpen = computed(() => detailContactId.value !== null);
 const scheduleOpen = ref(false);
 const scheduleContact = ref<Contact | null>(null);
 const bookingErrors = ref<Record<string, string[]>>({});
@@ -109,21 +118,31 @@ const openEdit = (contact: Contact) => {
 };
 
 const openDetails = (contact: Contact) => {
-  detailContactId.value = contact.id;
-  detailsOpen.value = true;
+  void router.push({
+    query: {
+      ...route.query,
+      contact_id: String(contact.id),
+    },
+  });
+};
+
+const setDetailsOpen = (open: boolean) => {
+  if (open || detailContactId.value === null) return;
+  void router.replace({
+    query: {
+      ...route.query,
+      contact_id: undefined,
+    },
+  });
 };
 
 const openSchedule = async (contact: Contact) => {
-  detailsOpen.value = false;
+  setDetailsOpen(false);
   scheduleContact.value = contact;
   bookingErrors.value = {};
   await nextTick();
   scheduleOpen.value = true;
 };
-
-watch(detailsOpen, (isOpen) => {
-  if (!isOpen) detailContactId.value = null;
-});
 
 watch(formOpen, (isOpen) => {
   if (!isOpen) {
@@ -451,8 +470,9 @@ const updateSort = (field: ContactSortField) => {
     />
 
     <UiContactsDetailsSheet
-      v-model:open="detailsOpen"
+      :open="detailsOpen"
       :contact-id="detailContactId"
+      @update:open="setDetailsOpen"
       @edit="openEdit"
       @schedule="openSchedule"
     />

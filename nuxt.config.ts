@@ -83,6 +83,7 @@ export default defineNuxtConfig({
     "/google/**": { ssr: false, robots: false },
     "/settings/**": { ssr: false, robots: false },
     "/public/**": { ssr: false, robots: false },
+    "/team/**": { ssr: false, robots: false },
     "/_nuxt/**": {
       headers: { "cache-control": "public, max-age=31536000, immutable" },
     },
@@ -100,6 +101,7 @@ export default defineNuxtConfig({
       "/google",
       "/settings",
       "/public",
+      "/team",
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
   },

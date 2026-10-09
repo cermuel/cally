@@ -40,12 +40,9 @@ const changePasswordMutation = useMutation({
 
     errors.currentPassword = fieldErrors.old_password?.[0] ?? "";
     errors.password = fieldErrors.password?.[0] ?? "";
-    errors.passwordConfirmation =
-      fieldErrors.password_confirmation?.[0] ?? "";
+    errors.passwordConfirmation = fieldErrors.password_confirmation?.[0] ?? "";
 
-    toast.error(
-      getApiErrorMessage(error, "Could not update your password."),
-    );
+    toast.error(getApiErrorMessage(error, "Could not update your password."));
   },
 });
 
@@ -131,9 +128,7 @@ const submit = async () => {
       </div>
 
       <div class="space-y-2">
-        <SharedLabel for="settings-new-password">
-          New password
-        </SharedLabel>
+        <SharedLabel for="settings-new-password"> New password </SharedLabel>
         <SharedInput
           id="settings-new-password"
           ref="passwordInput"
@@ -164,7 +159,7 @@ const submit = async () => {
         />
       </div>
 
-      <div class="flex justify-end border-t border-border pt-5">
+      <div class="flex justify-end pt-5">
         <SharedButton
           type="submit"
           :loading="changePasswordMutation.isPending.value"

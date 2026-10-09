@@ -5,7 +5,7 @@ import {
   Ticket01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 import type { LinkListView } from "~/types/links";
 import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
@@ -23,6 +23,8 @@ useHead({ title: "Links | Cally" });
 
 const auth = useAuth();
 const client = useApiClient();
+const route = useRoute();
+const router = useRouter();
 const queryClient = useQueryClient();
 const linksQuery = useLinks();
 const createOpen = ref(false);
@@ -35,6 +37,21 @@ const editOpen = ref(false);
 const editErrors = ref<Record<string, string[]>>({});
 const desktopLinkView = ref<LinkListView>("ticket");
 const isMobile = ref(true);
+const linkedLinkId = computed(() => {
+  const value = route.query.link_id;
+  const rawId = Array.isArray(value) ? value[0] : value;
+  if (!rawId || !/^\d+$/.test(rawId)) return null;
+
+  const id = Number(rawId);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+});
+const linkedLinkQuery = useQuery({
+  queryKey: computed(() =>
+    queryKeys.links.detail(linkedLinkId.value ?? "none"),
+  ),
+  enabled: computed(() => linkedLinkId.value !== null),
+  queryFn: () => linksApi.get(client, linkedLinkId.value!),
+});
 
 const linkView = computed<LinkListView>(() =>
   isMobile.value ? "table" : desktopLinkView.value,
@@ -80,6 +97,7 @@ const deleteMutation = useMutation({
     editOpen.value = false;
     deleteTarget.value = null;
     selectedLink.value = null;
+    void closeLinkedLink();
     toast.success("Link deleted");
   },
   onError: (error) =>
@@ -111,17 +129,50 @@ const requestDelete = (link: Link) => {
 };
 
 const openLink = (link: Link) => {
-  selectedLink.value = link;
+  queryClient.setQueryData(queryKeys.links.detail(link.id), {
+    message: "",
+    link,
+  });
   editErrors.value = {};
-  editOpen.value = true;
+  void router.push({
+    query: {
+      ...route.query,
+      link_id: String(link.id),
+    },
+  });
 };
 
-watch(editOpen, (isOpen) => {
-  if (!isOpen) {
-    selectedLink.value = null;
-    editErrors.value = {};
-  }
-});
+const closeLinkedLink = () =>
+  router.replace({
+    query: {
+      ...route.query,
+      link_id: undefined,
+    },
+  });
+
+const setEditOpen = (open: boolean) => {
+  editOpen.value = open;
+  if (open || linkedLinkId.value === null) return;
+  selectedLink.value = null;
+  editErrors.value = {};
+  void closeLinkedLink();
+};
+
+watch(
+  [linkedLinkId, () => linkedLinkQuery.data.value?.link],
+  ([linkId, link]) => {
+    selectedLink.value = link?.id === linkId ? link : null;
+    editOpen.value = link?.id === linkId;
+  },
+  { immediate: true },
+);
+
+watch(
+  () => linkedLinkQuery.error.value,
+  (error) => {
+    if (error) toast.error(getApiErrorMessage(error, "Could not load the link."));
+  },
+);
 
 const editMutation = useMutation({
   mutationFn: (payload: UpdateLinkPayload) => {
@@ -137,6 +188,7 @@ const editMutation = useMutation({
     editOpen.value = false;
     selectedLink.value = null;
     editErrors.value = {};
+    void closeLinkedLink();
     toast.success("Link updated");
   },
   onError: (error) => {
@@ -273,12 +325,13 @@ const updateVisibility = (link: Link, visibility: Link["visibility"]) => {
     />
 
     <UiLinksEditSheet
-      v-model:open="editOpen"
+      :open="editOpen"
       :link="selectedLink"
       :username="auth.user.value?.username"
       :saving="editMutation.isPending.value"
       :deleting="deleteMutation.isPending.value"
       :errors="editErrors"
+      @update:open="setEditOpen"
       @delete="requestDelete"
       @save="editMutation.mutate($event)"
     />

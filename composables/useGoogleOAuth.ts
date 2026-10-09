@@ -1,12 +1,10 @@
 import { toast } from 'vue-sonner'
 import { getApiErrorMessage } from '~/utils/api/client'
 import { googleApi, type GoogleAuthIntent } from '~/utils/api/google'
+import { isSafeAuthReturnPath } from '~/utils/auth-redirect'
 
 const googleReturnPathKey = 'cally-google-return-path'
 const googleIntentKey = 'cally-google-intent'
-
-const isSafeAppPath = (value: string) =>
-  value === '/app' || value.startsWith('/app/')
 
 export const useGoogleOAuth = () => {
   const apiClient = useApiClient()
@@ -18,7 +16,7 @@ export const useGoogleOAuth = () => {
     intent: GoogleAuthIntent,
     path: string,
   ) => {
-    const safePath = isSafeAppPath(path) ? path : '/app/bookings'
+    const safePath = isSafeAuthReturnPath(path) ? path : '/app/bookings'
     sessionStorage.setItem(googleReturnPathKey, safePath)
     sessionStorage.setItem(googleIntentKey, intent)
   }
@@ -50,7 +48,7 @@ export const useGoogleOAuth = () => {
     pending.value = true
 
     try {
-      const safePath = isSafeAppPath(returnPath)
+      const safePath = isSafeAuthReturnPath(returnPath)
         ? returnPath
         : '/app/settings'
       sessionStorage.setItem(googleReturnPathKey, safePath)
@@ -71,7 +69,7 @@ export const useGoogleOAuth = () => {
     const storedPath = sessionStorage.getItem(googleReturnPathKey)
     sessionStorage.removeItem(googleReturnPathKey)
 
-    return storedPath && isSafeAppPath(storedPath) ? storedPath : fallback
+    return storedPath && isSafeAuthReturnPath(storedPath) ? storedPath : fallback
   }
 
   const getIntent = (): GoogleAuthIntent => {

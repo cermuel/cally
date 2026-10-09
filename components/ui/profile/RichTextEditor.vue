@@ -14,11 +14,16 @@ import { LinkChip } from "~/utils/link-chip";
 
 const props = withDefaults(
   defineProps<{
+    ariaLabel?: string;
     disabled?: boolean;
     error?: string;
     placeholder?: string;
   }>(),
-  { disabled: false, placeholder: "Tell people a little about yourself…" },
+  {
+    ariaLabel: "Profile description",
+    disabled: false,
+    placeholder: "Tell people a little about yourself…",
+  },
 );
 
 const model = defineModel<string>({ default: "" });
@@ -63,7 +68,7 @@ const editor = useEditor({
   editorProps: {
     attributes: {
       class: "min-h-36 px-3.5 py-3 text-sm leading-6 outline-none",
-      "aria-label": "Profile description",
+      "aria-label": props.ariaLabel,
     },
     handleDOMEvents: {
       click: (_view, event) => {

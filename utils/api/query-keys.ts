@@ -36,6 +36,16 @@ export const queryKeys = {
     detail: (id: QueryKeyId) => [...queryKeys.links.details(), id] as const,
   },
 
+  teams: {
+    all: () => [...queryKeys.all, 'teams'] as const,
+    lists: () => [...queryKeys.teams.all(), 'list'] as const,
+    list: (page = 1) => [...queryKeys.teams.lists(), page] as const,
+    details: () => [...queryKeys.teams.all(), 'detail'] as const,
+    detail: (id: QueryKeyId) => [...queryKeys.teams.details(), id] as const,
+    members: (id: QueryKeyId) => [...queryKeys.teams.detail(id), 'members'] as const,
+    invites: (id: QueryKeyId) => [...queryKeys.teams.detail(id), 'invites'] as const,
+  },
+
   automations: {
     all: () => [...queryKeys.all, 'automations'] as const,
     list: () => [...queryKeys.automations.all(), 'list'] as const,

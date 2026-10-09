@@ -155,8 +155,10 @@ const initials = (contact: Contact) => {
     row-key="id"
     label="Contacts"
     :loading="loading"
+    clickable-rows
     empty-title="No contacts found"
     empty-description="Add a contact or change your search to see results."
+    @row-click="emit('view', $event)"
   >
     <template #header="{ column }">
       <SharedCheckbox
@@ -195,14 +197,10 @@ const initials = (contact: Contact) => {
     </template>
 
     <template #cell-name="{ row }">
-      <button
-        type="button"
-        class="flex min-w-0 items-center gap-2.5 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        @click="emit('view', row)"
-      >
+      <div class="flex min-w-0 items-center gap-2.5 text-left">
         <UiPublicProfileAvatar :name="row.name ?? ''" class="size-6!" />
         <span class="truncate font-medium">{{ displayName(row) }}</span>
-      </button>
+      </div>
     </template>
 
     <template #cell-email="{ row }">

@@ -48,7 +48,7 @@ const openPublicLink = () => {
     </SharedPopoverTrigger>
     <SharedPopoverContent align="end" class="w-48 p-1.5">
       <NuxtLink
-        :to="`/app/links/${link.id}`"
+        :to="{ path: '/app/links', query: { link_id: link.id } }"
         class="flex h-8 items-center gap-2 rounded-sm px-2 text-sm outline-none hover:bg-accent focus-visible:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
         @click="open = false"
       >

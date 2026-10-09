@@ -57,6 +57,7 @@ const props = withDefaults(
     resizable?: boolean;
     resizeEdge?: TableResizeEdge;
     minimumWidth?: number;
+    clickableRows?: boolean;
   }>(),
   {
     label: "Data table",
@@ -67,8 +68,13 @@ const props = withDefaults(
     resizable: true,
     resizeEdge: "right",
     minimumWidth: 320,
+    clickableRows: false,
   },
 );
+
+const emit = defineEmits<{
+  rowClick: [row: Row];
+}>();
 
 const resizeContainer = ref<HTMLElement | null>(null);
 const layoutReady = ref(false);
@@ -202,6 +208,24 @@ const visibleColumnIndex = (columnIndex: number) => {
   return visibleIndex;
 };
 
+const isInteractiveTarget = (target: EventTarget | null) =>
+  target instanceof Element &&
+  !!target.closest(
+    "a, button, input, select, textarea, [role='button'], [role='link'], [data-row-action]",
+  );
+
+const selectRow = (row: Row, event: MouseEvent | KeyboardEvent) => {
+  if (!props.clickableRows || isInteractiveTarget(event.target)) return;
+  emit("rowClick", row);
+};
+
+const selectRowWithKeyboard = (row: Row, event: KeyboardEvent) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  if (isInteractiveTarget(event.target)) return;
+  event.preventDefault();
+  emit("rowClick", row);
+};
+
 </script>
 
 <template>
@@ -299,9 +323,13 @@ const visibleColumnIndex = (columnIndex: number) => {
         v-for="(row, rowIndex) in rows"
         :key="resolveRowKey(row, rowIndex)"
         role="row"
+        :tabindex="clickableRows ? 0 : undefined"
         :aria-rowindex="rowIndex + 2"
         class="animated-table-grid border-b border-border last:border-b-0"
+        :class="clickableRows && 'cursor-pointer hover:bg-muted/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring'"
         :style="gridStyle"
+        @click="selectRow(row, $event)"
+        @keydown="selectRowWithKeyboard(row, $event)"
       >
         <div
           v-for="(column, columnIndex) in columns"

@@ -5,6 +5,7 @@ import {
   Settings01Icon,
   TimeScheduleIcon,
   BookUserIcon,
+  UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 
 export interface AppNavigationItem {
@@ -18,6 +19,7 @@ export const appNavigationItems = [
   { label: "Links", to: "/app/links", icon: Link01Icon },
   { label: "Availability", to: "/app/availability", icon: TimeScheduleIcon },
   { label: "Contacts", to: "/app/contacts", icon: BookUserIcon },
+  { label: "Teams", to: "/app/teams", icon: UserGroupIcon },
   { label: "Automations", to: "/app/automations", icon: AiSwapIcon },
   { label: "Settings", to: "/app/settings", icon: Settings01Icon },
 ] satisfies readonly AppNavigationItem[];

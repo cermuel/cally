@@ -6,6 +6,7 @@ import SharedInput from "../../components/shared/input/Input.vue";
 import SharedLabel from "../../components/shared/label/Label.vue";
 import { authApi } from "../../utils/api/auth";
 import { getApiErrorMessage, getApiFieldErrors } from "../../utils/api/client";
+import { isSafeAuthReturnPath } from "../../utils/auth-redirect";
 import { helpers } from "../../utils/helpers";
 
 type InputField = {
@@ -14,6 +15,10 @@ type InputField = {
 
 const route = useRoute();
 const googleOAuth = useGoogleOAuth();
+const authReturnPath = useAuthReturnPath();
+const requestedReturnPath = computed(() =>
+  isSafeAuthReturnPath(route.query.redirect) ? route.query.redirect : undefined,
+);
 
 const email = ref(
   typeof route.query.email === "string" ? route.query.email : "",
@@ -80,6 +85,22 @@ const isRegisterPending = computed(() => registerMutation.isPending.value);
 const isResendingEmail = computed(() => resendEmailMutation.isPending.value);
 const isGooglePending = computed(() => googleOAuth.pending.value);
 
+const loginLocation = computed(() => ({
+  path: "/auth/login",
+  query: {
+    ...(email.value ? { email: email.value } : {}),
+    ...(requestedReturnPath.value
+      ? { redirect: requestedReturnPath.value }
+      : {}),
+  },
+}));
+
+const startGoogleRegistration = () =>
+  googleOAuth.startAuth(
+    "register",
+    requestedReturnPath.value ?? authReturnPath.peek("/app/bookings"),
+  );
+
 const focusFirstError = async () => {
   await nextTick();
 
@@ -143,6 +164,12 @@ const resendConfirmationEmail = () => {
 useHead({
   title: "Register | Cally",
 });
+
+onMounted(() => {
+  if (requestedReturnPath.value) {
+    authReturnPath.remember(requestedReturnPath.value);
+  }
+});
 </script>
 
 <template>
@@ -165,12 +192,12 @@ useHead({
       <UiAuthGoogleButton
         label="Sign up with Google"
         :loading="isGooglePending"
-        @click="googleOAuth.startAuth('register')"
+        @click="startGoogleRegistration"
       />
 
       <UiAuthDivider />
 
-      <form class="space-y-5" @submit.prevent="handleSubmit">
+      <div class="space-y-5">
         <div class="space-y-2">
           <SharedLabel for="email"> Email </SharedLabel>
           <SharedInput
@@ -184,6 +211,7 @@ useHead({
             :error="errors.email"
             :disabled="isRegisterPending"
             @update:model-value="errors.email = ''"
+            @keydown.enter="handleSubmit"
           />
         </div>
 
@@ -199,6 +227,7 @@ useHead({
             :error="errors.password"
             :disabled="isRegisterPending"
             @update:model-value="errors.password = ''"
+            @keydown.enter="handleSubmit"
           />
         </div>
 
@@ -216,23 +245,25 @@ useHead({
             :error="errors.passwordConfirmation"
             :disabled="isRegisterPending"
             @update:model-value="errors.passwordConfirmation = ''"
+            @keydown.enter="handleSubmit"
           />
         </div>
 
         <SharedButton
-          type="submit"
+          type="button"
           class="w-full"
           :loading="isRegisterPending"
           :disabled="isGooglePending"
+          @click="handleSubmit"
         >
           Register
         </SharedButton>
-      </form>
+      </div>
 
       <p class="text-center text-sm text-muted-foreground">
         Already have an account?
         <NuxtLink
-          to="/auth/login"
+          :to="loginLocation"
           class="font-medium text-primary underline-offset-4 hover:underline"
         >
           Login

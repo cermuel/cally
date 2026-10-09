@@ -5,6 +5,7 @@ const privatePrefixes = [
   "/google",
   "/settings",
   "/public",
+  "/team",
 ];
 
 export default defineEventHandler((event) => {

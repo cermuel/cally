@@ -21,17 +21,10 @@ defineEmits<{
   cancel: [booking: Booking];
   decline: [booking: Booking];
   delete: [booking: Booking];
+  open: [booking: Booking];
   page: [page: number];
   reschedule: [booking: Booking];
 }>();
-
-const selectedBooking = ref<Booking | null>(null);
-const detailsOpen = ref(false);
-
-const openDetails = (booking: Booking) => {
-  selectedBooking.value = booking;
-  detailsOpen.value = true;
-};
 </script>
 
 <template>
@@ -84,7 +77,7 @@ const openDetails = (booking: Booking) => {
           @cancel="$emit('cancel', $event)"
           @decline="$emit('decline', $event)"
           @delete="$emit('delete', $event)"
-          @open="openDetails"
+          @open="$emit('open', $event)"
           @reschedule="$emit('reschedule', $event)"
         />
       </div>
@@ -116,11 +109,6 @@ const openDetails = (booking: Booking) => {
           Next
         </SharedButton>
       </nav>
-
-      <UiBookingsDetailsSheet
-        v-model:open="detailsOpen"
-        :booking="selectedBooking"
-      />
     </template>
   </div>
 </template>
