@@ -253,8 +253,7 @@ const removeLink = () =>
 
     <p v-if="error" class="text-xs text-destructive">{{ error }}</p>
     <p v-else class="text-xs text-muted-foreground">
-      Paste or type a link and it turns into a chip. Paste a link over selected
-      text to name it.
+      Paste a link over selected text to name it.
     </p>
   </div>
 </template>

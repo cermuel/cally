@@ -11,18 +11,24 @@ defineProps<{
   canManageRoles: boolean;
   membersLoading: boolean;
   invitesLoading: boolean;
+  membersSearching: boolean;
+  invitesSearching: boolean;
   membersError: boolean;
   invitesError: boolean;
   isOwner: boolean;
   updatingMemberId?: number | null;
   updatingInviteId?: number | null;
+  resendingInviteId?: number | null;
   deletingInviteId?: number | null;
 }>();
 
 const emit = defineEmits<{
   updateMemberRole: [member: TeamMember, role: TeamRole];
-  updateInviteRole: [invite: TeamInvite, role: TeamRole];
+  resendInvite: [invite: TeamInvite];
+  updateInviteRole: [invite: TeamInvite];
   deleteInvite: [invite: TeamInvite];
+  searchMembers: [search: string];
+  searchInvites: [search: string];
   invite: [];
   deleteTeam: [];
   leaveTeam: [];
@@ -35,8 +41,8 @@ const inviteSearch = ref("");
 const updateMemberRole = (member: TeamMember, role: TeamRole) =>
   emit("updateMemberRole", member, role);
 
-const updateInviteRole = (invite: TeamInvite, role: TeamRole) =>
-  emit("updateInviteRole", invite, role);
+watch(memberSearch, (search) => emit("searchMembers", search));
+watch(inviteSearch, (search) => emit("searchInvites", search));
 </script>
 
 <template>
@@ -45,7 +51,11 @@ const updateInviteRole = (invite: TeamInvite, role: TeamRole) =>
       <SharedTabsTrigger value="members" class="flex-none px-4">
         Members
       </SharedTabsTrigger>
-      <SharedTabsTrigger value="invites" class="flex-none px-4">
+      <SharedTabsTrigger
+        v-if="canManageRoles"
+        value="invites"
+        class="flex-none px-4"
+      >
         Invites
       </SharedTabsTrigger>
       <SharedTabsTrigger value="meetings" class="flex-none px-4">
@@ -66,6 +76,7 @@ const updateInviteRole = (invite: TeamInvite, role: TeamRole) =>
           placeholder="Search members"
           aria-label="Search members"
           class="sm:max-w-xs"
+          :loading="membersSearching"
         >
           <template #prefix>
             <span
@@ -80,7 +91,12 @@ const updateInviteRole = (invite: TeamInvite, role: TeamRole) =>
             </span>
           </template>
         </SharedInput>
-        <SharedButton type="button" class="sm:ms-auto" @click="emit('invite')">
+        <SharedButton
+          v-if="canManageRoles"
+          type="button"
+          class="sm:ms-auto"
+          @click="emit('invite')"
+        >
           <HugeiconsIcon
             :icon="MailSend01Icon"
             :size="17"
@@ -109,7 +125,7 @@ const updateInviteRole = (invite: TeamInvite, role: TeamRole) =>
       />
     </SharedTabsContent>
 
-    <SharedTabsContent value="invites">
+    <SharedTabsContent v-if="canManageRoles" value="invites">
       <div
         class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
@@ -119,6 +135,7 @@ const updateInviteRole = (invite: TeamInvite, role: TeamRole) =>
           placeholder="Search invites"
           aria-label="Search invites"
           class="sm:max-w-xs"
+          :loading="invitesSearching"
         >
           <template #prefix>
             <span
@@ -133,7 +150,12 @@ const updateInviteRole = (invite: TeamInvite, role: TeamRole) =>
             </span>
           </template>
         </SharedInput>
-        <SharedButton type="button" class="sm:ms-auto" @click="emit('invite')">
+        <SharedButton
+          v-if="canManageRoles"
+          type="button"
+          class="sm:ms-auto"
+          @click="emit('invite')"
+        >
           <HugeiconsIcon
             :icon="MailSend01Icon"
             :size="17"
@@ -155,9 +177,11 @@ const updateInviteRole = (invite: TeamInvite, role: TeamRole) =>
         :invites="invites"
         :can-manage-roles="canManageRoles"
         :loading="invitesLoading"
+        :resending-id="resendingInviteId"
         :updating-id="updatingInviteId"
         :deleting-id="deletingInviteId"
-        @update-role="updateInviteRole"
+        @resend="emit('resendInvite', $event)"
+        @update-role="emit('updateInviteRole', $event)"
         @delete="emit('deleteInvite', $event)"
       />
     </SharedTabsContent>

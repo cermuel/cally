@@ -3,6 +3,7 @@ import type { TeamInvite } from "~/utils/api/teams";
 
 const props = defineProps<{
   accepting?: boolean;
+  declining?: boolean;
   invite?: TeamInvite | null;
   loading?: boolean;
   signedInEmail?: string | null;
@@ -10,6 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   accept: [];
+  decline: [];
   register: [];
   signIn: [];
   switchAccount: [];
@@ -213,15 +215,27 @@ const expiresIn = computed(() => {
         </SharedButton>
       </div>
 
-      <SharedButton
-        v-else
-        type="button"
-        class="w-full"
-        :loading="accepting"
-        @click="emit('accept')"
-      >
-        Accept invitation
-      </SharedButton>
+      <div v-else class="space-y-2">
+        <SharedButton
+          type="button"
+          class="w-full"
+          :disabled="declining"
+          :loading="accepting"
+          @click="emit('accept')"
+        >
+          Accept invitation
+        </SharedButton>
+        <SharedButton
+          type="button"
+          variant="outline"
+          class="w-full"
+          :disabled="accepting"
+          :loading="declining"
+          @click="emit('decline')"
+        >
+          Decline invitation
+        </SharedButton>
+      </div>
     </div>
   </UiAuthCard>
 </template>

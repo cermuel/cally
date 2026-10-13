@@ -42,8 +42,12 @@ export const queryKeys = {
     list: (page = 1) => [...queryKeys.teams.lists(), page] as const,
     details: () => [...queryKeys.teams.all(), 'detail'] as const,
     detail: (id: QueryKeyId) => [...queryKeys.teams.details(), id] as const,
-    members: (id: QueryKeyId) => [...queryKeys.teams.detail(id), 'members'] as const,
-    invites: (id: QueryKeyId) => [...queryKeys.teams.detail(id), 'invites'] as const,
+    members: (id: QueryKeyId, filters?: QueryKeyFilters) => filters
+      ? [...queryKeys.teams.detail(id), 'members', filters] as const
+      : [...queryKeys.teams.detail(id), 'members'] as const,
+    invites: (id: QueryKeyId, filters?: QueryKeyFilters) => filters
+      ? [...queryKeys.teams.detail(id), 'invites', filters] as const
+      : [...queryKeys.teams.detail(id), 'invites'] as const,
   },
 
   automations: {

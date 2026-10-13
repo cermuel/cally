@@ -85,6 +85,24 @@ const acceptMutation = useMutation({
   },
 });
 
+const declineMutation = useMutation({
+  mutationFn: () =>
+    teamsApi.declineInvite(
+      apiClient,
+      invitationParams.value!.id,
+      invitationParams.value!.token,
+    ),
+  onSuccess: async () => {
+    authReturnPath.take("/app/bookings");
+    await queryClient.invalidateQueries({ queryKey: queryKeys.teams.all() });
+    toast.success("Invitation declined");
+    await navigateTo("/app/teams");
+  },
+  onError: (error) => {
+    toast.error(getApiErrorMessage(error, "Could not decline this invitation."));
+  },
+});
+
 watch(
   [() => inviteQuery.data.value?.invite, () => auth.authState.value],
   async ([invite, authState]) => {
@@ -150,9 +168,11 @@ watch(
     :invite="inviteQuery.data.value.invite"
     :signed-in-email="auth.token.value ? auth.user.value?.email : null"
     :accepting="acceptMutation.isPending.value"
+    :declining="declineMutation.isPending.value"
     @sign-in="goToAuth('/auth/login')"
     @register="goToAuth('/auth/register')"
     @switch-account="switchAccount"
     @accept="acceptMutation.mutate"
+    @decline="declineMutation.mutate"
   />
 </template>

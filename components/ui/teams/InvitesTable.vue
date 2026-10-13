@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { Delete02Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/vue";
 import type { SharedTableColumn } from "~/types/table";
-import type { TeamInvite, TeamRole } from "~/utils/api/teams";
+import type { TeamInvite } from "~/utils/api/teams";
 
 type InviteStatus = "accepted" | "declined" | "expired" | "pending";
 
@@ -10,13 +8,15 @@ const props = defineProps<{
   invites: TeamInvite[];
   canManageRoles: boolean;
   loading: boolean;
+  resendingId?: number | null;
   updatingId?: number | null;
   deletingId?: number | null;
 }>();
 
 const emit = defineEmits<{
-  updateRole: [invite: TeamInvite, role: TeamRole];
   delete: [invite: TeamInvite];
+  resend: [invite: TeamInvite];
+  updateRole: [invite: TeamInvite];
 }>();
 
 const columns: SharedTableColumn<TeamInvite>[] = [
@@ -83,18 +83,6 @@ const statusClass: Record<InviteStatus, string> = {
     "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400",
 };
 
-const updateRole = (invite: TeamInvite, value: unknown) => {
-  if (
-    !props.canManageRoles ||
-    getStatus(invite) !== "pending" ||
-    (value !== "admin" && value !== "member") ||
-    value === invite.role
-  ) {
-    return;
-  }
-
-  emit("updateRole", invite, value);
-};
 </script>
 
 <template>
@@ -132,47 +120,23 @@ const updateRole = (invite: TeamInvite, value: unknown) => {
     </template>
 
     <template #cell-role="{ row }">
-      <SharedSelect
-        :model-value="row.role"
-        :disabled="
-          !canManageRoles ||
-          getStatus(row) !== 'pending' ||
-          updatingId === row.id
-        "
-        @update:model-value="updateRole(row, $event)"
-      >
-        <SharedSelectTrigger
-          size="sm"
-          class="w-28 capitalize"
-          :aria-label="`Role for ${row.email}`"
-        >
-          <SharedSelectValue />
-        </SharedSelectTrigger>
-        <SharedSelectContent>
-          <SharedSelectItem value="admin">Admin</SharedSelectItem>
-          <SharedSelectItem value="member">Member</SharedSelectItem>
-        </SharedSelectContent>
-      </SharedSelect>
+      <UiTeamsRoleBadge :role="row.role" />
     </template>
 
     <template #cell-actions="{ row }">
-      <SharedButton
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        class="text-muted-foreground hover:text-destructive"
-        :disabled="!canManageRoles || deletingId === row.id"
-        :loading="deletingId === row.id"
-        :aria-label="`Delete invite for ${row.email}`"
-        @click="emit('delete', row)"
-      >
-        <HugeiconsIcon
-          :icon="Delete02Icon"
-          :size="17"
-          :stroke-width="1.75"
-          aria-hidden="true"
-        />
-      </SharedButton>
+      <UiTeamsInviteActions
+        :label="row.email"
+        :disabled="!canManageRoles"
+        :loading="
+          resendingId === row.id ||
+          updatingId === row.id ||
+          deletingId === row.id
+        "
+        :can-update-role="getStatus(row) === 'pending'"
+        @resend="emit('resend', row)"
+        @update-role="emit('updateRole', row)"
+        @delete="emit('delete', row)"
+      />
     </template>
   </SharedTable>
 </template>

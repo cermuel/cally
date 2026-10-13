@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { UserGroupIcon } from "@hugeicons/core-free-icons";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
+import UiTeamsResendInviteDialog from "~/components/ui/teams/ResendInviteDialog.vue";
 import { getApiErrorMessage } from "~/utils/api/client";
 import { queryKeys } from "~/utils/api/query-keys";
 import {
@@ -10,6 +16,7 @@ import {
   type TeamInvite,
   type TeamMember,
   type TeamRole,
+  type TeamSearchParams,
 } from "~/utils/api/teams";
 
 definePageMeta({ layout: false });
@@ -26,35 +33,63 @@ const teamId = computed(() => {
 });
 const teamQuery = useTeam(teamId);
 const inviteOpen = ref(route.query.welcome === "1");
+const resendInviteOpen = ref(false);
+const updateInviteRoleOpen = ref(false);
 const deleteInviteOpen = ref(false);
 const selectedInvite = ref<TeamInvite | null>(null);
 const updatingMemberId = ref<number | null>(null);
 const updatingInviteId = ref<number | null>(null);
+const resendingInviteId = ref<number | null>(null);
 const teamActionOpen = ref(false);
 const teamAction = ref<"delete" | "leave">("leave");
+const memberSearch = ref("");
+const inviteSearch = ref("");
+const membersSearching = ref(false);
+const invitesSearching = ref(false);
+
+const memberParams = computed<TeamSearchParams>(() => ({
+  page: 1,
+  ...(memberSearch.value ? { search: memberSearch.value } : {}),
+}));
+const inviteParams = computed<TeamSearchParams>(() => ({
+  page: 1,
+  ...(inviteSearch.value ? { search: inviteSearch.value } : {}),
+}));
 
 const membersQuery = useQuery({
-  queryKey: computed(() => queryKeys.teams.members(teamId.value ?? "none")),
-  queryFn: () => teamsApi.listMembers(client, teamId.value!),
+  queryKey: computed(() =>
+    queryKeys.teams.members(teamId.value ?? "none", memberParams.value),
+  ),
+  queryFn: () =>
+    teamsApi.listMembers(client, teamId.value!, memberParams.value),
   enabled: computed(() => teamId.value !== null),
+  placeholderData: keepPreviousData,
 });
 
 const invitesQuery = useQuery({
-  queryKey: computed(() => queryKeys.teams.invites(teamId.value ?? "none")),
-  queryFn: () => teamsApi.listInvites(client, teamId.value!),
+  queryKey: computed(() =>
+    queryKeys.teams.invites(teamId.value ?? "none", inviteParams.value),
+  ),
+  queryFn: () =>
+    teamsApi.listInvites(client, teamId.value!, inviteParams.value),
   enabled: computed(() => teamId.value !== null),
+  placeholderData: keepPreviousData,
 });
 
 const members = computed(
-  () => membersQuery.data.value?.members ?? teamQuery.data.value?.team.members ?? [],
+  () =>
+    membersQuery.data.value?.members ??
+    teamQuery.data.value?.team.members ??
+    [],
 );
 const invites = computed(() => invitesQuery.data.value?.invites ?? []);
+const teamMembers = computed(
+  () => teamQuery.data.value?.team.members ?? members.value,
+);
 const currentMember = computed(() =>
-  members.value.find((member) => member.user_id === auth.user.value?.id),
+  teamMembers.value.find((member) => member.user_id === auth.user.value?.id),
 );
-const canManageRoles = computed(
-  () => currentMember.value?.role === "admin",
-);
+const canManageRoles = computed(() => currentMember.value?.role === "admin");
 const isOwner = computed(
   () => teamQuery.data.value?.team.owner_id === auth.user.value?.id,
 );
@@ -82,6 +117,46 @@ watch(inviteOpen, (isOpen) => {
   void router.replace({ query: { ...route.query, welcome: undefined } });
 });
 
+let memberSearchTimer: ReturnType<typeof setTimeout> | undefined;
+let inviteSearchTimer: ReturnType<typeof setTimeout> | undefined;
+
+const searchMembers = (value: string) => {
+  if (memberSearchTimer) clearTimeout(memberSearchTimer);
+  memberSearchTimer = setTimeout(() => {
+    const search = value.trim();
+    if (search === memberSearch.value) return;
+    membersSearching.value = true;
+    memberSearch.value = search;
+  }, 300);
+};
+
+const searchInvites = (value: string) => {
+  if (inviteSearchTimer) clearTimeout(inviteSearchTimer);
+  inviteSearchTimer = setTimeout(() => {
+    const search = value.trim();
+    if (search === inviteSearch.value) return;
+    invitesSearching.value = true;
+    inviteSearch.value = search;
+  }, 300);
+};
+
+watch(
+  () => membersQuery.isFetching.value,
+  (isFetching) => {
+    if (!isFetching) membersSearching.value = false;
+  },
+);
+watch(
+  () => invitesQuery.isFetching.value,
+  (isFetching) => {
+    if (!isFetching) invitesSearching.value = false;
+  },
+);
+onBeforeUnmount(() => {
+  if (memberSearchTimer) clearTimeout(memberSearchTimer);
+  if (inviteSearchTimer) clearTimeout(inviteSearchTimer);
+});
+
 const inviteMutation = useMutation({
   mutationFn: (payload: CreateTeamInvitesPayload) =>
     teamsApi.invite(client, teamId.value!, payload),
@@ -98,6 +173,40 @@ const inviteMutation = useMutation({
   },
   onError: (error) =>
     toast.error(getApiErrorMessage(error, "Could not send the invitations.")),
+});
+
+const updateDescriptionMutation = useMutation({
+  mutationFn: (description: string | null) =>
+    teamsApi.update(client, teamId.value!, { description }),
+  onSuccess: async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.teams.detail(teamId.value!),
+      }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() }),
+    ]);
+    toast.success("Team description updated");
+  },
+  onError: (error) =>
+    toast.error(
+      getApiErrorMessage(error, "Could not update the team description."),
+    ),
+});
+
+const updateNameMutation = useMutation({
+  mutationFn: (name: string) =>
+    teamsApi.update(client, teamId.value!, { name }),
+  onSuccess: async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.teams.detail(teamId.value!),
+      }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() }),
+    ]);
+    toast.success("Team name updated");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not update the team name.")),
 });
 
 const updateMemberMutation = useMutation({
@@ -134,12 +243,39 @@ const updateInviteMutation = useMutation({
     await queryClient.invalidateQueries({
       queryKey: queryKeys.teams.invites(teamId.value!),
     });
+    updateInviteRoleOpen.value = false;
+    selectedInvite.value = null;
     toast.success("Invitation role updated");
   },
   onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not update the invitation role.")),
+    toast.error(
+      getApiErrorMessage(error, "Could not update the invitation role."),
+    ),
   onSettled: () => {
     updatingInviteId.value = null;
+  },
+});
+
+const resendInviteMutation = useMutation({
+  mutationFn: (invite: TeamInvite) =>
+    teamsApi.invite(client, teamId.value!, {
+      users: [{ email: invite.email, role: invite.role }],
+    }),
+  onMutate: (invite) => {
+    resendingInviteId.value = invite.id;
+  },
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.teams.invites(teamId.value!),
+    });
+    resendInviteOpen.value = false;
+    selectedInvite.value = null;
+    toast.success("Invitation resent");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not resend the invitation.")),
+  onSettled: () => {
+    resendingInviteId.value = null;
   },
 });
 
@@ -152,10 +288,10 @@ const deleteInviteMutation = useMutation({
     });
     deleteInviteOpen.value = false;
     selectedInvite.value = null;
-    toast.success("Invitation deleted");
+    toast.success("Invitation revoked");
   },
   onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not delete the invitation.")),
+    toast.error(getApiErrorMessage(error, "Could not revoke the invitation.")),
 });
 
 const deleteTeamMutation = useMutation({
@@ -196,9 +332,36 @@ const updateMemberRole = (member: TeamMember, role: TeamRole) => {
   updateMemberMutation.mutate({ member, role });
 };
 
-const updateInviteRole = (invite: TeamInvite, role: TeamRole) => {
+const updateDescription = (description: string | null) => {
   if (!canManageRoles.value) return;
-  updateInviteMutation.mutate({ invite, role });
+  updateDescriptionMutation.mutate(description);
+};
+
+const updateName = (name: string) => {
+  if (!canManageRoles.value) return;
+  updateNameMutation.mutate(name);
+};
+
+const requestUpdateInviteRole = (invite: TeamInvite) => {
+  if (!canManageRoles.value) return;
+  selectedInvite.value = invite;
+  updateInviteRoleOpen.value = true;
+};
+
+const requestResendInvite = (invite: TeamInvite) => {
+  if (!canManageRoles.value) return;
+  selectedInvite.value = invite;
+  resendInviteOpen.value = true;
+};
+
+const confirmResendInvite = () => {
+  if (!selectedInvite.value || !canManageRoles.value) return;
+  resendInviteMutation.mutate(selectedInvite.value);
+};
+
+const confirmUpdateInviteRole = (role: TeamRole) => {
+  if (!selectedInvite.value || !canManageRoles.value) return;
+  updateInviteMutation.mutate({ invite: selectedInvite.value, role });
 };
 
 const requestDeleteInvite = (invite: TeamInvite) => {
@@ -213,7 +376,10 @@ const confirmDeleteInvite = () => {
 };
 
 const requestTeamAction = (action: "delete" | "leave") => {
-  if ((action === "delete" && !isOwner.value) || (action === "leave" && isOwner.value)) {
+  if (
+    (action === "delete" && !isOwner.value) ||
+    (action === "leave" && isOwner.value)
+  ) {
     return;
   }
 
@@ -233,7 +399,11 @@ const confirmTeamAction = () => {
 
 <template>
   <UiAppShell>
-    <div v-if="teamQuery.isPending.value" class="space-y-5" aria-label="Loading team">
+    <div
+      v-if="teamQuery.isPending.value"
+      class="space-y-5"
+      aria-label="Loading team"
+    >
       <div class="h-16 w-64 animate-pulse rounded-lg bg-muted/50" />
       <div class="h-64 animate-pulse rounded-xl bg-muted/50" />
     </div>
@@ -252,20 +422,22 @@ const confirmTeamAction = () => {
     </div>
 
     <template v-else>
-      <header class="mb-8 border-b border-border pb-8">
-        <div class="flex items-center gap-4">
-          <UiTeamsMemberAvatars :members="members" />
-          <div class="min-w-0">
-            <h1 class="truncate text-2xl font-semibold tracking-tight">
-              {{ teamQuery.data.value.team.name }}
-            </h1>
-            <div
-              v-if="teamQuery.data.value.team.description"
-              class="team-description mt-1.5 max-w-3xl text-sm leading-6 text-muted-foreground"
-              v-html="teamQuery.data.value.team.description"
-            />
-          </div>
+      <header class="mb-8 border-b border-border pb-6">
+        <div class="flex items-center justify-between gap-4">
+          <UiTeamsTitle
+            :name="teamQuery.data.value.team.name"
+            :editable="canManageRoles"
+            :saving="updateNameMutation.isPending.value"
+            @save="updateName"
+          />
+          <UiTeamsMemberAvatars :members="teamMembers" />
         </div>
+        <UiTeamsDescription
+          :description="teamQuery.data.value.team.description"
+          :editable="canManageRoles"
+          :saving="updateDescriptionMutation.isPending.value"
+          @save="updateDescription"
+        />
       </header>
 
       <UiTeamsDetailsTabs
@@ -276,17 +448,23 @@ const confirmTeamAction = () => {
         :can-manage-roles="canManageRoles"
         :members-loading="membersQuery.isPending.value"
         :invites-loading="invitesQuery.isPending.value"
+        :members-searching="membersSearching"
+        :invites-searching="invitesSearching"
         :members-error="membersQuery.isError.value"
         :invites-error="invitesQuery.isError.value"
         :is-owner="isOwner"
         :updating-member-id="updatingMemberId"
         :updating-invite-id="updatingInviteId"
+        :resending-invite-id="resendingInviteId"
         :deleting-invite-id="
           deleteInviteMutation.isPending.value ? selectedInvite?.id : null
         "
         @update-member-role="updateMemberRole"
-        @update-invite-role="updateInviteRole"
+        @resend-invite="requestResendInvite"
+        @update-invite-role="requestUpdateInviteRole"
         @delete-invite="requestDeleteInvite"
+        @search-members="searchMembers"
+        @search-invites="searchInvites"
         @invite="inviteOpen = true"
         @delete-team="requestTeamAction('delete')"
         @leave-team="requestTeamAction('leave')"
@@ -306,6 +484,20 @@ const confirmTeamAction = () => {
         @confirm="confirmDeleteInvite"
       />
 
+      <UiTeamsResendInviteDialog
+        v-model:open="resendInviteOpen"
+        :invite="selectedInvite"
+        :resending="resendInviteMutation.isPending.value"
+        @confirm="confirmResendInvite"
+      />
+
+      <UiTeamsUpdateInviteRoleDialog
+        v-model:open="updateInviteRoleOpen"
+        :invite="selectedInvite"
+        :updating="updateInviteMutation.isPending.value"
+        @confirm="confirmUpdateInviteRole"
+      />
+
       <UiTeamsActionDialog
         v-model:open="teamActionOpen"
         :action="teamAction"
@@ -316,25 +508,3 @@ const confirmTeamAction = () => {
     </template>
   </UiAppShell>
 </template>
-
-<style scoped>
-.team-description :deep(p + p) {
-  margin-top: 0.5rem;
-}
-
-.team-description :deep(ul) {
-  list-style: disc;
-  padding-inline-start: 1.25rem;
-}
-
-.team-description :deep(ol) {
-  list-style: decimal;
-  padding-inline-start: 1.25rem;
-}
-
-.team-description :deep(a) {
-  color: var(--foreground);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-</style>

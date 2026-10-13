@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/vue-query'
 import type { AuthUser } from '../utils/api/auth'
 
 const tokenStorageKey = 'cally-auth-token'
@@ -15,6 +16,7 @@ export type AuthState =
   | 'authenticated'
 
 export function useAuth() {
+  const queryClient = useQueryClient()
   const token = useState<string | null>('auth:token', () => null)
   const user = useState<AuthUser | null>('auth:user', () => null)
   const tokenCookie = useCookie<string | null>(tokenStorageKey, cookieOptions)
@@ -73,6 +75,7 @@ export function useAuth() {
     user.value = null
     tokenCookie.value = null
     userCookie.value = null
+    queryClient.clear()
 
     if (import.meta.client) {
       localStorage.removeItem(tokenStorageKey)

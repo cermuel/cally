@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { CrownIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/vue";
 import type { SharedTableColumn } from "~/types/table";
 import type { TeamMember, TeamRole } from "~/utils/api/teams";
 
@@ -118,24 +116,14 @@ const updateRole = (member: TeamMember, role: TeamRole) => {
     </template>
 
     <template #cell-role="{ row }">
-      <span
+      <UiTeamsRoleBadge
         v-if="row.user_id === ownerId"
-        class="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-xs font-medium"
-      >
-        <HugeiconsIcon
-          :icon="CrownIcon"
-          :size="13"
-          :stroke-width="1.75"
-          aria-hidden="true"
-        />
-        Owner
-      </span>
-      <span
+        role="owner"
+      />
+      <UiTeamsRoleBadge
         v-else
-        class="rounded-md bg-muted px-2.5 py-1 text-xs font-medium capitalize"
-      >
-        {{ row.role }}
-      </span>
+        :role="row.role"
+      />
     </template>
 
     <template #cell-actions="{ row }">
@@ -149,7 +137,7 @@ const updateRole = (member: TeamMember, role: TeamRole) => {
         🫵🏾
       </span>
       <UiTeamsMemberActions
-        v-else
+        v-else-if="canManageRoles"
         :label="displayName(row)"
         :role="row.role"
         :disabled="!canUpdate(row)"

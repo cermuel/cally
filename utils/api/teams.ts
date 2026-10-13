@@ -98,6 +98,11 @@ export type TeamInvitesResponse = {
   pagination: Pagination;
 };
 
+export type TeamSearchParams = {
+  page?: number;
+  search?: string;
+};
+
 export type TeamInviteResponse = {
   message: string;
   invite: TeamInvite;
@@ -157,11 +162,15 @@ export const teamsApi = {
     });
   },
 
-  listMembers(client: AxiosInstance, teamId: number, page = 1) {
+  listMembers(
+    client: AxiosInstance,
+    teamId: number,
+    params: TeamSearchParams = {},
+  ) {
     return apiRequest<TeamMembersResponse>(client, {
       method: "GET",
       url: `/teams/${teamId}/members`,
-      params: { page },
+      params,
     });
   },
 
@@ -192,11 +201,15 @@ export const teamsApi = {
     });
   },
 
-  listInvites(client: AxiosInstance, teamId: number, page = 1) {
+  listInvites(
+    client: AxiosInstance,
+    teamId: number,
+    params: TeamSearchParams = {},
+  ) {
     return apiRequest<TeamInvitesResponse>(client, {
       method: "GET",
       url: `/teams/${teamId}/invite`,
-      params: { page },
+      params,
     });
   },
 
@@ -247,6 +260,14 @@ export const teamsApi = {
     return apiRequest<{ message: string }>(client, {
       method: "POST",
       url: `/teams/accept-invite/${inviteId}`,
+      data: { token },
+    });
+  },
+
+  declineInvite(client: AxiosInstance, inviteId: number, token: string) {
+    return apiRequest<{ message: string }>(client, {
+      method: "POST",
+      url: `/teams/decline-invite/${inviteId}`,
       data: { token },
     });
   },
