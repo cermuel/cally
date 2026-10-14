@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import {
-  Calendar03Icon,
-  Cancel01Icon,
-  Clock01Icon,
-} from "@hugeicons/core-free-icons";
+import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import {
   DialogClose,
@@ -14,7 +10,10 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type { Contact, CreateContactBookingPayload } from "~/utils/api/contacts";
+import type {
+  Contact,
+  CreateContactBookingPayload,
+} from "~/utils/api/contacts";
 import type { Link } from "~/utils/api/links";
 
 const props = withDefaults(
@@ -40,17 +39,25 @@ const emit = defineEmits<{
 }>();
 
 const eventId = ref("");
-const startsAt = ref("");
+const selectedDate = ref("");
+const selectedSlotId = ref("");
 const notes = ref("");
 const localErrors = ref<Record<string, string>>({});
 
 const availableLinks = computed(() =>
-  props.links.filter(
-    (link) => link.is_active && link.status === "published",
-  ),
+  props.links.filter((link) => link.is_active && link.status === "published"),
 );
 const selectedLink = computed(() =>
   availableLinks.value.find((link) => String(link.id) === eventId.value),
+);
+const availableTimesQuery = usePublicAvailableTimes(
+  computed(() => selectedLink.value?.id ?? null),
+  selectedDate,
+);
+const selectedSlot = computed(() =>
+  (availableTimesQuery.data.value?.available_times ?? []).find(
+    (slot) => slot.starts_at === selectedSlotId.value,
+  ),
 );
 const contactName = computed(
   () =>
@@ -62,31 +69,13 @@ const contactName = computed(
 const fieldError = (field: string) =>
   localErrors.value[field] || props.errors[field]?.[0];
 
-const toLocalInputValue = (date: Date) => {
-  const pad = (part: number) => String(part).padStart(2, "0");
-
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
-
-const nextStartTime = () => {
-  const date = new Date(Date.now() + 60 * 60_000);
-  date.setMinutes(Math.ceil(date.getMinutes() / 30) * 30, 0, 0);
-  return toLocalInputValue(date);
-};
-
-const toApiDate = (value: Date) => {
-  const pad = (part: number) => String(part).padStart(2, "0");
-
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())} ${pad(value.getHours())}:${pad(value.getMinutes())}:00`;
-};
-
-const minimumStart = computed(() => toLocalInputValue(new Date()));
-
 const reset = () => {
-  eventId.value = availableLinks.value.length === 1
-    ? String(availableLinks.value[0]?.id)
-    : "";
-  startsAt.value = nextStartTime();
+  eventId.value =
+    availableLinks.value.length === 1
+      ? String(availableLinks.value[0]?.id)
+      : "";
+  selectedDate.value = "";
+  selectedSlotId.value = "";
   notes.value = "";
   localErrors.value = {};
 };
@@ -101,6 +90,24 @@ watch(availableLinks, (links) => {
   }
 });
 
+watch(eventId, () => {
+  selectedDate.value = "";
+  selectedSlotId.value = "";
+  localErrors.value.event_id = "";
+  localErrors.value.starts_at = "";
+});
+
+const selectDate = (date: string) => {
+  selectedDate.value = date;
+  selectedSlotId.value = "";
+  localErrors.value.starts_at = "";
+};
+
+const selectSlot = (startsAt: string) => {
+  selectedSlotId.value = startsAt;
+  localErrors.value.starts_at = "";
+};
+
 const submit = () => {
   localErrors.value = {};
 
@@ -108,24 +115,24 @@ const submit = () => {
     localErrors.value.event_id = "Choose a meeting type.";
   }
 
-  const start = new Date(startsAt.value);
-  if (!startsAt.value || Number.isNaN(start.getTime())) {
-    localErrors.value.starts_at = "Choose a date and time.";
-  } else if (start.getTime() <= Date.now()) {
-    localErrors.value.starts_at = "Choose a future date and time.";
+  if (!selectedDate.value || !selectedSlot.value) {
+    localErrors.value.starts_at = "Choose an available date and time.";
   }
 
-  if (Object.keys(localErrors.value).length || !props.contact || !selectedLink.value) {
+  if (
+    Object.values(localErrors.value).some(Boolean) ||
+    !props.contact ||
+    !selectedLink.value ||
+    !selectedSlot.value
+  ) {
     return;
   }
 
-  const end = new Date(start.getTime() + selectedLink.value.duration_minutes * 60_000);
-
   emit("create", {
     event_id: String(selectedLink.value.id),
-    starts_at: toApiDate(start),
-    ends_at: toApiDate(end),
-    timezone: props.timezone,
+    starts_at: selectedSlot.value.starts_at,
+    ends_at: selectedSlot.value.ends_at,
+    timezone: availableTimesQuery.data.value?.timezone ?? props.timezone,
     notes: notes.value.trim() || null,
   });
 };
@@ -138,15 +145,20 @@ const submit = () => {
         class="fixed inset-0 z-60 bg-black/55 backdrop-blur-xs duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none"
       />
       <DialogContent
-        class="fixed start-1/2 top-1/2 z-60 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-xl outline-none duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 motion-reduce:data-[state=closed]:zoom-out-100 motion-reduce:data-[state=open]:zoom-in-100"
+        class="fixed inset-s-1/2 top-1/2 z-60 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-xl outline-none duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 motion-reduce:data-[state=closed]:zoom-out-100 motion-reduce:data-[state=open]:zoom-in-100"
       >
-        <header class="flex items-start gap-4 border-b border-border px-5 py-5 sm:px-6">
+        <header
+          class="flex items-start gap-4 border-b border-border px-5 py-5 sm:px-6"
+        >
           <div class="min-w-0 flex-1">
             <DialogTitle class="text-lg font-semibold tracking-tight">
-              Schedule booking
+              Schedule meeting
             </DialogTitle>
             <DialogDescription class="mt-1 text-sm text-muted-foreground">
-              Create a meeting with {{ contactName }}.
+              Create a meeting with
+              <span class="font-medium text-foreground"
+                >{{ contactName }}.</span
+              >
             </DialogDescription>
           </div>
           <DialogClose as-child>
@@ -155,7 +167,7 @@ const submit = () => {
               variant="ghost"
               size="icon-sm"
               class="-me-2 -mt-1 shrink-0 text-muted-foreground"
-              aria-label="Close schedule booking dialog"
+              aria-label="Close schedule meeting dialog"
             >
               <HugeiconsIcon
                 :icon="Cancel01Icon"
@@ -168,21 +180,15 @@ const submit = () => {
         </header>
 
         <div class="min-h-0 overflow-y-auto p-5 sm:p-6">
-          <div class="rounded-xl bg-muted p-3.5 ring-1 ring-border">
-            <p class="truncate text-sm font-medium">{{ contactName }}</p>
-            <p class="mt-0.5 truncate text-xs text-muted-foreground">
-              {{ contact?.email }}
-            </p>
-          </div>
-
-          <div class="mt-5 space-y-5">
+          <div class="space-y-5">
             <div>
               <SharedLabel for="booking-event" class="mb-1.5 text-sm">
                 Meeting type
               </SharedLabel>
               <SharedSelect
                 v-model="eventId"
-                :disabled="loadingLinks || !availableLinks.length"
+                :loading="loadingLinks"
+                :disabled="!availableLinks.length"
                 @update:model-value="localErrors.event_id = ''"
               >
                 <SharedSelectTrigger
@@ -190,18 +196,40 @@ const submit = () => {
                   class="w-full"
                   :aria-invalid="Boolean(fieldError('event_id'))"
                 >
+                  <span
+                    v-if="selectedLink"
+                    class="flex min-w-0 items-center gap-1.5"
+                  >
+                    <span class="truncate">{{ selectedLink.name }}</span>
+                    <span
+                      aria-hidden="true"
+                      class="shrink-0 text-muted-foreground"
+                    >
+                      ·
+                    </span>
+                    <span class="shrink-0 text-muted-foreground">
+                      {{ selectedLink.duration_minutes }} min
+                    </span>
+                  </span>
                   <SharedSelectValue
-                    :placeholder="loadingLinks ? 'Loading meeting types…' : 'Select a meeting type'"
+                    v-else
+                    :placeholder="
+                      loadingLinks
+                        ? 'Loading meeting types…'
+                        : 'Select a meeting type'
+                    "
                   />
                 </SharedSelectTrigger>
-                <SharedSelectContent>
+                <SharedSelectContent class="z-70">
                   <SharedSelectItem
                     v-for="link in availableLinks"
                     :key="link.id"
                     :value="String(link.id)"
                     :text-value="link.name"
                   >
-                    <span class="flex w-full items-center justify-between gap-4">
+                    <span
+                      class="flex w-full items-center justify-between gap-4"
+                    >
                       <span>{{ link.name }}</span>
                       <span class="text-xs text-muted-foreground">
                         {{ link.duration_minutes }} min
@@ -220,44 +248,23 @@ const submit = () => {
                 v-else-if="!loadingLinks && !availableLinks.length"
                 class="mt-1.5 text-xs text-muted-foreground"
               >
-                Publish an active booking link before scheduling a meeting.
+                Publish an active meeting type before scheduling a meeting.
               </p>
             </div>
 
-            <div>
-              <SharedLabel for="booking-start" class="mb-1.5 text-sm">
-                Date and time
-              </SharedLabel>
-              <SharedInput
-                id="booking-start"
-                v-model="startsAt"
-                type="datetime-local"
-                name="booking-start"
-                :min="minimumStart"
-                :error="fieldError('starts_at')"
-                @update:model-value="localErrors.starts_at = ''"
-              >
-                <template #prefix>
-                  <span class="flex items-center ps-3 text-muted-foreground">
-                    <HugeiconsIcon
-                      :icon="Calendar03Icon"
-                      :size="16"
-                      :stroke-width="1.75"
-                      aria-hidden="true"
-                    />
-                  </span>
-                </template>
-              </SharedInput>
-              <p class="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <HugeiconsIcon
-                  :icon="Clock01Icon"
-                  :size="14"
-                  :stroke-width="1.75"
-                  aria-hidden="true"
-                />
-                {{ selectedLink?.duration_minutes ?? "—" }} minutes · {{ timezone }}
-              </p>
-            </div>
+            <UiBookingsAvailabilityPicker
+              v-if="selectedLink"
+              :selected-date="selectedDate"
+              :selected-slot="selectedSlotId"
+              :slots="availableTimesQuery.data.value?.available_times ?? []"
+              :timezone="availableTimesQuery.data.value?.timezone ?? timezone"
+              :loading="availableTimesQuery.isFetching.value"
+              :load-error="availableTimesQuery.isError.value"
+              :error="fieldError('starts_at')"
+              @retry="availableTimesQuery.refetch()"
+              @select-date="selectDate"
+              @select-slot="selectSlot"
+            />
 
             <div>
               <SharedLabel for="booking-notes" class="mb-1.5 text-sm">
@@ -266,7 +273,7 @@ const submit = () => {
               <SharedTextarea
                 id="booking-notes"
                 v-model="notes"
-                rows="3"
+                :rows="3"
                 placeholder="Add context for this meeting"
                 :error="fieldError('notes')"
               />
@@ -274,9 +281,15 @@ const submit = () => {
           </div>
         </div>
 
-        <footer class="flex justify-end gap-2 border-t border-border px-5 py-4 sm:px-6">
+        <footer
+          class="flex justify-end gap-2 border-t border-border px-5 py-4 sm:px-6"
+        >
           <DialogClose as-child>
-            <SharedButton type="button" variant="outline" :disabled="submitting">
+            <SharedButton
+              type="button"
+              variant="outline"
+              :disabled="submitting"
+            >
               Cancel
             </SharedButton>
           </DialogClose>
@@ -286,7 +299,7 @@ const submit = () => {
             :disabled="loadingLinks || !availableLinks.length"
             @click="submit"
           >
-            Schedule booking
+            Schedule meeting
           </SharedButton>
         </footer>
       </DialogContent>

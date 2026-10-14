@@ -58,3 +58,33 @@ export function usePublicSchedule(
     gcTime: PUBLIC_SCHEDULE_STALE_TIME,
   })
 }
+
+export function usePublicAvailableTimes(
+  eventId: MaybeRefOrGetter<number | null>,
+  bookingDate: MaybeRefOrGetter<string>,
+) {
+  const client = useApiClient()
+
+  return useQuery({
+    queryKey: computed(() =>
+      queryKeys.public.availableTimes(
+        toValue(eventId) ?? 'pending',
+        toValue(bookingDate),
+      ),
+    ),
+    queryFn: () =>
+      publicApi.availableTimes(
+        client,
+        toValue(eventId)!,
+        toValue(bookingDate),
+      ),
+    enabled: computed(
+      () =>
+        import.meta.client &&
+        toValue(eventId) !== null &&
+        Boolean(toValue(bookingDate)),
+    ),
+    staleTime: PUBLIC_SCHEDULE_STALE_TIME,
+    gcTime: PUBLIC_SCHEDULE_STALE_TIME,
+  })
+}

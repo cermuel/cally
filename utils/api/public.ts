@@ -64,6 +64,13 @@ export type PublicScheduleResponse = {
   pagination: PublicSchedulePagination
 }
 
+export type PublicAvailableTimesResponse = {
+  message: string
+  booking_date: string
+  available_times: PublicScheduleSlot[]
+  timezone: string
+}
+
 export const publicApi = {
   profile(client: AxiosInstance, username: string) {
     return apiRequest<PublicProfileResponse>(client, {
@@ -85,6 +92,14 @@ export const publicApi = {
       method: 'GET',
       url: `/public/events/${eventId}/schedule`,
       params: { month, timezone },
+    })
+  },
+
+  availableTimes(client: AxiosInstance, eventId: number, bookingDate: string) {
+    return apiRequest<PublicAvailableTimesResponse>(client, {
+      method: 'GET',
+      url: `/public/events/${eventId}/available-times`,
+      params: { booking_date: bookingDate },
     })
   },
 }

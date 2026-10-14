@@ -26,6 +26,7 @@ export const queryKeys = {
     profile: (username: string) => [...queryKeys.public.all(), 'profile', username] as const,
     events: (username: string) => [...queryKeys.public.all(), 'events', username] as const,
     schedule: (eventId: QueryKeyId, month: string, timezone: string) => [...queryKeys.public.all(), 'schedule', eventId, month, timezone] as const,
+    availableTimes: (eventId: QueryKeyId, bookingDate: string) => [...queryKeys.public.all(), 'available-times', eventId, bookingDate] as const,
   },
 
   links: {

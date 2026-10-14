@@ -125,7 +125,8 @@ const durationLabel = computed(() => {
         <UiPublicGuestStack :booking="booking" />
         <span class="text-muted-foreground"
           >{{
-            (booking.guests?.length ?? 0) + (booking.host ? 1 : 0)
+            (booking.contact ? 1 : (booking.guests?.length ?? 0)) +
+            (booking.host ? 1 : 0)
           }}
           attending</span
         >

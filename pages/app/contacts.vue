@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import {
-  Delete02Icon,
-  Search01Icon,
-} from "@hugeicons/core-free-icons";
+import { Delete02Icon, Search01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
@@ -159,12 +156,18 @@ watch(scheduleOpen, (isOpen) => {
 });
 
 const createBookingMutation = useMutation({
-  mutationFn: ({ contactId, payload }: { contactId: number; payload: CreateContactBookingPayload }) =>
-    contactsApi.createBooking(client, contactId, payload),
+  mutationFn: ({
+    contactId,
+    payload,
+  }: {
+    contactId: number;
+    payload: CreateContactBookingPayload;
+  }) => contactsApi.createBooking(client, contactId, payload),
   onSuccess: async (_response, variables) => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.public.all() }),
       queryClient.invalidateQueries({
         queryKey: queryKeys.contacts.detail(variables.contactId),
       }),
@@ -299,7 +302,9 @@ const startImportMutation = useMutation({
     });
   },
   onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not start the contact import.")),
+    toast.error(
+      getApiErrorMessage(error, "Could not start the contact import."),
+    ),
 });
 
 const importContacts = (file: File) => {
@@ -349,7 +354,9 @@ const cancelImportMutation = useMutation({
     toast.success("Contact import cancelled");
   },
   onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not cancel the contact import.")),
+    toast.error(
+      getApiErrorMessage(error, "Could not cancel the contact import."),
+    ),
 });
 
 const cancelImport = () => {
@@ -376,7 +383,7 @@ const updateSort = (field: ContactSortField) => {
     <div class="mb-8 flex items-center justify-between gap-4">
       <UiAppPageHeader
         title="Contacts"
-        description="Keep track of the people you schedule meetings with."
+        description="Keep track of the people you schedule meeting with."
         class="mb-0"
       />
       <UiContactsCreateMenu
@@ -464,7 +471,11 @@ const updateSort = (field: ContactSortField) => {
       @delete="requestDelete"
       @edit="openEdit"
       @page="page = $event"
-      @per-page="perPage = $event; page = 1; selectedIds = []"
+      @per-page="
+        perPage = $event;
+        page = 1;
+        selectedIds = [];
+      "
       @sort="updateSort"
       @view="openDetails"
     />

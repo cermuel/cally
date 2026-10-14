@@ -5,7 +5,6 @@ import {
   Loading03Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import { getContactTagColor } from "~/constants/contact-tags";
 import type {
   SharedTableColumn,
   SharedTableColumnPriority,
@@ -219,13 +218,10 @@ const initials = (contact: Contact) => {
     </template>
 
     <template #cell-tag="{ row }">
-      <span
+      <UiContactsTag
         v-if="row.tag"
-        class="max-w-full truncate rounded-md px-2 py-0.5 text-xs font-medium text-black ring-1 ring-black/10"
-        :style="{ backgroundColor: getContactTagColor(row.tag) }"
-      >
-        {{ row.tag }}
-      </span>
+        :tag="row.tag"
+      />
       <span v-else class="text-muted-foreground">—</span>
     </template>
 

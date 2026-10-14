@@ -86,7 +86,15 @@ const durationLabel = computed(() => {
     : "Duration to be confirmed";
 });
 
-const guests = computed<BookingGuest[]>(() => props.booking?.guests ?? []);
+const guests = computed<BookingGuest[]>(() =>
+  props.booking?.contact ? [] : (props.booking?.guests ?? []),
+);
+
+const attendeeCount = computed(
+  () =>
+    (props.booking?.contact ? 1 : guests.value.length) +
+    (props.booking?.host ? 1 : 0),
+);
 
 const copyMeetingLink = async () => {
   if (!props.booking?.meeting_url) return;
@@ -222,12 +230,12 @@ const copyMeetingLink = async () => {
                   People
                 </h2>
                 <span class="text-xs tabular-nums text-muted-foreground">
-                  {{ guests.length + (booking.host ? 1 : 0) }}
+                  {{ attendeeCount }}
                 </span>
               </div>
 
               <ul
-                v-if="booking.host || guests.length"
+                v-if="booking.host || booking.contact || guests.length"
                 class="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border"
               >
                 <li
@@ -254,6 +262,30 @@ const copyMeetingLink = async () => {
                       {{ booking.host.email }}
                     </p>
                   </div>
+                </li>
+
+                <li
+                  v-if="booking.contact"
+                  class="flex items-center gap-3 px-3 py-2.5"
+                >
+                  <UiPublicProfileAvatar
+                    :name="booking.contact.name ?? booking.contact.email"
+                    size="sm"
+                    class="size-8"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-[13px] font-medium">
+                      {{ booking.contact.name ?? booking.contact.email }}
+                    </p>
+                    <p class="truncate text-xs text-muted-foreground">
+                      {{ booking.contact.email }}
+                    </p>
+                  </div>
+                  <span
+                    class="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                  >
+                    Contact
+                  </span>
                 </li>
 
                 <li

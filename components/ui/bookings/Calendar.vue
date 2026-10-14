@@ -245,8 +245,13 @@ const time24 = (value: string) =>
     timeZone: timezone.value,
   }).format(new Date(value));
 
-const guestName = (b: Booking) =>
-  b.guests?.[0]?.name || b.guests?.[0]?.email || "";
+const attendeeName = (booking: Booking) => {
+  const attendee = booking.contact ?? booking.guests?.[0];
+  return attendee?.name || attendee?.email || "";
+};
+
+const additionalAttendeeCount = (booking: Booking) =>
+  booking.contact ? 0 : Math.max(0, (booking.guests?.length ?? 0) - 1);
 
 const status: Record<
   Booking["status"],
@@ -615,12 +620,12 @@ onMounted(scrollToRelevant);
                             >
                           </p>
                           <p
-                            v-if="e.booking.guests?.[0]"
+                            v-if="e.booking.contact || e.booking.guests?.[0]"
                             class="mt-0.5 truncate text-xs text-muted-foreground"
                           >
-                            {{ guestName(e.booking) }}
-                            <template v-if="e.booking.guests.length > 1">
-                              +{{ e.booking.guests.length - 1 }}</template
+                            {{ attendeeName(e.booking) }}
+                            <template v-if="additionalAttendeeCount(e.booking)">
+                              +{{ additionalAttendeeCount(e.booking) }}</template
                             >
                           </p>
                           <p

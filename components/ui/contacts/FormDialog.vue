@@ -122,7 +122,7 @@ const submit = () => {
               {{
                 editing
                   ? "Update this contact’s details."
-                  : "Save someone you schedule meetings with."
+                  : "Save someone you schedule meeting with."
               }}
             </DialogDescription>
           </div>
@@ -160,8 +160,12 @@ const submit = () => {
                 :error="fieldError('email')"
                 @update:model-value="localErrors.email = ''"
               />
-              <p v-if="emailLocked" class="mt-1.5 text-xs text-muted-foreground">
-                This contact is linked to a Cally account, so its email cannot be changed.
+              <p
+                v-if="emailLocked"
+                class="mt-1.5 text-xs text-muted-foreground"
+              >
+                This contact is linked to a Cally account, so its email cannot
+                be changed.
               </p>
             </div>
 
@@ -174,7 +178,9 @@ const submit = () => {
 
             <div :class="!editing && 'sm:col-span-2'">
               <SharedLabel for="contact-name" class="mb-1.5 text-sm">
-                Name<span v-if="!editing" class="text-muted-foreground"> (optional)</span>
+                Name<span v-if="!editing" class="text-muted-foreground">
+                  (optional)</span
+                >
               </SharedLabel>
               <SharedInput
                 id="contact-name"
@@ -185,7 +191,9 @@ const submit = () => {
               />
             </div>
             <div v-if="editing">
-              <SharedLabel for="contact-phone" class="mb-1.5 text-sm">Phone</SharedLabel>
+              <SharedLabel for="contact-phone" class="mb-1.5 text-sm"
+                >Phone</SharedLabel
+              >
               <SharedInput
                 id="contact-phone"
                 v-model="phone"
@@ -196,7 +204,9 @@ const submit = () => {
               />
             </div>
             <div v-if="editing">
-              <SharedLabel for="contact-company" class="mb-1.5 text-sm">Company</SharedLabel>
+              <SharedLabel for="contact-company" class="mb-1.5 text-sm"
+                >Company</SharedLabel
+              >
               <SharedInput
                 id="contact-company"
                 v-model="company"
@@ -211,31 +221,28 @@ const submit = () => {
               :error="fieldError('tag')"
             />
             <div v-if="editing" class="sm:col-span-2">
-              <SharedLabel for="contact-timezone" class="mb-1.5 text-sm">Timezone</SharedLabel>
-              <SharedInput
-                id="contact-timezone"
-                v-model="timezone"
-                autocomplete="off"
-                placeholder="Europe/London"
-                :error="fieldError('timezone')"
-              />
-            </div>
-            <div v-if="editing" class="sm:col-span-2">
-              <SharedLabel for="contact-notes" class="mb-1.5 text-sm">Notes</SharedLabel>
+              <SharedLabel for="contact-notes" class="mb-1.5 text-sm"
+                >Notes</SharedLabel
+              >
               <SharedTextarea
                 id="contact-notes"
                 v-model="notes"
-                rows="4"
+                :rows="4"
                 placeholder="Preferences or useful context"
                 :aria-invalid="Boolean(fieldError('notes'))"
               />
-              <p v-if="fieldError('notes')" class="mt-1.5 text-xs text-destructive">
+              <p
+                v-if="fieldError('notes')"
+                class="mt-1.5 text-xs text-destructive"
+              >
                 {{ fieldError("notes") }}
               </p>
             </div>
           </div>
 
-          <footer class="flex justify-end gap-2 border-t border-border px-6 py-4">
+          <footer
+            class="flex justify-end gap-2 border-t border-border px-6 py-4"
+          >
             <DialogClose as-child>
               <SharedButton type="button" variant="outline" :disabled="saving">
                 Cancel

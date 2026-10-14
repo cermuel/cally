@@ -83,12 +83,14 @@ const timeLabel = computed(() => {
 });
 
 const attendeeCount = computed(
-  () => (props.booking.guests?.length ?? 0) + (props.booking.host ? 1 : 0),
+  () =>
+    (props.booking.contact ? 1 : (props.booking.guests?.length ?? 0)) +
+    (props.booking.host ? 1 : 0),
 );
 
-const primaryGuest = computed(() => {
-  const guest = props.booking.guests?.[0];
-  return guest?.name || guest?.email || "No guest added";
+const primaryAttendee = computed(() => {
+  const attendee = props.booking.contact ?? props.booking.guests?.[0];
+  return attendee?.name || attendee?.email || "No attendee added";
 });
 
 const eventName = computed(
@@ -180,7 +182,7 @@ const badge =
           >
             <UiPublicGuestStack :booking="booking" />
             <p class="min-w-0 truncate text-xs text-muted-foreground">
-              <span class="text-foreground/80">{{ primaryGuest }}</span>
+              <span class="text-foreground/80">{{ primaryAttendee }}</span>
               <template v-if="attendeeCount">
                 · {{ attendeeCount }}
                 {{ attendeeCount === 1 ? "person" : "people" }}

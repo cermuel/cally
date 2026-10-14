@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ChevronDownIcon } from "@hugeicons/core-free-icons";
+import {
+  ChevronDownIcon,
+  LoaderCircleIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import { SelectIcon, SelectTrigger } from "reka-ui";
 import type { HTMLAttributes } from "vue";
-import { useAttrs } from "vue";
+import { computed, inject, useAttrs } from "vue";
 import { cn } from "../../../lib/utils";
+import { SELECT_CONTEXT_KEY } from "./context";
 
 defineOptions({
   inheritAttrs: false,
@@ -16,12 +20,16 @@ const props = defineProps<{
 }>();
 
 const attrs = useAttrs();
+const selectContext = inject(SELECT_CONTEXT_KEY, null);
+const loading = computed(() => selectContext?.loading.value ?? false);
 </script>
 
 <template>
   <SelectTrigger
     data-slot="select-trigger"
     :data-size="size ?? 'default'"
+    :data-loading="loading ? '' : undefined"
+    :aria-busy="loading ? 'true' : undefined"
     v-bind="attrs"
     :class="
       cn(
@@ -33,11 +41,12 @@ const attrs = useAttrs();
     <slot />
     <SelectIcon as-child>
       <HugeiconsIcon
-        :icon="ChevronDownIcon"
+        :icon="loading ? LoaderCircleIcon : ChevronDownIcon"
         :size="16"
         color="currentColor"
         :stroke-width="1.75"
-        class="opacity-50"
+        :class="loading ? 'animate-spin' : 'opacity-50'"
+        aria-hidden="true"
       />
     </SelectIcon>
   </SelectTrigger>

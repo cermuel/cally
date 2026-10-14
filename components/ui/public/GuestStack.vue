@@ -10,10 +10,17 @@ const props = withDefaults(
 );
 
 const visibleGuests = computed(() =>
-  (props.booking.guests ?? []).slice(0, Math.max(0, props.limit - (props.booking.host ? 1 : 0))),
+  props.booking.contact
+    ? []
+    : (props.booking.guests ?? []).slice(
+        0,
+        Math.max(0, props.limit - (props.booking.host ? 1 : 0)),
+      ),
 );
 const guestCount = computed(
-  () => (props.booking.guests?.length ?? 0) + (props.booking.host ? 1 : 0),
+  () =>
+    (props.booking.contact ? 1 : (props.booking.guests?.length ?? 0)) +
+    (props.booking.host ? 1 : 0),
 );
 const hiddenGuestCount = computed(() =>
   Math.max(0, guestCount.value - props.limit),
@@ -21,7 +28,7 @@ const hiddenGuestCount = computed(() =>
 </script>
 
 <template>
-  <div class="flex items-center" :aria-label="`${guestCount} guests`">
+  <div class="flex items-center" :aria-label="`${guestCount} attendees`">
     <SharedHoverCard v-if="booking.host">
       <SharedHoverCardTrigger as-child>
         <button
@@ -46,6 +53,44 @@ const hiddenGuestCount = computed(() =>
               <span class="rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">Host</span>
             </div>
             <p class="truncate text-xs text-muted-foreground">{{ booking.host.email }}</p>
+          </div>
+        </div>
+      </SharedHoverCardContent>
+    </SharedHoverCard>
+
+    <SharedHoverCard v-if="booking.contact">
+      <SharedHoverCardTrigger as-child>
+        <button
+          type="button"
+          class="relative -ms-1.5 rounded-full first:ms-0 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          :aria-label="`View ${booking.contact.name ?? booking.contact.email}`"
+        >
+          <UiPublicProfileAvatar
+            :name="booking.contact.name ?? booking.contact.email"
+            size="sm"
+            class="size-7 border-2 border-card"
+          />
+        </button>
+      </SharedHoverCardTrigger>
+      <SharedHoverCardContent side="top" class="w-60 p-3">
+        <div class="flex items-center gap-2.5">
+          <UiPublicProfileAvatar
+            :name="booking.contact.name ?? booking.contact.email"
+            size="sm"
+            class="size-9"
+          />
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <p class="truncate text-sm font-medium">
+                {{ booking.contact.name ?? booking.contact.email }}
+              </p>
+              <span
+                class="rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground"
+              >Contact</span>
+            </div>
+            <p class="truncate text-xs text-muted-foreground">
+              {{ booking.contact.email }}
+            </p>
           </div>
         </div>
       </SharedHoverCardContent>

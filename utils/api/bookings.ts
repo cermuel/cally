@@ -35,6 +35,17 @@ export type BookingHost = {
   timezone: string;
 };
 
+export type BookingContact = Pick<
+  Contact,
+  | "platform_user_id"
+  | "name"
+  | "email"
+  | "phone"
+  | "timezone"
+  | "company"
+  | "tag"
+>;
+
 export type Booking = {
   id: number;
   user_id: number;
@@ -52,7 +63,7 @@ export type Booking = {
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
-  contact?: Contact | null;
+  contact?: BookingContact | null;
   event?: BookingEvent;
   host?: BookingHost;
   guests?: BookingGuest[];
