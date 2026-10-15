@@ -1,17 +1,18 @@
 <script setup lang="ts">
+import { useMutation } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 import { normalizeUsername } from "~/helpers/onboarding";
 import type { AuthUser } from "~/utils/api/auth";
-import type { EditProfilePayload } from "~/utils/api/users";
+import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
+import { usersApi, type EditProfilePayload } from "~/utils/api/users";
 
 const props = defineProps<{
   user: AuthUser;
-  saving?: boolean;
-  errors?: Record<string, string[]>;
 }>();
 
-const emit = defineEmits<{
-  save: [payload: EditProfilePayload];
-}>();
+const auth = useAuth();
+const client = useApiClient();
+const errors = ref<Record<string, string[]>>({});
 
 const AVATAR_SIZE = 256;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -50,7 +51,7 @@ const changedPayload = computed(() => {
 });
 
 const hasChanges = computed(() => Object.keys(changedPayload.value).length > 0);
-const fieldError = (field: string) => props.errors?.[field]?.[0];
+const fieldError = (field: string) => errors.value[field]?.[0];
 const fileInput = ref<HTMLInputElement | null>(null);
 const avatarError = ref<string>();
 const avatarName = computed(() => form.name || form.username || "?");
@@ -118,15 +119,33 @@ const discard = () => {
   avatarError.value = undefined;
 };
 
+const editMutation = useMutation({
+  mutationFn: (payload: EditProfilePayload) =>
+    usersApi.editProfile(client, payload),
+  onSuccess: (response) => {
+    auth.setUser(response.user);
+    errors.value = {};
+  },
+  onError: (error) => {
+    errors.value = getApiFieldErrors(error);
+  },
+});
+
 const submit = () => {
-  if (hasChanges.value) emit("save", changedPayload.value);
+  if (!hasChanges.value) return;
+  errors.value = {};
+  toast.promise(editMutation.mutateAsync(changedPayload.value), {
+    loading: "Saving profile...",
+    success: "Profile updated",
+    error: (error) =>
+      getApiErrorMessage(error, "Could not update your profile."),
+  });
 };
 </script>
 
 <template>
-  <form
+  <div
     class="overflow-hidden rounded-xl border border-border bg-card"
-    @submit.prevent="submit"
   >
     <div class="space-y-6 p-5 sm:p-6">
       <div class="flex items-center gap-4">
@@ -134,7 +153,7 @@ const submit = () => {
           type="button"
           class="group relative shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none"
           aria-label="Change profile photo"
-          :disabled="saving"
+          :disabled="editMutation.isPending.value"
           @click="pickAvatar"
         >
           <SharedAvatar
@@ -154,7 +173,7 @@ const submit = () => {
             type="button"
             size="sm"
             variant="outline"
-            :disabled="saving"
+            :disabled="editMutation.isPending.value"
             @click="pickAvatar"
           >
             {{ form.avatar_url ? "Change photo" : "Upload photo" }}
@@ -164,7 +183,7 @@ const submit = () => {
             type="button"
             size="sm"
             variant="ghost"
-            :disabled="saving"
+            :disabled="editMutation.isPending.value"
             @click="removeAvatar"
           >
             Remove
@@ -191,7 +210,7 @@ const submit = () => {
             v-model="form.name"
             name="name"
             autocomplete="name"
-            :disabled="saving"
+            :disabled="editMutation.isPending.value"
             :error="fieldError('name')"
           />
         </div>
@@ -206,7 +225,7 @@ const submit = () => {
             autocomplete="username"
             autocapitalize="off"
             spellcheck="false"
-            :disabled="saving"
+            :disabled="editMutation.isPending.value"
             :error="fieldError('username')"
             @update:model-value="
               form.username = normalizeUsername(String($event))
@@ -227,7 +246,7 @@ const submit = () => {
         <SharedLabel class="mb-1.5 text-sm">About you</SharedLabel>
         <UiProfileRichTextEditor
           v-model="form.description"
-          :disabled="saving"
+          :disabled="editMutation.isPending.value"
           :error="fieldError('description')"
         />
       </div>
@@ -247,17 +266,22 @@ const submit = () => {
       </p>
       <div class="flex gap-2">
         <SharedButton
-          v-if="hasChanges && !saving"
+          v-if="hasChanges && !editMutation.isPending.value"
           type="button"
           variant="ghost"
           @click="discard"
         >
           Discard
         </SharedButton>
-        <SharedButton type="submit" :disabled="!hasChanges" :loading="saving">
+        <SharedButton
+          type="button"
+          :disabled="!hasChanges"
+          :loading="editMutation.isPending.value"
+          @click="submit"
+        >
           Save changes
         </SharedButton>
       </div>
     </footer>
-  </form>
+  </div>
 </template>

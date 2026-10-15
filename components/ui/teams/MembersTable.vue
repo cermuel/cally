@@ -1,19 +1,43 @@
 <script setup lang="ts">
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 import type { SharedTableColumn } from "~/types/table";
-import type { TeamMember, TeamRole } from "~/utils/api/teams";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
+import { teamsApi, type TeamMember, type TeamRole } from "~/utils/api/teams";
 
 const props = defineProps<{
+  teamId: number;
   members: TeamMember[];
   ownerId: number;
   currentUserId?: number;
   canManageRoles: boolean;
   loading: boolean;
-  updatingId?: number | null;
 }>();
 
-const emit = defineEmits<{
-  updateRole: [member: TeamMember, role: TeamRole];
-}>();
+const client = useApiClient();
+const queryClient = useQueryClient();
+const updatingId = ref<number | null>(null);
+
+const updateMutation = useMutation({
+  mutationFn: ({ member, role }: { member: TeamMember; role: TeamRole }) =>
+    teamsApi.updateMember(client, props.teamId, member.id, role),
+  onMutate: ({ member }) => {
+    updatingId.value = member.id;
+  },
+  onSuccess: async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.members(props.teamId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.detail(props.teamId) }),
+    ]);
+    toast.success("Member role updated");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not update the member role.")),
+  onSettled: () => {
+    updatingId.value = null;
+  },
+});
 
 const columns: SharedTableColumn<TeamMember>[] = [
   {
@@ -71,7 +95,7 @@ const canUpdate = (member: TeamMember) =>
 const updateRole = (member: TeamMember, role: TeamRole) => {
   if (!canUpdate(member) || role === member.role) return;
 
-  emit("updateRole", member, role);
+  updateMutation.mutate({ member, role });
 };
 </script>
 

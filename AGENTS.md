@@ -21,6 +21,12 @@ Keep pages and layout shells focused on composition. Extract independently meani
 
 Treat Tailwind IntelliSense's `suggestCanonicalClasses` diagnostics as errors. Use canonical Tailwind utilities in every new or edited class list.
 
+## Component Behavior Ownership
+
+Feature components own behavior that is private to their interface, including their mutations, pending state, field errors, notifications, and cache invalidation. Pass only the domain data they need, such as an entity ID or the record being edited.
+
+Keep behavior in a page or parent only when it coordinates multiple children or owns state shared across them. Do not pass mutation objects, mutation callbacks, loading flags, or API errors through component props when only one child uses them. Children may emit completion events when a parent must update shared state, navigation, or another component.
+
 ## Input Validation
 
 Do not rely on native HTML form submission or browser validation in new or edited UI. Use explicit Vue event handlers and the project's validation helpers instead of `<form>`, `required`, or other browser-managed validation behavior.

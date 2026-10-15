@@ -8,21 +8,56 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type { Contact } from "~/utils/api/contacts";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { contactsApi } from "~/utils/api/contacts";
+import { queryKeys } from "~/utils/api/query-keys";
 
 const props = defineProps<{
-  contact?: Contact | null;
-  count?: number;
-  deleting: boolean;
+  contactId?: number | null;
+  contactLabel?: string | null;
+  contactIds?: number[];
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
-const emit = defineEmits<{ confirm: [] }>();
+const emit = defineEmits<{ deleted: [ids: number[]] }>();
 
-const total = computed(() => props.count ?? (props.contact ? 1 : 0));
+const client = useApiClient();
+const queryClient = useQueryClient();
+
+const ids = computed(() =>
+  props.contactId ? [props.contactId] : (props.contactIds ?? []),
+);
+const total = computed(() => ids.value.length);
+
 const title = computed(() =>
   total.value === 1 ? "Delete contact" : `Delete ${total.value} contacts`,
 );
+
+const deleteMutation = useMutation({
+  mutationFn: (contactIds: number[]) =>
+    props.contactId
+      ? contactsApi.remove(client, props.contactId)
+      : contactsApi.removeMany(client, contactIds),
+  onSuccess: async (_response, contactIds) => {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.contacts.all(),
+    });
+    emit("deleted", contactIds);
+    open.value = false;
+    toast.success(
+      contactIds.length === 1 ? "Contact deleted" : "Contacts deleted",
+    );
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not delete the contacts.")),
+});
+
+const deleteContacts = () => {
+  if (!ids.value.length) return;
+  deleteMutation.mutate([...ids.value]);
+};
 </script>
 
 <template>
@@ -36,9 +71,9 @@ const title = computed(() =>
       >
         <DialogTitle class="text-lg font-semibold">{{ title }}</DialogTitle>
         <DialogDescription class="mt-2 text-sm leading-6 text-muted-foreground">
-          <template v-if="contact">
+          <template v-if="contactLabel">
             Are you sure you want to delete
-            <strong>{{ contact.name || contact.email }}</strong>?
+            <strong>{{ contactLabel }}</strong>?
           </template>
           <template v-else>
             Are you sure you want to delete the selected contacts?
@@ -47,15 +82,19 @@ const title = computed(() =>
         </DialogDescription>
         <div class="mt-6 flex justify-end gap-2">
           <DialogClose as-child>
-            <SharedButton type="button" variant="outline" :disabled="deleting">
+            <SharedButton
+              type="button"
+              variant="outline"
+              :disabled="deleteMutation.isPending.value"
+            >
               Cancel
             </SharedButton>
           </DialogClose>
           <SharedButton
             type="button"
             variant="destructive"
-            :loading="deleting"
-            @click="emit('confirm')"
+            :loading="deleteMutation.isPending.value"
+            @click="deleteContacts"
           >
             {{ total === 1 ? "Delete contact" : "Delete contacts" }}
           </SharedButton>

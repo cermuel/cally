@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import {
   DialogClose,
   DialogContent,
@@ -10,32 +11,33 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
+import { toast } from "vue-sonner";
 import {
   allowedAutomationActions,
   automationActions,
   automationTriggers,
   guestTypes,
 } from "~/constants/automations";
-import type {
-  AutomationAction,
-  AutomationTemplate,
-  AutomationTrigger,
-  CreateAutomationPayload,
-  GuestType,
+import {
+  automationsApi,
+  type AutomationAction,
+  type AutomationTemplate,
+  type AutomationTrigger,
+  type CreateAutomationPayload,
+  type GuestType,
 } from "~/utils/api/automations";
+import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
 
 const props = defineProps<{
   template?: AutomationTemplate | null;
   variables: string[];
-  submitting: boolean;
-  errors?: Record<string, string[]>;
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
 
-const emit = defineEmits<{
-  submit: [payload: CreateAutomationPayload];
-}>();
+const client = useApiClient();
+const queryClient = useQueryClient();
 
 const name = ref("");
 const color = ref<string | null>(null);
@@ -47,6 +49,7 @@ const guestType = ref<GuestType | "all">("all");
 const contactEmail = ref("");
 const contactName = ref("");
 const localErrors = ref<Record<string, string>>({});
+const apiErrors = ref<Record<string, string[]>>({});
 const subjectEditor = ref<{ insertVariable: (variable: string) => void } | null>(
   null,
 );
@@ -62,7 +65,29 @@ const availableActions = computed(() =>
 );
 
 const fieldError = (field: string) =>
-  localErrors.value[field] || props.errors?.[field]?.[0];
+  localErrors.value[field] || apiErrors.value[field]?.[0];
+
+const createMutation = useMutation({
+  mutationFn: (payload: CreateAutomationPayload) =>
+    automationsApi.create(client, payload),
+  onSuccess: async (response) => {
+    if (!response.automation) {
+      toast.info(response.message);
+      open.value = false;
+      return;
+    }
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.automations.list(),
+    });
+    apiErrors.value = {};
+    open.value = false;
+    toast.success("Automation created");
+  },
+  onError: (error) => {
+    apiErrors.value = getApiFieldErrors(error);
+    toast.error(getApiErrorMessage(error, "Could not create the automation."));
+  },
+});
 
 const resetForm = () => {
   const template = props.template;
@@ -82,6 +107,7 @@ const resetForm = () => {
   contactEmail.value = "";
   contactName.value = "";
   localErrors.value = {};
+  apiErrors.value = {};
 };
 
 watch(open, (isOpen) => {
@@ -142,7 +168,7 @@ const submit = () => {
     };
   }
 
-  emit("submit", {
+  createMutation.mutate({
     name: name.value.trim(),
     color: color.value,
     trigger: trigger.value,
@@ -196,9 +222,8 @@ const submit = () => {
           </DialogClose>
         </header>
 
-        <form
+        <div
           class="flex min-h-0 flex-1 flex-col overflow-hidden"
-          @submit.prevent="submit"
         >
           <div class="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
             <div class="space-y-5">
@@ -382,11 +407,15 @@ const submit = () => {
                 >Cancel</SharedButton
               >
             </DialogClose>
-            <SharedButton type="submit" :loading="submitting">
+            <SharedButton
+              type="button"
+              :loading="createMutation.isPending.value"
+              @click="submit"
+            >
               Create automation
             </SharedButton>
           </footer>
-        </form>
+        </div>
       </DialogContent>
     </DialogPortal>
   </DialogRoot>

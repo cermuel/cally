@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { ArrowLeft02Icon, Download01Icon, Upload01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowLeft02Icon,
+  Download01Icon,
+  Upload01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import { useQuery } from "@tanstack/vue-query";
 import type { SharedTableColumn } from "~/types/table";
 import { getApiErrorMessage } from "~/utils/api/client";
-import {
-  contactsApi,
-  type ContactImportError,
-} from "~/utils/api/contacts";
+import { contactsApi, type ContactImportError } from "~/utils/api/contacts";
 import { queryKeys } from "~/utils/api/query-keys";
 
 definePageMeta({ layout: false });
-useHead({ title: "Review contact import | Cally" });
+useHead({ title: "Review contact import" });
 
 const client = useApiClient();
 const statusQuery = useQuery({
@@ -82,7 +83,12 @@ const retryImport = () => navigateTo("/app/contacts");
           class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           @click="goToContacts"
         >
-          <HugeiconsIcon :icon="ArrowLeft02Icon" :size="16" :stroke-width="1.75" aria-hidden="true" />
+          <HugeiconsIcon
+            :icon="ArrowLeft02Icon"
+            :size="16"
+            :stroke-width="1.75"
+            aria-hidden="true"
+          />
           Back to contacts
         </button>
         <UiAppPageHeader
@@ -93,11 +99,25 @@ const retryImport = () => navigateTo("/app/contacts");
       </div>
       <div class="flex items-center gap-2">
         <SharedButton type="button" variant="outline" @click="retryImport">
-          <HugeiconsIcon :icon="Upload01Icon" :size="16" :stroke-width="1.75" aria-hidden="true" />
+          <HugeiconsIcon
+            :icon="Upload01Icon"
+            :size="16"
+            :stroke-width="1.75"
+            aria-hidden="true"
+          />
           Try another upload
         </SharedButton>
-        <SharedButton type="button" :disabled="!errors.length" @click="downloadErrors">
-          <HugeiconsIcon :icon="Download01Icon" :size="16" :stroke-width="1.75" aria-hidden="true" />
+        <SharedButton
+          type="button"
+          :disabled="!errors.length"
+          @click="downloadErrors"
+        >
+          <HugeiconsIcon
+            :icon="Download01Icon"
+            :size="16"
+            :stroke-width="1.75"
+            aria-hidden="true"
+          />
           Download errors
         </SharedButton>
       </div>
@@ -108,7 +128,12 @@ const retryImport = () => navigateTo("/app/contacts");
       role="alert"
       class="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
     >
-      {{ getApiErrorMessage(statusQuery.error.value, "Could not load import errors.") }}
+      {{
+        getApiErrorMessage(
+          statusQuery.error.value,
+          "Could not load import errors.",
+        )
+      }}
     </div>
 
     <UiAppPageHeader
@@ -128,11 +153,16 @@ const retryImport = () => navigateTo("/app/contacts");
       empty-description="There are no skipped contact rows to review."
     >
       <template #cell-email="{ row }">
-        <span class="truncate text-muted-foreground">{{ row.email || "—" }}</span>
+        <span class="truncate text-muted-foreground">{{
+          row.email || "—"
+        }}</span>
       </template>
       <template #cell-errors="{ row }">
         <ul class="space-y-1 text-sm text-destructive">
-          <li v-for="message in Object.values(row.errors).flat()" :key="message">
+          <li
+            v-for="message in Object.values(row.errors).flat()"
+            :key="message"
+          >
             {{ message }}
           </li>
         </ul>

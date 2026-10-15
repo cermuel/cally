@@ -162,7 +162,7 @@ const resendConfirmationEmail = () => {
 };
 
 useHead({
-  title: "Register | Cally",
+  title: "Register",
 });
 
 onMounted(() => {

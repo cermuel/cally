@@ -1,13 +1,4 @@
 <script setup lang="ts">
-defineProps<{
-  confirmText: string;
-  deleting?: boolean;
-}>();
-
-const emit = defineEmits<{
-  delete: [];
-}>();
-
 const dialogOpen = ref(false);
 </script>
 
@@ -32,9 +23,6 @@ const dialogOpen = ref(false);
 
     <UiProfileDeleteDialog
       v-model:open="dialogOpen"
-      :confirm-text="confirmText"
-      :deleting="deleting"
-      @confirm="emit('delete')"
     />
   </section>
 </template>

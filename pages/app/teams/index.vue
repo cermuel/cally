@@ -1,47 +1,19 @@
 <script setup lang="ts">
-import { Add01Icon, PlusSignIcon } from "@hugeicons/core-free-icons";
+import { Add01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import { useMutation, useQueryClient } from "@tanstack/vue-query";
-import { toast } from "vue-sonner";
-import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
-import { queryKeys } from "~/utils/api/query-keys";
-import { teamsApi, type CreateTeamPayload } from "~/utils/api/teams";
 
 definePageMeta({ layout: false });
-useHead({ title: "Teams | Cally" });
+useHead({ title: "Teams" });
 
-const client = useApiClient();
-const router = useRouter();
-const queryClient = useQueryClient();
 const teamsQuery = useTeams();
 const createOpen = ref(false);
-const createErrors = ref<Record<string, string[]>>({});
 
 const teams = computed(() => teamsQuery.data.value?.teams ?? []);
 
 const avatar = (s: string) =>
   `https://api.dicebear.com/10.x/glass/svg?seed=${encodeURIComponent(s)}`;
 
-const createMutation = useMutation({
-  mutationFn: (payload: CreateTeamPayload) => teamsApi.create(client, payload),
-  onSuccess: async ({ team }) => {
-    await queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() });
-    createOpen.value = false;
-    createErrors.value = {};
-    toast.success("Team created");
-    await router.push({
-      path: `/app/teams/${team.id}`,
-      query: { welcome: "1" },
-    });
-  },
-  onError: (error) => {
-    createErrors.value = getApiFieldErrors(error);
-    toast.error(getApiErrorMessage(error, "Could not create the team."));
-  },
-});
-
 const openCreate = () => {
-  createErrors.value = {};
   createOpen.value = true;
 };
 </script>
@@ -137,12 +109,7 @@ const openCreate = () => {
       </button>
     </div>
 
-    <UiTeamsCreateDialog
-      v-model:open="createOpen"
-      :saving="createMutation.isPending.value"
-      :errors="createErrors"
-      @create="createMutation.mutate"
-    />
+    <UiTeamsCreateDialog v-model:open="createOpen" />
   </UiAppShell>
 </template>
 

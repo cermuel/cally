@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import {
   DialogClose,
   DialogContent,
@@ -10,42 +11,37 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type {
-  Contact,
-  CreateContactBookingPayload,
+import { toast } from "vue-sonner";
+import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
+import {
+  contactsApi,
+  type Contact,
+  type CreateContactBookingPayload,
 } from "~/utils/api/contacts";
-import type { Link } from "~/utils/api/links";
+import { queryKeys } from "~/utils/api/query-keys";
 
-const props = withDefaults(
-  defineProps<{
-    contact: Contact | null;
-    links: Link[];
-    timezone: string;
-    loadingLinks?: boolean;
-    submitting?: boolean;
-    errors?: Record<string, string[]>;
-  }>(),
-  {
-    loadingLinks: false,
-    submitting: false,
-    errors: () => ({}),
-  },
-);
+const props = defineProps<{
+  contact: Contact | null;
+  timezone: string;
+}>();
 
 const open = defineModel<boolean>("open", { default: false });
 
-const emit = defineEmits<{
-  create: [payload: CreateContactBookingPayload];
-}>();
+const client = useApiClient();
+const queryClient = useQueryClient();
+const linksQuery = useLinks({ enabled: open });
 
 const eventId = ref("");
 const selectedDate = ref("");
 const selectedSlotId = ref("");
 const notes = ref("");
 const localErrors = ref<Record<string, string>>({});
+const apiErrors = ref<Record<string, string[]>>({});
 
 const availableLinks = computed(() =>
-  props.links.filter((link) => link.is_active && link.status === "published"),
+  (linksQuery.data.value?.links ?? []).filter(
+    (link) => link.is_active && link.status === "published",
+  ),
 );
 const selectedLink = computed(() =>
   availableLinks.value.find((link) => String(link.id) === eventId.value),
@@ -67,7 +63,32 @@ const contactName = computed(
     "this contact",
 );
 const fieldError = (field: string) =>
-  localErrors.value[field] || props.errors[field]?.[0];
+  localErrors.value[field] || apiErrors.value[field]?.[0];
+
+const createBookingMutation = useMutation({
+  mutationFn: (payload: CreateContactBookingPayload) => {
+    if (!props.contact) throw new Error("No contact selected");
+    return contactsApi.createBooking(client, props.contact.id, payload);
+  },
+  onSuccess: async () => {
+    if (!props.contact) return;
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.bookings.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.public.all() }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.contacts.detail(props.contact.id),
+      }),
+    ]);
+    apiErrors.value = {};
+    open.value = false;
+    toast.success("Booking scheduled");
+  },
+  onError: (error) => {
+    apiErrors.value = getApiFieldErrors(error);
+    toast.error(getApiErrorMessage(error, "Could not schedule the booking."));
+  },
+});
 
 const reset = () => {
   eventId.value =
@@ -78,6 +99,7 @@ const reset = () => {
   selectedSlotId.value = "";
   notes.value = "";
   localErrors.value = {};
+  apiErrors.value = {};
 };
 
 watch(open, (isOpen) => {
@@ -128,7 +150,7 @@ const submit = () => {
     return;
   }
 
-  emit("create", {
+  createBookingMutation.mutate({
     event_id: String(selectedLink.value.id),
     starts_at: selectedSlot.value.starts_at,
     ends_at: selectedSlot.value.ends_at,
@@ -187,7 +209,7 @@ const submit = () => {
               </SharedLabel>
               <SharedSelect
                 v-model="eventId"
-                :loading="loadingLinks"
+                :loading="linksQuery.isPending.value"
                 :disabled="!availableLinks.length"
                 @update:model-value="localErrors.event_id = ''"
               >
@@ -214,7 +236,7 @@ const submit = () => {
                   <SharedSelectValue
                     v-else
                     :placeholder="
-                      loadingLinks
+                      linksQuery.isPending.value
                         ? 'Loading meeting types…'
                         : 'Select a meeting type'
                     "
@@ -245,7 +267,7 @@ const submit = () => {
                 {{ fieldError("event_id") }}
               </p>
               <p
-                v-else-if="!loadingLinks && !availableLinks.length"
+                v-else-if="!linksQuery.isPending.value && !availableLinks.length"
                 class="mt-1.5 text-xs text-muted-foreground"
               >
                 Publish an active meeting type before scheduling a meeting.
@@ -288,15 +310,15 @@ const submit = () => {
             <SharedButton
               type="button"
               variant="outline"
-              :disabled="submitting"
+              :disabled="createBookingMutation.isPending.value"
             >
               Cancel
             </SharedButton>
           </DialogClose>
           <SharedButton
             type="button"
-            :loading="submitting"
-            :disabled="loadingLinks || !availableLinks.length"
+            :loading="createBookingMutation.isPending.value"
+            :disabled="linksQuery.isPending.value || !availableLinks.length"
             @click="submit"
           >
             Schedule meeting

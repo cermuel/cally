@@ -7,20 +7,44 @@ import {
   Refresh01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
 import type {
   ContactImport,
   ContactImportStatus,
 } from "~/utils/api/contacts";
+import { contactsApi } from "~/utils/api/contacts";
+import { queryKeys } from "~/utils/api/query-keys";
 
 const props = defineProps<{
   contactImport: ContactImport;
-  cancelling?: boolean;
 }>();
 
 const emit = defineEmits<{
-  cancel: [];
-  review: [];
+  cancelled: [];
 }>();
+
+const client = useApiClient();
+const queryClient = useQueryClient();
+
+const cancelImportMutation = useMutation({
+  mutationFn: () => contactsApi.deleteImport(client, props.contactImport.id),
+  onSuccess: () => {
+    queryClient.setQueryData(queryKeys.contacts.importStatus(), {
+      import: null,
+      progress: null,
+    });
+    emit("cancelled");
+    toast.success("Contact import cancelled");
+  },
+  onError: (error) =>
+    toast.error(
+      getApiErrorMessage(error, "Could not cancel the contact import."),
+    ),
+});
+
+const reviewErrors = () => navigateTo("/app/contacts/review");
 
 const expanded = ref(false);
 const active = computed(() =>
@@ -90,8 +114,8 @@ const errorSummary = computed(() => {
         variant="ghost"
         size="xs"
         class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-        :loading="cancelling"
-        @click="emit('cancel')"
+        :loading="cancelImportMutation.isPending.value"
+        @click="cancelImportMutation.mutate()"
       >
         Cancel import
       </SharedButton>
@@ -103,7 +127,7 @@ const errorSummary = computed(() => {
         v-if="errorCount"
         type="button"
         class="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-        @click="emit('review')"
+        @click="reviewErrors"
       >
         Review errors
       </button>

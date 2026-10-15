@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { Cancel01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
+import { teamsApi } from "~/utils/api/teams";
 
 const props = defineProps<{
+  teamId: number;
   name: string;
   editable: boolean;
-  saving: boolean;
 }>();
 
-const emit = defineEmits<{
-  save: [name: string];
-}>();
+const client = useApiClient();
+const queryClient = useQueryClient();
 
 const draft = ref(props.name);
 const input = ref<HTMLInputElement | null>(null);
@@ -18,22 +22,35 @@ const focused = ref(false);
 const saved = ref(false);
 const error = ref("");
 let timer: ReturnType<typeof setTimeout>;
+const updateMutation = useMutation({
+  mutationFn: (name: string) => teamsApi.update(client, props.teamId, { name }),
+  onSuccess: async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.detail(props.teamId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() }),
+    ]);
+    toast.success("Team name updated");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not update the team name.")),
+});
+const saving = computed(() => updateMutation.isPending.value);
 
 const trimmed = computed(() => draft.value.trim());
 const hasChanges = computed(() => trimmed.value !== props.name.trim());
 const showActions = computed(() => focused.value || hasChanges.value);
 
 function save() {
-  if (props.saving || !hasChanges.value) return;
+  if (saving.value || !hasChanges.value) return;
   if (!trimmed.value) {
     error.value = "Enter a team name.";
     return;
   }
-  emit("save", trimmed.value);
+  updateMutation.mutate(trimmed.value);
 }
 
 function cancel() {
-  if (props.saving) return;
+  if (saving.value) return;
   draft.value = props.name;
   error.value = "";
   input.value?.blur();
@@ -47,7 +64,7 @@ watch(
 );
 
 watch(
-  () => props.saving,
+  saving,
   async (saving, wasSaving) => {
     if (!wasSaving || saving) return;
     await nextTick();

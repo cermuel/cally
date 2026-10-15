@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import {
   DialogClose,
   DialogContent,
@@ -10,24 +11,24 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type {
-  Contact,
-  CreateContactPayload,
-  UpdateContactPayload,
+import { toast } from "vue-sonner";
+import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
+import {
+  contactsApi,
+  type Contact,
+  type CreateContactPayload,
+  type UpdateContactPayload,
 } from "~/utils/api/contacts";
+import { queryKeys } from "~/utils/api/query-keys";
 
 const props = defineProps<{
   contact?: Contact | null;
-  saving: boolean;
-  errors?: Record<string, string[]>;
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
 
-const emit = defineEmits<{
-  create: [payload: CreateContactPayload];
-  update: [contact: Contact, payload: UpdateContactPayload];
-}>();
+const client = useApiClient();
+const queryClient = useQueryClient();
 
 const email = ref("");
 const name = ref("");
@@ -37,13 +38,35 @@ const company = ref("");
 const tag = ref("");
 const notes = ref("");
 const localErrors = ref<Record<string, string>>({});
+const apiErrors = ref<Record<string, string[]>>({});
 
 const editing = computed(() => Boolean(props.contact));
 const emailLocked = computed(() => Boolean(props.contact?.platform_user_id));
 const title = computed(() => (editing.value ? "Edit contact" : "Add contact"));
 
 const fieldError = (field: string) =>
-  localErrors.value[field] || props.errors?.[field]?.[0];
+  localErrors.value[field] || apiErrors.value[field]?.[0];
+
+type SaveContactVariables =
+  | { contactId: number; payload: UpdateContactPayload }
+  | { contactId: null; payload: CreateContactPayload };
+
+const saveMutation = useMutation({
+  mutationFn: ({ contactId, payload }: SaveContactVariables) =>
+    contactId
+      ? contactsApi.update(client, contactId, payload)
+      : contactsApi.create(client, payload),
+  onSuccess: async (_response, variables) => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all() });
+    apiErrors.value = {};
+    open.value = false;
+    toast.success(variables.contactId ? "Contact updated" : "Contact added");
+  },
+  onError: (error) => {
+    apiErrors.value = getApiFieldErrors(error);
+    toast.error(getApiErrorMessage(error, "Could not save the contact."));
+  },
+});
 
 const resetForm = () => {
   email.value = props.contact?.email ?? "";
@@ -54,6 +77,7 @@ const resetForm = () => {
   tag.value = props.contact?.tag ?? "";
   notes.value = props.contact?.notes ?? "";
   localErrors.value = {};
+  apiErrors.value = {};
 };
 
 watch(
@@ -89,19 +113,25 @@ const submit = () => {
   };
 
   if (props.contact) {
-    emit("update", props.contact, {
+    saveMutation.mutate({
+      contactId: props.contact.id,
+      payload: {
       ...fields,
       ...(!emailLocked.value
         ? { email: email.value.trim().toLowerCase() }
         : {}),
+      },
     });
     return;
   }
 
-  emit("create", {
-    email: email.value.trim().toLowerCase(),
-    name: fields.name,
-    tag: fields.tag,
+  saveMutation.mutate({
+    contactId: null,
+    payload: {
+      email: email.value.trim().toLowerCase(),
+      name: fields.name,
+      tag: fields.tag,
+    },
   });
 };
 </script>
@@ -244,11 +274,19 @@ const submit = () => {
             class="flex justify-end gap-2 border-t border-border px-6 py-4"
           >
             <DialogClose as-child>
-              <SharedButton type="button" variant="outline" :disabled="saving">
+              <SharedButton
+                type="button"
+                variant="outline"
+                :disabled="saveMutation.isPending.value"
+              >
                 Cancel
               </SharedButton>
             </DialogClose>
-            <SharedButton type="button" :loading="saving" @click="submit">
+            <SharedButton
+              type="button"
+              :loading="saveMutation.isPending.value"
+              @click="submit"
+            >
               {{ editing ? "Save changes" : "Add contact" }}
             </SharedButton>
           </footer>

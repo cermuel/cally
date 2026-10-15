@@ -1,26 +1,74 @@
 <script setup lang="ts">
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 import type { LinkListView } from "~/types/links";
-import type { Link } from "~/utils/api/links";
-import { getPublicLinkLabel, getPublicLinkUrl } from "~/utils/links";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { linksApi, type Link } from "~/utils/api/links";
+import { queryKeys } from "~/utils/api/query-keys";
+import {
+  getDuplicateName,
+  getDuplicateSlug,
+  getPublicLinkLabel,
+  getPublicLinkUrl,
+} from "~/utils/links";
 
-defineProps<{
+const props = defineProps<{
   links: Link[];
   username?: string | null;
   loading: boolean;
-  updatingId?: number | null;
   view: LinkListView;
 }>();
 
 const emit = defineEmits<{
   create: [];
   delete: [link: Link];
-  duplicate: [link: Link];
   open: [link: Link];
-  visibility: [link: Link, visibility: Link["visibility"]];
 }>();
 
-const emitVisibility = (link: Link, visibility: Link["visibility"]) => {
-  emit("visibility", link, visibility);
+const client = useApiClient();
+const queryClient = useQueryClient();
+const updatingId = ref<number | null>(null);
+
+const duplicateMutation = useMutation({
+  mutationFn: (link: Link) =>
+    linksApi.create(client, {
+      name: getDuplicateName(link.name),
+      slug: getDuplicateSlug(link, props.links),
+      duration_minutes: link.duration_minutes,
+      description: link.description,
+      color: link.color,
+      status: "draft",
+      visibility: link.visibility,
+    }),
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.links.all() });
+    toast.success("Link duplicated as a draft");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not duplicate the link.")),
+});
+
+const visibilityMutation = useMutation({
+  mutationFn: ({ link, visibility }: { link: Link; visibility: Link["visibility"] }) => {
+    updatingId.value = link.id;
+    return linksApi.update(client, link.id, { visibility });
+  },
+  onSuccess: async (response) => {
+    queryClient.setQueryData(queryKeys.links.detail(response.link.id), response);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.links.all() });
+  },
+  onSettled: () => {
+    updatingId.value = null;
+  },
+});
+
+const updateVisibility = (link: Link, visibility: Link["visibility"]) => {
+  toast.promise(visibilityMutation.mutateAsync({ link, visibility }), {
+    loading: "Updating visibility...",
+    success: "Visibility updated",
+    error: (error: unknown) =>
+      getApiErrorMessage(error, "Could not update visibility."),
+  });
 };
 </script>
 
@@ -64,9 +112,9 @@ const emitVisibility = (link: Link, visibility: Link["visibility"]) => {
         :updating="updatingId === link.id"
         :view="view"
         @delete="emit('delete', $event)"
-        @duplicate="emit('duplicate', $event)"
+        @duplicate="duplicateMutation.mutate($event)"
         @open="emit('open', $event)"
-        @visibility="emitVisibility"
+        @visibility="updateVisibility"
       />
 
       <div

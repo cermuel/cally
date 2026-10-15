@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Cancel01Icon, Delete02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import {
   DialogClose,
   DialogContent,
@@ -10,34 +11,37 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
+import { toast } from "vue-sonner";
 import {
   allowedAutomationActions,
   automationActions,
   automationTriggers,
   guestTypes,
 } from "~/constants/automations";
-import type {
-  Automation,
-  AutomationAction,
-  AutomationTrigger,
-  CreateAutomationPayload,
-  GuestType,
+import {
+  automationsApi,
+  type Automation,
+  type AutomationAction,
+  type AutomationTrigger,
+  type CreateAutomationPayload,
+  type GuestType,
 } from "~/utils/api/automations";
+import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
 
 const props = defineProps<{
   automation: Automation | null;
   variables: string[];
-  submitting: boolean;
-  deleting: boolean;
-  errors?: Record<string, string[]>;
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
 
 const emit = defineEmits<{
   delete: [automation: Automation];
-  submit: [payload: CreateAutomationPayload];
 }>();
+
+const client = useApiClient();
+const queryClient = useQueryClient();
 
 const name = ref("");
 const color = ref<string | null>(null);
@@ -49,6 +53,7 @@ const guestType = ref<GuestType | "all">("all");
 const contactEmail = ref("");
 const contactName = ref("");
 const localErrors = ref<Record<string, string>>({});
+const apiErrors = ref<Record<string, string[]>>({});
 const subjectEditor = ref<{ insertVariable: (variable: string) => void } | null>(
   null,
 );
@@ -64,7 +69,26 @@ const availableActions = computed(() =>
 );
 
 const fieldError = (field: string) =>
-  localErrors.value[field] || props.errors?.[field]?.[0];
+  localErrors.value[field] || apiErrors.value[field]?.[0];
+
+const updateMutation = useMutation({
+  mutationFn: (payload: CreateAutomationPayload) => {
+    if (!props.automation) throw new Error("No automation selected");
+    return automationsApi.update(client, props.automation.id, payload);
+  },
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.automations.list(),
+    });
+    apiErrors.value = {};
+    open.value = false;
+    toast.success("Automation updated");
+  },
+  onError: (error) => {
+    apiErrors.value = getApiFieldErrors(error);
+    toast.error(getApiErrorMessage(error, "Could not update the automation."));
+  },
+});
 
 const resetForm = () => {
   const automation = props.automation;
@@ -82,6 +106,7 @@ const resetForm = () => {
   contactEmail.value = contactPayload?.email ?? "";
   contactName.value = contactPayload?.name ?? "";
   localErrors.value = {};
+  apiErrors.value = {};
 };
 
 watch(open, (isOpen) => {
@@ -142,7 +167,7 @@ const submit = () => {
     };
   }
 
-  emit("submit", {
+  updateMutation.mutate({
     name: name.value.trim(),
     color: color.value,
     trigger: trigger.value,
@@ -195,9 +220,8 @@ const submit = () => {
             </DialogClose>
           </header>
 
-          <form
+          <div
             class="flex min-h-0 flex-1 flex-col overflow-hidden"
-            @submit.prevent="submit"
           >
             <div
               class="min-h-0 flex-1 space-y-5 overscroll-contain overflow-y-auto p-5 md:p-6"
@@ -387,10 +411,10 @@ const submit = () => {
               class="flex shrink-0 gap-2 border-t border-border bg-background/50 p-4 md:px-6"
             >
               <SharedButton
-                type="submit"
+                type="button"
                 class="flex-1"
-                :loading="submitting"
-                :disabled="deleting"
+                :loading="updateMutation.isPending.value"
+                @click="submit"
               >
                 Save changes
               </SharedButton>
@@ -399,7 +423,7 @@ const submit = () => {
                 variant="outline"
                 size="icon"
                 class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                :disabled="submitting || deleting"
+                :disabled="updateMutation.isPending.value"
                 aria-label="Delete automation"
                 @click="emit('delete', automation)"
               >
@@ -411,7 +435,7 @@ const submit = () => {
                 />
               </SharedButton>
             </footer>
-          </form>
+          </div>
         </template>
       </DialogContent>
     </DialogPortal>

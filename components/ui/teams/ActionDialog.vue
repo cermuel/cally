@@ -8,15 +8,42 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
+import { teamsApi } from "~/utils/api/teams";
 
 const props = defineProps<{
+  teamId: number;
   action: "delete" | "leave";
   teamName: string;
-  pending: boolean;
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
-const emit = defineEmits<{ confirm: [] }>();
+const client = useApiClient();
+const queryClient = useQueryClient();
+
+const actionMutation = useMutation({
+  mutationFn: () =>
+    props.action === "delete"
+      ? teamsApi.remove(client, props.teamId)
+      : teamsApi.leave(client, props.teamId),
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() });
+    toast.success(props.action === "delete" ? "Team deleted" : "You left the team");
+    await navigateTo("/app/teams");
+  },
+  onError: (error) =>
+    toast.error(
+      getApiErrorMessage(
+        error,
+        props.action === "delete"
+          ? "Could not delete the team."
+          : "Could not leave the team.",
+      ),
+    ),
+});
 
 const title = computed(() =>
   props.action === "delete" ? "Delete team?" : "Leave team?",
@@ -48,15 +75,15 @@ const buttonLabel = computed(() =>
         </DialogDescription>
         <div class="mt-6 flex justify-end gap-2">
           <DialogClose as-child>
-            <SharedButton type="button" variant="outline" :disabled="pending">
+            <SharedButton type="button" variant="outline" :disabled="actionMutation.isPending.value">
               Cancel
             </SharedButton>
           </DialogClose>
           <SharedButton
             type="button"
             variant="destructive"
-            :loading="pending"
-            @click="emit('confirm')"
+            :loading="actionMutation.isPending.value"
+            @click="actionMutation.mutate()"
           >
             {{ buttonLabel }}
           </SharedButton>

@@ -19,7 +19,8 @@ const finishAuthentication = async () => {
   window.history.replaceState(window.history.state, "", route.path);
 
   if (!token) {
-    errorMessage.value = "This sign-in link is missing its authentication token.";
+    errorMessage.value =
+      "This sign-in link is missing its authentication token.";
     return;
   }
 
@@ -40,7 +41,7 @@ onMounted(() => {
   void finishAuthentication();
 });
 
-useHead({ title: "Signing in | Cally" });
+useHead({ title: "Signing in" });
 </script>
 
 <template>
@@ -65,7 +66,11 @@ useHead({ title: "Signing in | Cally" });
         <HugeiconsIcon :icon="AlertCircleIcon" :size="52" />
       </div>
 
-      <SharedButton type="button" class="w-full" @click="navigateTo('/auth/login')">
+      <SharedButton
+        type="button"
+        class="w-full"
+        @click="navigateTo('/auth/login')"
+      >
         Return to sign in
       </SharedButton>
     </div>

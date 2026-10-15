@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { MailSend01Icon, Search01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import type { TeamInvite, TeamMember, TeamRole } from "~/utils/api/teams";
+import type { TeamInvite, TeamMember } from "~/utils/api/teams";
 
 defineProps<{
+  teamId: number;
   members: TeamMember[];
   invites: TeamInvite[];
   ownerId: number;
@@ -16,14 +17,12 @@ defineProps<{
   membersError: boolean;
   invitesError: boolean;
   isOwner: boolean;
-  updatingMemberId?: number | null;
   updatingInviteId?: number | null;
   resendingInviteId?: number | null;
   deletingInviteId?: number | null;
 }>();
 
 const emit = defineEmits<{
-  updateMemberRole: [member: TeamMember, role: TeamRole];
   resendInvite: [invite: TeamInvite];
   updateInviteRole: [invite: TeamInvite];
   deleteInvite: [invite: TeamInvite];
@@ -37,9 +36,6 @@ const emit = defineEmits<{
 const activeTab = ref("members");
 const memberSearch = ref("");
 const inviteSearch = ref("");
-
-const updateMemberRole = (member: TeamMember, role: TeamRole) =>
-  emit("updateMemberRole", member, role);
 
 watch(memberSearch, (search) => emit("searchMembers", search));
 watch(inviteSearch, (search) => emit("searchInvites", search));
@@ -115,13 +111,12 @@ watch(inviteSearch, (search) => emit("searchInvites", search));
       </div>
       <UiTeamsMembersTable
         v-else
+        :team-id="teamId"
         :members="members"
         :owner-id="ownerId"
         :current-user-id="currentUserId"
         :can-manage-roles="canManageRoles"
         :loading="membersLoading"
-        :updating-id="updatingMemberId"
-        @update-role="updateMemberRole"
       />
     </SharedTabsContent>
 

@@ -1,28 +1,30 @@
 <script setup lang="ts">
 import { AlertCircleIcon, Loading03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
-import { toast } from "vue-sonner";
-import { getApiErrorMessage } from "~/utils/api/client";
+import { useQuery } from "@tanstack/vue-query";
 import { queryKeys } from "~/utils/api/query-keys";
 import { teamsApi } from "~/utils/api/teams";
 import { helpers } from "~/utils/helpers";
 
 definePageMeta({ layout: false });
-useHead({ title: "Team invitation | Cally" });
+useHead({ title: "Team invitation" });
 
 const route = useRoute();
 const apiClient = useApiClient();
 const auth = useAuth();
 const authReturnPath = useAuthReturnPath();
-const queryClient = useQueryClient();
 
 const invitationParams = computed(() => {
   const id = Number(route.query.id);
   const email = typeof route.query.email === "string" ? route.query.email : "";
   const token = typeof route.query.token === "string" ? route.query.token : "";
 
-  if (!Number.isSafeInteger(id) || id < 1 || !helpers.validateEmail(email) || !token) {
+  if (
+    !Number.isSafeInteger(id) ||
+    id < 1 ||
+    !helpers.validateEmail(email) ||
+    !token
+  ) {
     return null;
   }
 
@@ -61,47 +63,6 @@ const switchAccount = async () => {
   auth.clearAuth();
   await goToAuth("/auth/login");
 };
-
-const acceptMutation = useMutation({
-  mutationFn: () =>
-    teamsApi.acceptInvite(
-      apiClient,
-      invitationParams.value!.id,
-      invitationParams.value!.token,
-    ),
-  onSuccess: async () => {
-    const teamId = inviteQuery.data.value!.invite.team_id;
-    authReturnPath.take("/app/bookings");
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.detail(teamId) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.members(teamId) }),
-    ]);
-    toast.success("Invitation accepted");
-    await navigateTo(`/app/teams/${teamId}`);
-  },
-  onError: (error) => {
-    toast.error(getApiErrorMessage(error, "Could not accept this invitation."));
-  },
-});
-
-const declineMutation = useMutation({
-  mutationFn: () =>
-    teamsApi.declineInvite(
-      apiClient,
-      invitationParams.value!.id,
-      invitationParams.value!.token,
-    ),
-  onSuccess: async () => {
-    authReturnPath.take("/app/bookings");
-    await queryClient.invalidateQueries({ queryKey: queryKeys.teams.all() });
-    toast.success("Invitation declined");
-    await navigateTo("/app/teams");
-  },
-  onError: (error) => {
-    toast.error(getApiErrorMessage(error, "Could not decline this invitation."));
-  },
-});
 
 watch(
   [() => inviteQuery.data.value?.invite, () => auth.authState.value],
@@ -166,13 +127,10 @@ watch(
   <UiTeamsAcceptInviteCard
     v-else
     :invite="inviteQuery.data.value.invite"
+    :token="invitationParams.token"
     :signed-in-email="auth.token.value ? auth.user.value?.email : null"
-    :accepting="acceptMutation.isPending.value"
-    :declining="declineMutation.isPending.value"
     @sign-in="goToAuth('/auth/login')"
     @register="goToAuth('/auth/register')"
     @switch-account="switchAccount"
-    @accept="acceptMutation.mutate"
-    @decline="declineMutation.mutate"
   />
 </template>

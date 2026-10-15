@@ -5,7 +5,7 @@ import { getApiErrorMessage } from "~/utils/api/client";
 import { googleApi, type GoogleAuthIntent } from "~/utils/api/google";
 
 definePageMeta({ layout: false });
-useHead({ title: "Connecting Google | Cally" });
+useHead({ title: "Connecting Google" });
 
 const route = useRoute();
 const apiClient = useApiClient();
@@ -47,7 +47,9 @@ const finishConnection = async () => {
   } catch (error) {
     errorMessage.value = getApiErrorMessage(
       error,
-      error instanceof Error ? error.message : "Unable to connect your Google account.",
+      error instanceof Error
+        ? error.message
+        : "Unable to connect your Google account.",
     );
   }
 };
@@ -62,7 +64,8 @@ onMounted(() => {
   <UiAuthCard
     :title="errorMessage ? 'Google connection failed' : 'Connecting Google'"
     :description="
-      errorMessage || 'Please wait while we securely finish connecting your account.'
+      errorMessage ||
+      'Please wait while we securely finish connecting your account.'
     "
   >
     <div v-if="!errorMessage" class="flex justify-center py-5">
@@ -79,9 +82,7 @@ onMounted(() => {
       v-else
       type="button"
       class="w-full"
-      @click="
-        navigateTo(`/auth/${intent}`)
-      "
+      @click="navigateTo(`/auth/${intent}`)"
     >
       Try again
     </SharedButton>

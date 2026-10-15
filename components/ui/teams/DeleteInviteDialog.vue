@@ -8,15 +8,38 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type { TeamInvite } from "~/utils/api/teams";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
+import { teamsApi, type TeamInvite } from "~/utils/api/teams";
 
-defineProps<{
+const props = defineProps<{
+  teamId: number;
   invite: TeamInvite | null;
-  deleting: boolean;
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
-const emit = defineEmits<{ confirm: [] }>();
+const emit = defineEmits<{ completed: [] }>();
+const client = useApiClient();
+const queryClient = useQueryClient();
+
+const deleteMutation = useMutation({
+  mutationFn: () => {
+    if (!props.invite) throw new Error("No invitation selected");
+    return teamsApi.removeInvite(client, props.teamId, props.invite.id);
+  },
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.teams.invites(props.teamId),
+    });
+    open.value = false;
+    emit("completed");
+    toast.success("Invitation revoked");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not revoke the invitation.")),
+});
 </script>
 
 <template>
@@ -35,15 +58,15 @@ const emit = defineEmits<{ confirm: [] }>();
         </DialogDescription>
         <div class="mt-6 flex justify-end gap-2">
           <DialogClose as-child>
-            <SharedButton type="button" variant="outline" :disabled="deleting">
+            <SharedButton type="button" variant="outline" :disabled="deleteMutation.isPending.value">
               Cancel
             </SharedButton>
           </DialogClose>
           <SharedButton
             type="button"
             variant="destructive"
-            :loading="deleting"
-            @click="emit('confirm')"
+            :loading="deleteMutation.isPending.value"
+            @click="deleteMutation.mutate()"
           >
             Revoke invitation
           </SharedButton>

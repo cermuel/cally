@@ -1,21 +1,55 @@
 <script setup lang="ts">
-import type { TeamInvite } from "~/utils/api/teams";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
+import { teamsApi, type TeamInvite } from "~/utils/api/teams";
 
 const props = defineProps<{
-  accepting?: boolean;
-  declining?: boolean;
   invite?: TeamInvite | null;
   loading?: boolean;
   signedInEmail?: string | null;
+  token: string;
 }>();
 
 const emit = defineEmits<{
-  accept: [];
-  decline: [];
   register: [];
   signIn: [];
   switchAccount: [];
 }>();
+
+const authReturnPath = useAuthReturnPath();
+const client = useApiClient();
+const queryClient = useQueryClient();
+
+const acceptMutation = useMutation({
+  mutationFn: () => teamsApi.acceptInvite(client, props.invite!.id, props.token),
+  onSuccess: async () => {
+    const teamId = props.invite!.team_id;
+    authReturnPath.take("/app/bookings");
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.detail(teamId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.members(teamId) }),
+    ]);
+    toast.success("Invitation accepted");
+    await navigateTo(`/app/teams/${teamId}`);
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not accept this invitation.")),
+});
+
+const declineMutation = useMutation({
+  mutationFn: () => teamsApi.declineInvite(client, props.invite!.id, props.token),
+  onSuccess: async () => {
+    authReturnPath.take("/app/bookings");
+    await queryClient.invalidateQueries({ queryKey: queryKeys.teams.all() });
+    toast.success("Invitation declined");
+    await navigateTo("/app/teams");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not decline this invitation.")),
+});
 
 const isLoading = computed(() => props.loading || !props.invite);
 
@@ -219,9 +253,9 @@ const expiresIn = computed(() => {
         <SharedButton
           type="button"
           class="w-full"
-          :disabled="declining"
-          :loading="accepting"
-          @click="emit('accept')"
+          :disabled="declineMutation.isPending.value"
+          :loading="acceptMutation.isPending.value"
+          @click="acceptMutation.mutate()"
         >
           Accept invitation
         </SharedButton>
@@ -229,9 +263,9 @@ const expiresIn = computed(() => {
           type="button"
           variant="outline"
           class="w-full"
-          :disabled="accepting"
-          :loading="declining"
-          @click="emit('decline')"
+          :disabled="acceptMutation.isPending.value"
+          :loading="declineMutation.isPending.value"
+          @click="declineMutation.mutate()"
         >
           Decline invitation
         </SharedButton>

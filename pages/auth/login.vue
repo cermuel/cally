@@ -142,7 +142,7 @@ const handleSubmit = async () => {
 };
 
 useHead({
-  title: "Login | Cally",
+  title: "Login",
 });
 
 onMounted(() => {

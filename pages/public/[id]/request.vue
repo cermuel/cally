@@ -141,8 +141,8 @@ const declineInvitation = async () => {
 useHead(() => ({
   title:
     responseState.value === "pending"
-      ? "Meeting invitation | Cally"
-      : `Invitation ${responseState.value} | Cally`,
+      ? "Meeting invitation"
+      : `Invitation ${responseState.value}`,
 }));
 </script>
 

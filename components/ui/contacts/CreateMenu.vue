@@ -9,22 +9,37 @@ import {
   Upload01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-
-const props = defineProps<{
-  uploading?: boolean;
-  downloading?: boolean;
-}>();
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { contactsApi } from "~/utils/api/contacts";
+import { queryKeys } from "~/utils/api/query-keys";
 
 const open = ref(false);
 const view = ref<"menu" | "import">("menu");
 const fileInput = ref<HTMLInputElement | null>(null);
 const dragging = ref(false);
+const templateDownloading = ref(false);
+const client = useApiClient();
+const queryClient = useQueryClient();
 
 const emit = defineEmits<{
   "add-single": [];
-  import: [file: File];
-  template: [];
 }>();
+
+const startImportMutation = useMutation({
+  mutationFn: (file: File) => contactsApi.import(client, file),
+  onSuccess: (response) => {
+    queryClient.setQueryData(queryKeys.contacts.importStatus(), {
+      import: response.import,
+      progress: 0,
+    });
+  },
+  onError: (error) =>
+    toast.error(
+      getApiErrorMessage(error, "Could not start the contact import."),
+    ),
+});
 
 watch(open, (isOpen) => {
   if (!isOpen) view.value = "menu";
@@ -39,8 +54,17 @@ const openFilePicker = () => fileInput.value?.click();
 
 const handleFile = (file: File | undefined) => {
   if (!file) return;
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (!extension || !["csv", "txt", "xlsx", "xls"].includes(extension)) {
+    toast.error("Upload a CSV, TXT, XLSX, or XLS file.");
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    toast.error("The import file must be 10 MB or smaller.");
+    return;
+  }
   open.value = false;
-  emit("import", file);
+  startImportMutation.mutate(file);
 };
 
 const selectFile = (event: Event) => {
@@ -54,9 +78,27 @@ const dropFile = (event: DragEvent) => {
   handleFile(event.dataTransfer?.files[0]);
 };
 
-const downloadTemplate = () => {
+const downloadTemplate = async () => {
   open.value = false;
-  emit("template");
+  templateDownloading.value = true;
+  try {
+    const blob = await contactsApi.downloadImportTemplate(client);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "cally-contacts-template.csv";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    window.setTimeout(() => {
+      link.remove();
+      URL.revokeObjectURL(url);
+    }, 1000);
+  } catch (error) {
+    toast.error(getApiErrorMessage(error, "Could not download the template."));
+  } finally {
+    templateDownloading.value = false;
+  }
 };
 </script>
 
@@ -65,8 +107,8 @@ const downloadTemplate = () => {
     <SharedPopoverTrigger as-child>
       <SharedButton
         type="button"
-        :loading="props.uploading || props.downloading"
-        :disabled="props.uploading || props.downloading"
+        :loading="startImportMutation.isPending.value || templateDownloading"
+        :disabled="startImportMutation.isPending.value || templateDownloading"
       >
         <HugeiconsIcon
           :icon="PlusSignIcon"

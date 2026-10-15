@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import {
   DialogContent,
   DialogDescription,
@@ -9,21 +10,20 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type { CreateLinkPayload } from "~/utils/api/links";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
+import { linksApi, type CreateLinkPayload } from "~/utils/api/links";
+import { queryKeys } from "~/utils/api/query-keys";
 import { normalizeLinkSlug } from "~/utils/links";
 
 const props = defineProps<{
   username?: string | null;
-  submitting: boolean;
-  errors?: Record<string, string[]>;
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
 
-const emit = defineEmits<{
-  cancel: [];
-  submit: [payload: CreateLinkPayload];
-}>();
+const client = useApiClient();
+const queryClient = useQueryClient();
 
 const name = ref("");
 const slug = ref("");
@@ -32,6 +32,11 @@ const duration = ref("30");
 const color = ref<string | null>(null);
 const publishImmediately = ref(true);
 const localErrors = ref<Record<string, string>>({});
+const apiErrors = ref<Record<string, string[]>>({});
+
+watch(open, (isOpen) => {
+  if (isOpen) apiErrors.value = {};
+});
 
 watch(slug, (value) => {
   const normalized = normalizeLinkSlug(value);
@@ -39,7 +44,21 @@ watch(slug, (value) => {
 });
 
 const fieldError = (field: string) =>
-  localErrors.value[field] || props.errors?.[field]?.[0];
+  localErrors.value[field] || apiErrors.value[field]?.[0];
+
+const createMutation = useMutation({
+  mutationFn: (payload: CreateLinkPayload) => linksApi.create(client, payload),
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.links.all() });
+    apiErrors.value = {};
+    open.value = false;
+    toast.success("Link created");
+  },
+  onError: (error) => {
+    apiErrors.value = getApiFieldErrors(error);
+    toast.error(getApiErrorMessage(error, "Could not create the link."));
+  },
+});
 
 const submit = () => {
   localErrors.value = {};
@@ -58,7 +77,7 @@ const submit = () => {
   }
   if (Object.keys(localErrors.value).length > 0) return;
 
-  emit("submit", {
+  createMutation.mutate({
     name: name.value.trim(),
     slug: slug.value,
     description: description.value.trim() || null,
@@ -71,7 +90,6 @@ const submit = () => {
 
 const cancel = () => {
   open.value = false;
-  emit("cancel");
 };
 </script>
 
@@ -92,9 +110,8 @@ const cancel = () => {
             Set the essentials now. You can fine-tune the link later.
           </DialogDescription>
         </div>
-        <form
+        <div
           class="grid min-w-0 grid-cols-1 gap-5 p-5 sm:grid-cols-2 sm:p-6"
-          @submit.prevent="submit"
         >
           <div class="min-w-0 sm:col-span-2">
             <SharedLabel for="link-name" class="mb-1.5 text-sm"
@@ -157,11 +174,15 @@ const cancel = () => {
             <SharedButton type="button" variant="outline" @click="cancel">
               Cancel
             </SharedButton>
-            <SharedButton type="submit" :loading="submitting">
+            <SharedButton
+              type="button"
+              :loading="createMutation.isPending.value"
+              @click="submit"
+            >
               Create link
             </SharedButton>
           </footer>
-        </form>
+        </div>
       </DialogContent>
     </DialogPortal>
   </DialogRoot>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import {
   DialogClose,
   DialogContent,
@@ -10,23 +11,20 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type { CreateTeamPayload } from "~/utils/api/teams";
-
-const props = defineProps<{
-  saving: boolean;
-  errors?: Record<string, string[]>;
-}>();
-
-const emit = defineEmits<{
-  create: [payload: CreateTeamPayload];
-}>();
+import { toast } from "vue-sonner";
+import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
+import { teamsApi, type CreateTeamPayload } from "~/utils/api/teams";
 
 const open = defineModel<boolean>("open", { default: false });
+const client = useApiClient();
+const queryClient = useQueryClient();
 const name = ref("");
 const slug = ref("");
 const description = ref("");
 const slugEdited = ref(false);
 const localErrors = ref<Record<string, string>>({});
+const apiErrors = ref<Record<string, string[]>>({});
 
 const normalizeSlug = (value: string) =>
   value
@@ -37,7 +35,25 @@ const normalizeSlug = (value: string) =>
     .slice(0, 60);
 
 const fieldError = (field: string) =>
-  localErrors.value[field] || props.errors?.[field]?.[0];
+  localErrors.value[field] || apiErrors.value[field]?.[0];
+
+const createMutation = useMutation({
+  mutationFn: (payload: CreateTeamPayload) => teamsApi.create(client, payload),
+  onSuccess: async ({ team }) => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() });
+    apiErrors.value = {};
+    open.value = false;
+    toast.success("Team created");
+    await navigateTo({
+      path: `/app/teams/${team.id}`,
+      query: { welcome: "1" },
+    });
+  },
+  onError: (error) => {
+    apiErrors.value = getApiFieldErrors(error);
+    toast.error(getApiErrorMessage(error, "Could not create the team."));
+  },
+});
 
 const reset = () => {
   name.value = "";
@@ -70,7 +86,7 @@ const submit = () => {
   if (!slug.value) localErrors.value.slug = "Enter a team slug.";
   if (Object.keys(localErrors.value).length) return;
 
-  emit("create", {
+  createMutation.mutate({
     name: name.value.trim(),
     slug: slug.value,
     description: description.value || null,
@@ -165,11 +181,19 @@ const submit = () => {
 
         <footer class="flex justify-end gap-2 border-t border-border px-6 py-4">
           <DialogClose as-child>
-            <SharedButton variant="outline" :disabled="saving">
+            <SharedButton
+              type="button"
+              variant="outline"
+              :disabled="createMutation.isPending.value"
+            >
               Cancel
             </SharedButton>
           </DialogClose>
-          <SharedButton :loading="saving" @click="submit">
+          <SharedButton
+            type="button"
+            :loading="createMutation.isPending.value"
+            @click="submit"
+          >
             Create team
           </SharedButton>
         </footer>

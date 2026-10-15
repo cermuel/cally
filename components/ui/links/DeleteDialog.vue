@@ -8,18 +8,40 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
 import type { Link } from "~/utils/api/links";
+import { linksApi } from "~/utils/api/links";
+import { queryKeys } from "~/utils/api/query-keys";
 
-defineProps<{
+const props = defineProps<{
   link: Link | null;
-  deleting: boolean;
 }>();
 
 const emit = defineEmits<{
-  confirm: [];
+  deleted: [id: number];
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
+const client = useApiClient();
+const queryClient = useQueryClient();
+
+const deleteMutation = useMutation({
+  mutationFn: (id: number) => linksApi.remove(client, id),
+  onSuccess: async (_response, id) => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.links.all() });
+    open.value = false;
+    emit("deleted", id);
+    toast.success("Link deleted");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not delete the link.")),
+});
+
+const deleteLink = () => {
+  if (props.link) deleteMutation.mutate(props.link.id);
+};
 </script>
 
 <template>
@@ -39,15 +61,19 @@ const open = defineModel<boolean>("open", { default: false });
         </DialogDescription>
         <div class="mt-6 flex justify-end gap-2">
           <DialogClose as-child>
-            <SharedButton type="button" variant="outline" :disabled="deleting">
+            <SharedButton
+              type="button"
+              variant="outline"
+              :disabled="deleteMutation.isPending.value"
+            >
               Cancel
             </SharedButton>
           </DialogClose>
           <SharedButton
             type="button"
             variant="destructive"
-            :loading="deleting"
-            @click="emit('confirm')"
+            :loading="deleteMutation.isPending.value"
+            @click="deleteLink"
           >
             Delete link
           </SharedButton>

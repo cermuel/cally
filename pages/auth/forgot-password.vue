@@ -60,7 +60,7 @@ const handleSubmit = async () => {
 };
 
 useHead({
-  title: "Forgot Password | Cally",
+  title: "Forgot Password",
 });
 </script>
 

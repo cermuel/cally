@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: false });
-useHead({ title: "Connecting Google Calendar | Cally" });
+useHead({ title: "Connecting Google Calendar" });
 
 const route = useRoute();
 const googleOAuth = useGoogleOAuth();

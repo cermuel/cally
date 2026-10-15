@@ -57,9 +57,7 @@ const apiClient = useApiClient();
 const username = computed(() => String(route.params.username || ""));
 const eventSlug = computed(() => String(route.params.event || "15min"));
 const viewerTimezone = ref(
-  import.meta.client
-    ? Intl.DateTimeFormat().resolvedOptions().timeZone
-    : "UTC",
+  import.meta.client ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC",
 );
 
 const isEmbed = computed(() =>
@@ -386,7 +384,7 @@ useHead(() => ({
   title:
     event.value && profile.value
       ? `${event.value.name} with ${profile.value.name}`
-      : "Book a meeting | Cally",
+      : "Book a meeting",
   htmlAttrs: { style: isEmbed.value ? "background:transparent" : undefined },
   bodyAttrs: { style: isEmbed.value ? "background:transparent" : undefined },
 }));
@@ -571,7 +569,14 @@ if (import.meta.server) {
             to="/"
             class="inline-flex items-center gap-1.5 text-white/65 transition-colors hover:text-white"
           >
-            <NuxtImg src="/logo.png" alt="" width="20" height="20" format="webp" class="size-5 rounded" />
+            <NuxtImg
+              src="/logo.png"
+              alt=""
+              width="20"
+              height="20"
+              format="webp"
+              class="size-5 rounded"
+            />
             <span class="font-medium">Powered by Cally</span>
           </NuxtLink>
         </div>

@@ -8,18 +8,42 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type { Automation } from "~/utils/api/automations";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { automationsApi, type Automation } from "~/utils/api/automations";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
 
-defineProps<{
+const props = defineProps<{
   automation: Automation | null;
-  deleting: boolean;
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
 
 const emit = defineEmits<{
-  confirm: [];
+  deleted: [id: number];
 }>();
+
+const client = useApiClient();
+const queryClient = useQueryClient();
+
+const deleteMutation = useMutation({
+  mutationFn: (id: number) => automationsApi.remove(client, id),
+  onSuccess: async (_response, id) => {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.automations.list(),
+    });
+    open.value = false;
+    emit("deleted", id);
+    toast.success("Automation deleted");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not delete the automation.")),
+});
+
+const deleteAutomation = () => {
+  if (props.automation) deleteMutation.mutate(props.automation.id);
+};
 </script>
 
 <template>
@@ -39,15 +63,19 @@ const emit = defineEmits<{
         </DialogDescription>
         <div class="mt-6 flex justify-end gap-2">
           <DialogClose as-child>
-            <SharedButton type="button" variant="outline" :disabled="deleting">
+            <SharedButton
+              type="button"
+              variant="outline"
+              :disabled="deleteMutation.isPending.value"
+            >
               Cancel
             </SharedButton>
           </DialogClose>
           <SharedButton
             type="button"
             variant="destructive"
-            :loading="deleting"
-            @click="emit('confirm')"
+            :loading="deleteMutation.isPending.value"
+            @click="deleteAutomation"
           >
             Delete automation
           </SharedButton>

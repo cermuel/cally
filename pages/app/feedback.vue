@@ -93,7 +93,7 @@ onMounted(async () => {
 });
 
 definePageMeta({ layout: false });
-useHead({ title: "Feedback | Cally" });
+useHead({ title: "Feedback" });
 </script>
 
 <template>

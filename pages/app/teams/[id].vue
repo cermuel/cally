@@ -2,20 +2,12 @@
 import { UserGroupIcon } from "@hugeicons/core-free-icons";
 import {
   keepPreviousData,
-  useMutation,
   useQuery,
-  useQueryClient,
 } from "@tanstack/vue-query";
-import { toast } from "vue-sonner";
-import UiTeamsResendInviteDialog from "~/components/ui/teams/ResendInviteDialog.vue";
-import { getApiErrorMessage } from "~/utils/api/client";
 import { queryKeys } from "~/utils/api/query-keys";
 import {
   teamsApi,
-  type CreateTeamInvitesPayload,
   type TeamInvite,
-  type TeamMember,
-  type TeamRole,
   type TeamSearchParams,
 } from "~/utils/api/teams";
 
@@ -24,7 +16,6 @@ definePageMeta({ layout: false });
 const client = useApiClient();
 const route = useRoute();
 const router = useRouter();
-const queryClient = useQueryClient();
 const breadcrumb = useBreadcrumb();
 const auth = useAuth();
 const teamId = computed(() => {
@@ -37,9 +28,6 @@ const resendInviteOpen = ref(false);
 const updateInviteRoleOpen = ref(false);
 const deleteInviteOpen = ref(false);
 const selectedInvite = ref<TeamInvite | null>(null);
-const updatingMemberId = ref<number | null>(null);
-const updatingInviteId = ref<number | null>(null);
-const resendingInviteId = ref<number | null>(null);
 const teamActionOpen = ref(false);
 const teamAction = ref<"delete" | "leave">("leave");
 const memberSearch = ref("");
@@ -96,8 +84,8 @@ const isOwner = computed(
 
 useHead(() => ({
   title: teamQuery.data.value?.team
-    ? `${teamQuery.data.value.team.name} | Cally`
-    : "Team | Cally",
+    ? `${teamQuery.data.value.team.name}`
+    : "Team",
 }));
 
 watch(
@@ -157,191 +145,6 @@ onBeforeUnmount(() => {
   if (inviteSearchTimer) clearTimeout(inviteSearchTimer);
 });
 
-const inviteMutation = useMutation({
-  mutationFn: (payload: CreateTeamInvitesPayload) =>
-    teamsApi.invite(client, teamId.value!, payload),
-  onSuccess: async (_response, payload) => {
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.teams.invites(teamId.value!),
-    });
-    inviteOpen.value = false;
-    toast.success(
-      payload.users.length === 1
-        ? "Invitation sent"
-        : `${payload.users.length} invitations sent`,
-    );
-  },
-  onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not send the invitations.")),
-});
-
-const updateDescriptionMutation = useMutation({
-  mutationFn: (description: string | null) =>
-    teamsApi.update(client, teamId.value!, { description }),
-  onSuccess: async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.teams.detail(teamId.value!),
-      }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() }),
-    ]);
-    toast.success("Team description updated");
-  },
-  onError: (error) =>
-    toast.error(
-      getApiErrorMessage(error, "Could not update the team description."),
-    ),
-});
-
-const updateNameMutation = useMutation({
-  mutationFn: (name: string) =>
-    teamsApi.update(client, teamId.value!, { name }),
-  onSuccess: async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.teams.detail(teamId.value!),
-      }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() }),
-    ]);
-    toast.success("Team name updated");
-  },
-  onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not update the team name.")),
-});
-
-const updateMemberMutation = useMutation({
-  mutationFn: ({ member, role }: { member: TeamMember; role: TeamRole }) =>
-    teamsApi.updateMember(client, teamId.value!, member.id, role),
-  onMutate: ({ member }) => {
-    updatingMemberId.value = member.id;
-  },
-  onSuccess: async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.teams.members(teamId.value!),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.teams.detail(teamId.value!),
-      }),
-    ]);
-    toast.success("Member role updated");
-  },
-  onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not update the member role.")),
-  onSettled: () => {
-    updatingMemberId.value = null;
-  },
-});
-
-const updateInviteMutation = useMutation({
-  mutationFn: ({ invite, role }: { invite: TeamInvite; role: TeamRole }) =>
-    teamsApi.updateInvite(client, teamId.value!, invite.id, role),
-  onMutate: ({ invite }) => {
-    updatingInviteId.value = invite.id;
-  },
-  onSuccess: async () => {
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.teams.invites(teamId.value!),
-    });
-    updateInviteRoleOpen.value = false;
-    selectedInvite.value = null;
-    toast.success("Invitation role updated");
-  },
-  onError: (error) =>
-    toast.error(
-      getApiErrorMessage(error, "Could not update the invitation role."),
-    ),
-  onSettled: () => {
-    updatingInviteId.value = null;
-  },
-});
-
-const resendInviteMutation = useMutation({
-  mutationFn: (invite: TeamInvite) =>
-    teamsApi.invite(client, teamId.value!, {
-      users: [{ email: invite.email, role: invite.role }],
-    }),
-  onMutate: (invite) => {
-    resendingInviteId.value = invite.id;
-  },
-  onSuccess: async () => {
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.teams.invites(teamId.value!),
-    });
-    resendInviteOpen.value = false;
-    selectedInvite.value = null;
-    toast.success("Invitation resent");
-  },
-  onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not resend the invitation.")),
-  onSettled: () => {
-    resendingInviteId.value = null;
-  },
-});
-
-const deleteInviteMutation = useMutation({
-  mutationFn: (invite: TeamInvite) =>
-    teamsApi.removeInvite(client, teamId.value!, invite.id),
-  onSuccess: async () => {
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.teams.invites(teamId.value!),
-    });
-    deleteInviteOpen.value = false;
-    selectedInvite.value = null;
-    toast.success("Invitation revoked");
-  },
-  onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not revoke the invitation.")),
-});
-
-const deleteTeamMutation = useMutation({
-  mutationFn: () => teamsApi.remove(client, teamId.value!),
-  onSuccess: async () => {
-    await queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() });
-    toast.success("Team deleted");
-    await navigateTo("/app/teams");
-  },
-  onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not delete the team.")),
-});
-
-const leaveTeamMutation = useMutation({
-  mutationFn: () => teamsApi.leave(client, teamId.value!),
-  onSuccess: async () => {
-    await queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() });
-    toast.success("You left the team");
-    await navigateTo("/app/teams");
-  },
-  onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not leave the team.")),
-});
-
-const teamActionPending = computed(
-  () => deleteTeamMutation.isPending.value || leaveTeamMutation.isPending.value,
-);
-
-const updateMemberRole = (member: TeamMember, role: TeamRole) => {
-  if (
-    !canManageRoles.value ||
-    member.user_id === auth.user.value?.id ||
-    member.user_id === teamQuery.data.value?.team.owner_id
-  ) {
-    return;
-  }
-
-  updateMemberMutation.mutate({ member, role });
-};
-
-const updateDescription = (description: string | null) => {
-  if (!canManageRoles.value) return;
-  updateDescriptionMutation.mutate(description);
-};
-
-const updateName = (name: string) => {
-  if (!canManageRoles.value) return;
-  updateNameMutation.mutate(name);
-};
-
 const requestUpdateInviteRole = (invite: TeamInvite) => {
   if (!canManageRoles.value) return;
   selectedInvite.value = invite;
@@ -354,25 +157,10 @@ const requestResendInvite = (invite: TeamInvite) => {
   resendInviteOpen.value = true;
 };
 
-const confirmResendInvite = () => {
-  if (!selectedInvite.value || !canManageRoles.value) return;
-  resendInviteMutation.mutate(selectedInvite.value);
-};
-
-const confirmUpdateInviteRole = (role: TeamRole) => {
-  if (!selectedInvite.value || !canManageRoles.value) return;
-  updateInviteMutation.mutate({ invite: selectedInvite.value, role });
-};
-
 const requestDeleteInvite = (invite: TeamInvite) => {
   if (!canManageRoles.value) return;
   selectedInvite.value = invite;
   deleteInviteOpen.value = true;
-};
-
-const confirmDeleteInvite = () => {
-  if (!selectedInvite.value || !canManageRoles.value) return;
-  deleteInviteMutation.mutate(selectedInvite.value);
 };
 
 const requestTeamAction = (action: "delete" | "leave") => {
@@ -387,13 +175,8 @@ const requestTeamAction = (action: "delete" | "leave") => {
   teamActionOpen.value = true;
 };
 
-const confirmTeamAction = () => {
-  if (teamAction.value === "delete") {
-    if (isOwner.value) deleteTeamMutation.mutate();
-    return;
-  }
-
-  if (!isOwner.value) leaveTeamMutation.mutate();
+const clearSelectedInvite = () => {
+  selectedInvite.value = null;
 };
 </script>
 
@@ -425,22 +208,21 @@ const confirmTeamAction = () => {
       <header class="mb-8 border-b border-border pb-6">
         <div class="flex items-center justify-between gap-4">
           <UiTeamsTitle
+            :team-id="teamId"
             :name="teamQuery.data.value.team.name"
             :editable="canManageRoles"
-            :saving="updateNameMutation.isPending.value"
-            @save="updateName"
           />
           <UiTeamsMemberAvatars :members="teamMembers" />
         </div>
         <UiTeamsDescription
+          :team-id="teamId"
           :description="teamQuery.data.value.team.description"
           :editable="canManageRoles"
-          :saving="updateDescriptionMutation.isPending.value"
-          @save="updateDescription"
         />
       </header>
 
       <UiTeamsDetailsTabs
+        :team-id="teamId"
         :members="members"
         :invites="invites"
         :owner-id="teamQuery.data.value.team.owner_id"
@@ -453,13 +235,6 @@ const confirmTeamAction = () => {
         :members-error="membersQuery.isError.value"
         :invites-error="invitesQuery.isError.value"
         :is-owner="isOwner"
-        :updating-member-id="updatingMemberId"
-        :updating-invite-id="updatingInviteId"
-        :resending-invite-id="resendingInviteId"
-        :deleting-invite-id="
-          deleteInviteMutation.isPending.value ? selectedInvite?.id : null
-        "
-        @update-member-role="updateMemberRole"
         @resend-invite="requestResendInvite"
         @update-invite-role="requestUpdateInviteRole"
         @delete-invite="requestDeleteInvite"
@@ -472,38 +247,36 @@ const confirmTeamAction = () => {
 
       <UiTeamsInviteDialog
         v-model:open="inviteOpen"
+        :team-id="teamId"
         :team-name="teamQuery.data.value.team.name"
-        :sending="inviteMutation.isPending.value"
-        @invite="inviteMutation.mutate"
       />
 
       <UiTeamsDeleteInviteDialog
         v-model:open="deleteInviteOpen"
+        :team-id="teamId"
         :invite="selectedInvite"
-        :deleting="deleteInviteMutation.isPending.value"
-        @confirm="confirmDeleteInvite"
+        @completed="clearSelectedInvite"
       />
 
       <UiTeamsResendInviteDialog
         v-model:open="resendInviteOpen"
+        :team-id="teamId"
         :invite="selectedInvite"
-        :resending="resendInviteMutation.isPending.value"
-        @confirm="confirmResendInvite"
+        @completed="clearSelectedInvite"
       />
 
       <UiTeamsUpdateInviteRoleDialog
         v-model:open="updateInviteRoleOpen"
+        :team-id="teamId"
         :invite="selectedInvite"
-        :updating="updateInviteMutation.isPending.value"
-        @confirm="confirmUpdateInviteRole"
+        @completed="clearSelectedInvite"
       />
 
       <UiTeamsActionDialog
         v-model:open="teamActionOpen"
+        :team-id="teamId"
         :action="teamAction"
         :team-name="teamQuery.data.value.team.name"
-        :pending="teamActionPending"
-        @confirm="confirmTeamAction"
       />
     </template>
   </UiAppShell>

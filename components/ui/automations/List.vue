@@ -4,23 +4,87 @@ import {
   ArrowRight02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 import {
   getAutomationAction,
   getAutomationTriggerLabel,
 } from "~/constants/automations";
-import type { Automation } from "~/utils/api/automations";
+import {
+  automationsApi,
+  type Automation,
+  type AutomationsListResponse,
+} from "~/utils/api/automations";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
 
 defineProps<{
   automations: Automation[];
   loading: boolean;
-  busyIds?: ReadonlySet<number>;
 }>();
 
 const emit = defineEmits<{
   create: [];
   open: [automation: Automation];
-  toggle: [automation: Automation, enabled: boolean];
 }>();
+
+const client = useApiClient();
+const queryClient = useQueryClient();
+const busyIds = ref<Set<number>>(new Set());
+
+const toggleMutation = useMutation({
+  mutationFn: ({ automation, enabled }: { automation: Automation; enabled: boolean }) =>
+    automationsApi.update(client, automation.id, { is_active: enabled }),
+  onMutate: async ({ automation, enabled }) => {
+    busyIds.value = new Set(busyIds.value).add(automation.id);
+    await queryClient.cancelQueries({ queryKey: queryKeys.automations.list() });
+    const previousAutomation = queryClient
+      .getQueryData<AutomationsListResponse>(queryKeys.automations.list())
+      ?.automations.find((item) => item.id === automation.id);
+    queryClient.setQueryData<AutomationsListResponse>(
+      queryKeys.automations.list(),
+      (current) => current && {
+        ...current,
+        automations: current.automations.map((item) =>
+          item.id === automation.id ? { ...item, is_active: enabled } : item,
+        ),
+      },
+    );
+    return { previousAutomation };
+  },
+  onSuccess: (response) => {
+    queryClient.setQueryData<AutomationsListResponse>(
+      queryKeys.automations.list(),
+      (current) => current && {
+        ...current,
+        automations: current.automations.map((automation) =>
+          automation.id === response.automation.id ? response.automation : automation,
+        ),
+      },
+    );
+  },
+  onError: (error, _variables, context) => {
+    if (context?.previousAutomation) {
+      queryClient.setQueryData<AutomationsListResponse>(
+        queryKeys.automations.list(),
+        (current) => current && {
+          ...current,
+          automations: current.automations.map((automation) =>
+            automation.id === context.previousAutomation?.id
+              ? context.previousAutomation
+              : automation,
+          ),
+        },
+      );
+    }
+    toast.error(getApiErrorMessage(error, "Could not update the automation."));
+  },
+  onSettled: (_data, _error, { automation }) => {
+    const next = new Set(busyIds.value);
+    next.delete(automation.id);
+    busyIds.value = next;
+  },
+});
 
 const FALLBACK = "var(--muted-foreground)";
 
@@ -121,7 +185,7 @@ function automationColor(automation: Automation) {
             :model-value="automation.is_active"
             :disabled="busyIds?.has(automation.id)"
             :aria-label="`${automation.name} enabled`"
-            @update:model-value="emit('toggle', automation, $event)"
+            @update:model-value="toggleMutation.mutate({ automation, enabled: $event })"
           />
         </li>
       </ul>

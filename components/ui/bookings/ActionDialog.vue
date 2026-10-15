@@ -8,18 +8,61 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { bookingsApi, type Booking } from "~/utils/api/bookings";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
 
 const props = defineProps<{
   action: "cancel" | "decline" | "delete";
-  submitting?: boolean;
+  booking: Booking | null;
 }>();
 
 const emit = defineEmits<{
-  confirm: [reason?: string];
+  completed: [];
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
 const reason = ref("");
+const client = useApiClient();
+const queryClient = useQueryClient();
+
+const actionMutation = useMutation({
+  mutationFn: async () => {
+    if (!props.booking) throw new Error("No booking selected");
+    if (props.action === "delete") {
+      return bookingsApi.remove(client, props.booking.id);
+    }
+    return bookingsApi.update(client, props.booking.id, {
+      status: "cancelled",
+      cancellation_reason: reason.value.trim() || null,
+    });
+  },
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.bookings.all() });
+    open.value = false;
+    emit("completed");
+    toast.success(
+      props.action === "delete"
+        ? "Booking deleted"
+        : props.action === "decline"
+          ? "Invitation declined"
+          : "Event cancelled",
+    );
+  },
+  onError: (error) =>
+    toast.error(
+      getApiErrorMessage(
+        error,
+        props.action === "delete"
+          ? "Could not delete the booking."
+          : props.action === "decline"
+            ? "Could not decline the invitation."
+            : "Could not cancel the event.",
+      ),
+    ),
+});
 
 watch(open, (isOpen) => {
   if (!isOpen) reason.value = "";
@@ -82,16 +125,16 @@ const confirmLabel = computed(
 
         <div class="mt-6 flex justify-end gap-2">
           <DialogClose as-child>
-            <SharedButton type="button" variant="outline" :disabled="submitting"
+            <SharedButton type="button" variant="outline" :disabled="actionMutation.isPending.value"
               >Go back</SharedButton
             >
           </DialogClose>
           <SharedButton
-            :loading="submitting"
+            :loading="actionMutation.isPending.value"
             type="button"
             variant="destructive"
-            :disabled="submitting"
-            @click="emit('confirm', reason.trim() || undefined)"
+            :disabled="actionMutation.isPending.value"
+            @click="actionMutation.mutate()"
           >
             {{ confirmLabel }}
           </SharedButton>

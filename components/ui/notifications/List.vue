@@ -1,23 +1,54 @@
 <script setup lang="ts">
 import { Notification01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
 import type {
   Notification,
   NotificationPagination,
 } from "~/utils/api/notifications";
+import { notificationsApi } from "~/utils/api/notifications";
+import { queryKeys } from "~/utils/api/query-keys";
 
 defineProps<{
   notifications?: Notification[];
   pagination?: NotificationPagination;
   loading: boolean;
-  busyId?: number | null;
   filter: "all" | "unread" | "read";
 }>();
 
-defineEmits<{
-  open: [notification: Notification];
+const emit = defineEmits<{
   page: [page: number];
 }>();
+
+const client = useApiClient();
+const queryClient = useQueryClient();
+const busyId = ref<number | null>(null);
+
+const markReadMutation = useMutation({
+  mutationFn: (notification: Notification) => {
+    busyId.value = notification.id;
+    return notificationsApi.markRead(client, notification.id);
+  },
+  onError: (error) =>
+    toast.error(
+      getApiErrorMessage(error, "Could not mark the notification as read."),
+    ),
+  onSettled: () => {
+    busyId.value = null;
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.notifications.all(),
+    });
+  },
+});
+
+const openNotification = (notification: Notification) => {
+  if (!notification.read_at) markReadMutation.mutate(notification);
+  if (notification.action_url) {
+    void navigateTo(notification.action_url, { external: true });
+  }
+};
 </script>
 
 <template>
@@ -73,7 +104,7 @@ defineEmits<{
         :key="notification.id"
         :notification="notification"
         :busy="busyId === notification.id"
-        @open="$emit('open', $event)"
+        @open="openNotification"
       />
     </div>
 

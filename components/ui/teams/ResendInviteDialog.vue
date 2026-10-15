@@ -8,15 +8,40 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type { TeamInvite } from "~/utils/api/teams";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
+import { teamsApi, type TeamInvite } from "~/utils/api/teams";
 
-defineProps<{
+const props = defineProps<{
+  teamId: number;
   invite: TeamInvite | null;
-  resending: boolean;
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
-const emit = defineEmits<{ confirm: [] }>();
+const emit = defineEmits<{ completed: [] }>();
+const client = useApiClient();
+const queryClient = useQueryClient();
+
+const resendMutation = useMutation({
+  mutationFn: () => {
+    if (!props.invite) throw new Error("No invitation selected");
+    return teamsApi.invite(client, props.teamId, {
+      users: [{ email: props.invite.email, role: props.invite.role }],
+    });
+  },
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.teams.invites(props.teamId),
+    });
+    open.value = false;
+    emit("completed");
+    toast.success("Invitation resent");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not resend the invitation.")),
+});
 </script>
 
 <template>
@@ -36,15 +61,15 @@ const emit = defineEmits<{ confirm: [] }>();
 
         <div class="mt-6 flex justify-end gap-2">
           <DialogClose as-child>
-            <SharedButton type="button" variant="outline" :disabled="resending">
+            <SharedButton type="button" variant="outline" :disabled="resendMutation.isPending.value">
               Cancel
             </SharedButton>
           </DialogClose>
           <SharedButton
             type="button"
             :disabled="!invite"
-            :loading="resending"
-            @click="emit('confirm')"
+            :loading="resendMutation.isPending.value"
+            @click="resendMutation.mutate()"
           >
             Resend invitation
           </SharedButton>

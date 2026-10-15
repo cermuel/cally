@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: false });
-useHead({ title: "Settings | Cally" });
+useHead({ title: "Settings" });
 
 const section = ref("connections");
 </script>
@@ -10,7 +10,9 @@ const section = ref("connections");
     <SharedTabs v-model="section" class="mx-auto w-full max-w-5xl gap-6">
       <SharedTabsList aria-label="Settings sections">
         <SharedTabsTrigger value="connections"> Connections </SharedTabsTrigger>
-        <SharedTabsTrigger value="notifications"> Notifications </SharedTabsTrigger>
+        <SharedTabsTrigger value="notifications">
+          Notifications
+        </SharedTabsTrigger>
         <SharedTabsTrigger value="account"> Account </SharedTabsTrigger>
       </SharedTabsList>
 

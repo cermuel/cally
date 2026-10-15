@@ -7,16 +7,39 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type { TeamInvite, TeamRole } from "~/utils/api/teams";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
+import { teamsApi, type TeamInvite, type TeamRole } from "~/utils/api/teams";
 
 const props = defineProps<{
+  teamId: number;
   invite: TeamInvite | null;
-  updating: boolean;
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
-const emit = defineEmits<{ confirm: [role: TeamRole] }>();
+const emit = defineEmits<{ completed: [] }>();
+const client = useApiClient();
+const queryClient = useQueryClient();
 const role = ref<TeamRole>("member");
+
+const updateMutation = useMutation({
+  mutationFn: () => {
+    if (!props.invite) throw new Error("No invitation selected");
+    return teamsApi.updateInvite(client, props.teamId, props.invite.id, role.value);
+  },
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.teams.invites(props.teamId),
+    });
+    open.value = false;
+    emit("completed");
+    toast.success("Invitation role updated");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not update the invitation role.")),
+});
 
 watch(
   [open, () => props.invite],
@@ -55,15 +78,15 @@ watch(
 
         <div class="mt-6 flex justify-end gap-2">
           <DialogClose as-child>
-            <SharedButton type="button" variant="outline" :disabled="updating">
+            <SharedButton type="button" variant="outline" :disabled="updateMutation.isPending.value">
               Cancel
             </SharedButton>
           </DialogClose>
           <SharedButton
             type="button"
             :disabled="!invite || role === invite.role"
-            :loading="updating"
-            @click="emit('confirm', role)"
+            :loading="updateMutation.isPending.value"
+            @click="updateMutation.mutate()"
           >
             Update role
           </SharedButton>

@@ -1,22 +1,25 @@
 <script setup lang="ts">
 import { Calendar03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 import type {
   Booking,
   BookingPagination,
   BookingScope,
 } from "~/utils/api/bookings";
+import { bookingsApi } from "~/utils/api/bookings";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
 
 defineProps<{
   bookings?: Booking[];
   pagination?: BookingPagination;
   loading: boolean;
-  busyId?: number | null;
   scope: BookingScope;
 }>();
 
-defineEmits<{
-  accept: [booking: Booking];
+const emit = defineEmits<{
   addGuests: [booking: Booking];
   cancel: [booking: Booking];
   decline: [booking: Booking];
@@ -25,6 +28,31 @@ defineEmits<{
   page: [page: number];
   reschedule: [booking: Booking];
 }>();
+
+const client = useApiClient();
+const queryClient = useQueryClient();
+const busyId = ref<number | null>(null);
+
+const acceptMutation = useMutation({
+  mutationFn: (booking: Booking) => {
+    busyId.value = booking.id;
+    return bookingsApi.update(client, booking.id, { status: "confirmed" });
+  },
+  onSuccess: () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.bookings.all() }),
+  onSettled: () => {
+    busyId.value = null;
+  },
+});
+
+const acceptBooking = (booking: Booking) => {
+  toast.promise(acceptMutation.mutateAsync(booking), {
+    loading: "Accepting booking...",
+    success: "Booking accepted",
+    error: (error: unknown) =>
+      getApiErrorMessage(error, "Could not accept the booking."),
+  });
+};
 </script>
 
 <template>
@@ -72,7 +100,7 @@ defineEmits<{
           :key="booking.id"
           :booking="booking"
           :busy="busyId === booking.id"
-          @accept="$emit('accept', $event)"
+          @accept="acceptBooking"
           @add-guests="$emit('addGuests', $event)"
           @cancel="$emit('cancel', $event)"
           @decline="$emit('decline', $event)"

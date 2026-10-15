@@ -73,10 +73,12 @@ const resendEmailMutation = useMutation({
     toast.success("We sent you another verification email.");
   },
   onError: (error) => {
-    toast.error(getApiErrorMessage(
-      error,
-      "Unable to send a new verification link. Please try again.",
-    ));
+    toast.error(
+      getApiErrorMessage(
+        error,
+        "Unable to send a new verification link. Please try again.",
+      ),
+    );
   },
 });
 
@@ -107,7 +109,7 @@ onMounted(() => {
 });
 
 useHead({
-  title: "Verify Email | Cally",
+  title: "Verify Email",
 });
 </script>
 

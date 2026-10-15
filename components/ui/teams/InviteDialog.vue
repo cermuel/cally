@@ -5,6 +5,7 @@ import {
   MailSend01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import {
   DialogClose,
   DialogContent,
@@ -14,26 +15,46 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import type {
-  CreateTeamInvitesPayload,
-  TeamInviteUser,
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
+import {
+  teamsApi,
+  type CreateTeamInvitesPayload,
+  type TeamInviteUser,
 } from "~/utils/api/teams";
 import { helpers } from "~/utils/helpers";
 
 const props = defineProps<{
+  teamId: number;
   teamName: string;
-  sending: boolean;
-}>();
-
-const emit = defineEmits<{
-  invite: [payload: CreateTeamInvitesPayload];
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
+const client = useApiClient();
+const queryClient = useQueryClient();
 const stage = ref<"intro" | "invite">("intro");
 const users = ref<TeamInviteUser[]>([{ email: "", role: "member" }]);
 const errors = ref<string[]>([]);
 const emailInputs = ref<Array<{ focus: () => void } | null>>([]);
+
+const inviteMutation = useMutation({
+  mutationFn: (payload: CreateTeamInvitesPayload) =>
+    teamsApi.invite(client, props.teamId, payload),
+  onSuccess: async (_response, payload) => {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.teams.invites(props.teamId),
+    });
+    open.value = false;
+    toast.success(
+      payload.users.length === 1
+        ? "Invitation sent"
+        : `${payload.users.length} invitations sent`,
+    );
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not send the invitations.")),
+});
 
 const seed = computed(() => props.teamName?.trim() || "new-team");
 const avatar = (s: string) =>
@@ -102,7 +123,7 @@ const send = async () => {
     return;
   }
 
-  emit("invite", { users: normalizedUsers });
+  inviteMutation.mutate({ users: normalizedUsers });
 };
 </script>
 
@@ -265,7 +286,7 @@ const send = async () => {
 
             <SharedButton
               class="mt-6 h-10 w-full"
-              :loading="sending"
+              :loading="inviteMutation.isPending.value"
               @click="send"
             >
               Send {{ users.length === 1 ? "invite" : "invites" }}

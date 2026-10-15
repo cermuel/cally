@@ -164,8 +164,8 @@ const cancelAttendance = async () => {
 
 useHead(() => ({
   title: meeting.value
-    ? `${meeting.value.event?.name ?? `Booking #${meeting.value.id}`} | Cally`
-    : "Meeting | Cally",
+    ? `${meeting.value.event?.name ?? `Booking #${meeting.value.id}`}`
+    : "Meeting",
 }));
 </script>
 

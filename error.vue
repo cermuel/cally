@@ -5,9 +5,7 @@ const props = defineProps<{ error: NuxtError }>();
 const isNotFound = computed(() => props.error.statusCode === 404);
 
 useSeoMeta({
-  title: isNotFound.value
-    ? "Page Not Found | Cally"
-    : "Something Went Wrong | Cally",
+  title: isNotFound.value ? "Page Not Found" : "Something Went Wrong",
   description: "Return to Cally to create or manage a meeting scheduling page.",
   robots: "noindex, nofollow",
 });

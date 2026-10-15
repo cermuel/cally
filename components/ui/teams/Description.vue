@@ -4,21 +4,39 @@ import { HugeiconsIcon } from "@hugeicons/vue";
 import { Placeholder } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import { getApiErrorMessage } from "~/utils/api/client";
+import { queryKeys } from "~/utils/api/query-keys";
+import { teamsApi } from "~/utils/api/teams";
 
 const props = defineProps<{
+  teamId: number;
   description: string | null;
   editable: boolean;
-  saving: boolean;
 }>();
 
-const emit = defineEmits<{
-  save: [description: string | null];
-}>();
+const client = useApiClient();
+const queryClient = useQueryClient();
 
 const draft = ref(props.description ?? "");
 const focused = ref(false);
 const saved = ref(false);
 let timer: ReturnType<typeof setTimeout>;
+const updateMutation = useMutation({
+  mutationFn: (description: string | null) =>
+    teamsApi.update(client, props.teamId, { description }),
+  onSuccess: async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.detail(props.teamId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() }),
+    ]);
+    toast.success("Team description updated");
+  },
+  onError: (error) =>
+    toast.error(getApiErrorMessage(error, "Could not update the team description.")),
+});
+const saving = computed(() => updateMutation.isPending.value);
 
 const serialize = (html: string) => (html === "<p></p>" ? "" : html);
 const normalizedDraft = computed(() => draft.value.trim());
@@ -30,12 +48,12 @@ const showActions = computed(
 );
 
 function save() {
-  if (!hasChanges.value || props.saving) return;
-  emit("save", normalizedDraft.value || null);
+  if (!hasChanges.value || saving.value) return;
+  updateMutation.mutate(normalizedDraft.value || null);
 }
 
 function cancel() {
-  if (props.saving) return;
+  if (saving.value) return;
   draft.value = props.description ?? "";
   editor.value?.commands.setContent(draft.value, { emitUpdate: false });
   editor.value?.commands.blur();
@@ -43,7 +61,7 @@ function cancel() {
 
 const editor = useEditor({
   content: draft.value,
-  editable: props.editable && !props.saving,
+  editable: props.editable && !saving.value,
   extensions: [
     StarterKit.configure({
       heading: false,
@@ -97,12 +115,12 @@ watch(
 );
 
 watch(
-  () => [props.editable, props.saving] as const,
+  () => [props.editable, saving.value] as const,
   ([editable, saving]) => editor.value?.setEditable(editable && !saving),
 );
 
 watch(
-  () => props.saving,
+  saving,
   async (saving, wasSaving) => {
     if (!wasSaving || saving) return;
     await nextTick();
