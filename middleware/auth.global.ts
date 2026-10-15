@@ -24,6 +24,6 @@ export default defineNuxtRouteMiddleware((to) => {
   }
 
   if (auth.authState.value === 'authenticated' && to.path === '/app/onboarding') {
-    return navigateTo('/app/bookings', { replace: true })
+    return navigateTo('/app/meetings', { replace: true })
   }
 })

@@ -50,7 +50,7 @@ const properties = computed(() => {
     c.phone && { label: "Phone", value: c.phone, href: `tel:${c.phone}` },
     c.company && { label: "Company", value: c.company },
     c.timezone && { label: "Timezone", value: c.timezone },
-    { label: "Bookings", value: String(c.bookings_count) },
+    { label: "Meetings", value: String(c.bookings_count) },
     { label: "Last booked", value: formatDate(c.last_booked_at) },
   ].filter(Boolean) as { label: string; value: string; href?: string }[];
 });
@@ -103,7 +103,7 @@ const scheduleBooking = () => {
   <SharedSheet
     v-model:open="open"
     title="Contact details"
-    description="Contact information and booking history"
+    description="Contact information and meeting history"
     close-label="Close contact details"
     size="compact"
   >
@@ -324,7 +324,7 @@ const scheduleBooking = () => {
               class="mx-auto text-muted-foreground"
               aria-hidden="true"
             />
-            <p class="mt-2 text-[13px] font-medium">No bookings yet</p>
+            <p class="mt-2 text-[13px] font-medium">No meetings yet</p>
             <p class="mt-0.5 text-xs text-muted-foreground">
               This contact’s meetings will appear here.
             </p>
@@ -333,7 +333,7 @@ const scheduleBooking = () => {
           <nav
             v-if="pagination && pagination.last_page > 1"
             class="mt-3 flex items-center justify-between gap-3"
-            aria-label="Contact booking pages"
+            aria-label="Contact meeting pages"
           >
             <SharedButton
               type="button"

@@ -9,7 +9,7 @@ const view = defineModel<BookingsView>({ required: true });
 
 <template>
   <SharedTabs v-model="view" class="hidden md:flex">
-    <SharedTabsList aria-label="Booking view">
+    <SharedTabsList aria-label="Meeting view">
       <SharedTabsTrigger value="list" class="px-3">
         <HugeiconsIcon
           :icon="ListViewIcon"

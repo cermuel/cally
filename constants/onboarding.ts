@@ -46,7 +46,7 @@ export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
 export const CALENDAR_NOTES = [
   "Busy times on your calendar are blocked automatically.",
-  "New bookings are added to your calendar with a meeting link.",
+  "New meetings are added to your calendar with a meeting link.",
 ];
 
 export const DAYS: { key: DayKey; label: string }[] = [

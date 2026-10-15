@@ -75,7 +75,7 @@ const isGooglePending = computed(() => googleOAuth.pending.value);
 const startGoogleLogin = () => {
   return googleOAuth.startAuth(
     "login",
-    requestedReturnPath.value ?? authReturnPath.peek("/app/bookings"),
+    requestedReturnPath.value ?? authReturnPath.peek("/app/meetings"),
   );
 };
 

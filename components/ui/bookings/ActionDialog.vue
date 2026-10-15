@@ -30,7 +30,7 @@ const queryClient = useQueryClient();
 
 const actionMutation = useMutation({
   mutationFn: async () => {
-    if (!props.booking) throw new Error("No booking selected");
+    if (!props.booking) throw new Error("No meeting selected");
     if (props.action === "delete") {
       return bookingsApi.remove(client, props.booking.id);
     }
@@ -45,7 +45,7 @@ const actionMutation = useMutation({
     emit("completed");
     toast.success(
       props.action === "delete"
-        ? "Booking deleted"
+        ? "Meeting deleted"
         : props.action === "decline"
           ? "Invitation declined"
           : "Event cancelled",
@@ -56,7 +56,7 @@ const actionMutation = useMutation({
       getApiErrorMessage(
         error,
         props.action === "delete"
-          ? "Could not delete the booking."
+          ? "Could not delete the meeting."
           : props.action === "decline"
             ? "Could not decline the invitation."
             : "Could not cancel the event.",
@@ -73,16 +73,16 @@ const title = computed(
     ({
       cancel: "Cancel this event?",
       decline: "Decline this invitation?",
-      delete: "Delete this booking?",
+      delete: "Delete this meeting?",
     })[props.action],
 );
 const description = computed(
   () =>
     ({
       cancel: "The event will be cancelled and all guests will be notified.",
-      decline: "The booking request will be declined and the guests will be notified.",
+      decline: "The meeting request will be declined and the guests will be notified.",
       delete:
-        "This permanently removes the booking from your account. This action cannot be undone.",
+        "This permanently removes the meeting from your account. This action cannot be undone.",
     })[props.action],
 );
 const confirmLabel = computed(
@@ -90,7 +90,7 @@ const confirmLabel = computed(
     ({
       cancel: "Cancel event",
       decline: "Decline invitation",
-      delete: "Delete booking",
+      delete: "Delete meeting",
     })[props.action],
 );
 </script>

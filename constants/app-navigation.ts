@@ -15,7 +15,7 @@ export interface AppNavigationItem {
 }
 
 export const appNavigationItems = [
-  { label: "Bookings", to: "/app/bookings", icon: CalendarRangeIcon },
+  { label: "Meetings", to: "/app/meetings", icon: CalendarRangeIcon },
   { label: "Links", to: "/app/links", icon: Link01Icon },
   { label: "Availability", to: "/app/availability", icon: TimeScheduleIcon },
   { label: "Contacts", to: "/app/contacts", icon: BookUserIcon },

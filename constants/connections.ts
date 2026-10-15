@@ -16,7 +16,7 @@ export const CONNECTION_PROVIDERS = [
     id: "google",
     name: "Google Calendar",
     description:
-      "Check for conflicts and add new bookings with a Google Meet link.",
+      "Check for conflicts and add new meetings with a Google Meet link.",
     icon: "/svg/google.svg",
     requiredScope: GOOGLE_CALENDAR_EVENTS_SCOPE,
     canConnect: true,

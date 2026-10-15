@@ -101,7 +101,7 @@ const columns = computed<SharedTableColumn<Contact>[]>(() => [
   sortableColumn("email", "Email", { minWidth: 210, grow: 2, priority: 3 }),
   sortableColumn("company", "Company", { minWidth: 140, priority: 6 }),
   sortableColumn("tag", "Tag", { minWidth: 110, priority: 2 }),
-  sortableColumn("bookings_count", "Bookings", {
+  sortableColumn("bookings_count", "Meetings", {
     minWidth: 92,
     grow: 0,
     priority: 5,

@@ -78,7 +78,7 @@ const trapMobileFocus = (event: KeyboardEvent) => {
   >
     <div class="relative flex h-16 shrink-0 items-center gap-3 px-4">
       <NuxtLink
-        to="/app/bookings"
+        to="/app/meetings"
         class="flex min-w-0 items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2"
         :class="!compact && 'gap-2'"
         :aria-label="compact ? 'Cally home' : undefined"

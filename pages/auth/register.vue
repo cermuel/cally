@@ -98,7 +98,7 @@ const loginLocation = computed(() => ({
 const startGoogleRegistration = () =>
   googleOAuth.startAuth(
     "register",
-    requestedReturnPath.value ?? authReturnPath.peek("/app/bookings"),
+    requestedReturnPath.value ?? authReturnPath.peek("/app/meetings"),
   );
 
 const focusFirstError = async () => {

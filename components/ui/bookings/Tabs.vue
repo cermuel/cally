@@ -17,7 +17,7 @@ const tabs: Array<{ label: string; value: BookingScope }> = [
     <SharedTabsList
       variant="default"
       class="w-max justify-start"
-      aria-label="Filter bookings"
+      aria-label="Filter meetings"
     >
       <SharedTabsTrigger
         v-for="tab in tabs"

@@ -36,7 +36,7 @@ const minimumStart = computed(() => toLocalInputValue(null));
 
 const rescheduleMutation = useMutation({
   mutationFn: ({ startsAt, endsAt }: { startsAt: string; endsAt: string }) => {
-    if (!props.booking) throw new Error("No booking selected");
+    if (!props.booking) throw new Error("No meeting selected");
     return bookingsApi.update(client, props.booking.id, {
       starts_at: startsAt,
       ends_at: endsAt,

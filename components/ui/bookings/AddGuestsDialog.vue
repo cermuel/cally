@@ -14,7 +14,7 @@ const queryClient = useQueryClient();
 
 const addGuestsMutation = useMutation({
   mutationFn: (emails: string[]) => {
-    if (!props.booking) throw new Error("No booking selected");
+    if (!props.booking) throw new Error("No meeting selected");
     return guestsApi.add(
       client,
       props.booking.id,

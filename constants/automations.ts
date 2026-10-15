@@ -10,17 +10,17 @@ import type {
 } from "~/utils/api/automations";
 
 export const automationTriggers = [
-  { value: "booking.created", label: "Booking created" },
-  { value: "booking.ended", label: "Booking ended" },
-  { value: "booking.no_show", label: "Booking marked as no-show" },
-  { value: "booking.cancelled", label: "Booking cancelled" },
+  { value: "booking.created", label: "Meeting created" },
+  { value: "booking.ended", label: "Meeting ended" },
+  { value: "booking.no_show", label: "Meeting marked as no-show" },
+  { value: "booking.cancelled", label: "Meeting cancelled" },
 ] satisfies readonly { value: AutomationTrigger; label: string }[];
 
 export const automationActions = [
   {
     value: "auto_accept_booking",
-    label: "Automatically accept booking",
-    description: "Confirm a new booking without manual approval.",
+    label: "Automatically accept meeting",
+    description: "Confirm a new meeting without manual approval.",
     icon: CheckmarkCircle02Icon,
   },
   {
@@ -32,7 +32,7 @@ export const automationActions = [
   {
     value: "add_to_contact",
     label: "Add to contacts",
-    description: "Create a contact from the booking details.",
+    description: "Create a contact from the meeting details.",
     icon: Contact01Icon,
   },
 ] satisfies readonly {

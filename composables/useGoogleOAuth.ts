@@ -16,7 +16,7 @@ export const useGoogleOAuth = () => {
     intent: GoogleAuthIntent,
     path: string,
   ) => {
-    const safePath = isSafeAuthReturnPath(path) ? path : '/app/bookings'
+    const safePath = isSafeAuthReturnPath(path) ? path : '/app/meetings'
     sessionStorage.setItem(googleReturnPathKey, safePath)
     sessionStorage.setItem(googleIntentKey, intent)
   }
@@ -27,7 +27,7 @@ export const useGoogleOAuth = () => {
     pending.value = true
 
     try {
-      rememberFlow(intent, returnPath ?? '/app/bookings')
+      rememberFlow(intent, returnPath ?? '/app/meetings')
       const response = await googleApi.getAuthRedirect(apiClient, {
         intent,
         redirect_uri: callbackUrl(),

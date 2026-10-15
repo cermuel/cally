@@ -66,7 +66,7 @@ const handleDeleted = () => {
       <div class="relative flex items-center justify-between gap-4 mb-8">
         <UiAppPageHeader
           title="Automations"
-          description="Automate follow-ups and routine actions around every booking."
+          description="Automate follow-ups and routine actions around every meeting."
           class="mb-0"
         />
         <SharedButton

@@ -47,10 +47,10 @@ const acceptMutation = useMutation({
 
 const acceptBooking = (booking: Booking) => {
   toast.promise(acceptMutation.mutateAsync(booking), {
-    loading: "Accepting booking...",
-    success: "Booking accepted",
+    loading: "Accepting meeting...",
+    success: "Meeting accepted",
     error: (error: unknown) =>
-      getApiErrorMessage(error, "Could not accept the booking."),
+      getApiErrorMessage(error, "Could not accept the meeting."),
   });
 };
 </script>
@@ -60,7 +60,7 @@ const acceptBooking = (booking: Booking) => {
     <div
       v-if="loading"
       class="min-h-0 flex-1 space-y-3 overflow-y-auto pe-1"
-      aria-label="Loading bookings"
+      aria-label="Loading meetings"
       aria-busy="true"
     >
       <div
@@ -85,10 +85,10 @@ const acceptBooking = (booking: Booking) => {
         />
       </div>
       <h2 class="mt-4 font-semibold">
-        No {{ scope === "all" ? "" : scope }} bookings
+        No {{ scope === "all" ? "" : scope }} meetings
       </h2>
       <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-        New meetings and booking requests will appear here as guests schedule
+        New meetings and meeting requests will appear here as guests schedule
         time with you.
       </p>
     </section>
@@ -113,7 +113,7 @@ const acceptBooking = (booking: Booking) => {
       <nav
         v-if="pagination && pagination.last_page > 1"
         class="mt-4 flex shrink-0 items-center justify-between"
-        aria-label="Booking pages"
+        aria-label="Meeting pages"
       >
         <SharedButton
           type="button"

@@ -354,7 +354,7 @@ onMounted(scrollToRelevant);
     <section
       v-else
       class="grid h-full min-h-0 grid-cols-1 overflow-hidden rounded-lg border border-border bg-card text-foreground md:grid-cols-[15rem_minmax(0,1fr)]"
-      aria-label="Booking calendar"
+      aria-label="Meeting calendar"
     >
       <aside
         class="flex flex-col border-b border-border p-3 md:border-b-0 md:border-e"
@@ -441,7 +441,7 @@ onMounted(scrollToRelevant);
           class="mt-4 space-y-1.5 border-t border-border pt-3 text-xs text-muted-foreground"
         >
           <div class="flex items-center justify-between pb-1">
-            <span>All bookings</span>
+            <span>All meetings</span>
             <span class="tabular-nums text-foreground">{{
               bookings?.length ?? 0
             }}</span>

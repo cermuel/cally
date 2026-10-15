@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { PlusSignIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/vue";
 import { useQuery, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 import {
@@ -11,9 +13,10 @@ import { queryKeys } from "~/utils/api/query-keys";
 import type { BookingsView } from "~/components/ui/bookings/ViewTabs.vue";
 
 definePageMeta({ layout: false });
-useHead({ title: "Bookings" });
+useHead({ title: "Meetings" });
 
 const client = useApiClient();
+const auth = useAuth();
 const route = useRoute();
 const router = useRouter();
 const queryClient = useQueryClient();
@@ -47,6 +50,14 @@ const cancelOpen = ref(false);
 const deleteOpen = ref(false);
 const addGuestsOpen = ref(false);
 const rescheduleOpen = ref(false);
+const createMeetingOpen = ref(false);
+const meetingTimezone = computed(
+  () =>
+    auth.user.value?.timezone ||
+    (import.meta.client
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : "UTC"),
+);
 
 watch(scope, () => {
   page.value = 1;
@@ -68,7 +79,7 @@ watch(
   () => linkedBookingQuery.error.value,
   (error) => {
     if (error) {
-      toast.error(getApiErrorMessage(error, "Could not load the booking."));
+      toast.error(getApiErrorMessage(error, "Could not load the meeting."));
     }
   },
 );
@@ -130,17 +141,21 @@ const clearActionTarget = () => {
 
 <template>
   <UiAppShell content-overflow="hidden" :full-width="view === 'calendar'">
-    <template #navbar-actions>
-      <UiBookingsViewTabs v-if="view === 'calendar'" v-model="view" />
-    </template>
-
     <div class="flex h-full min-h-0 flex-col overflow-y-hidden">
-      <div
-        v-if="view === 'list'"
-        class="mb-6 flex shrink-0 items-start justify-between gap-4"
-      >
-        <UiBookingsTabs v-model="scope" />
-        <UiBookingsViewTabs class="ms-auto" v-model="view" />
+      <div class="mb-6 flex shrink-0 items-start justify-between gap-4">
+        <UiBookingsTabs v-if="view === 'list'" v-model="scope" />
+        <div class="ms-auto flex shrink-0 items-center gap-2">
+          <UiBookingsViewTabs v-model="view" />
+          <SharedButton type="button" @click="createMeetingOpen = true">
+            <HugeiconsIcon
+              :icon="PlusSignIcon"
+              :size="18"
+              :stroke-width="1.75"
+              aria-hidden="true"
+            />
+            New meeting
+          </SharedButton>
+        </div>
       </div>
 
       <div
@@ -153,7 +168,7 @@ const clearActionTarget = () => {
           {{
             getApiErrorMessage(
               bookingsQuery.error.value,
-              "Could not load your bookings.",
+              "Could not load your meetings.",
             )
           }}
         </p>
@@ -176,7 +191,7 @@ const clearActionTarget = () => {
           {{
             getApiErrorMessage(
               calendarBookingsQuery.error.value,
-              "Could not load the booking calendar.",
+              "Could not load the meeting calendar.",
             )
           }}
         </p>
@@ -249,6 +264,11 @@ const clearActionTarget = () => {
       <UiBookingsRescheduleDialog
         v-model:open="rescheduleOpen"
         :booking="actionTarget"
+      />
+
+      <UiBookingsCreateDialog
+        v-model:open="createMeetingOpen"
+        :timezone="meetingTimezone"
       />
     </div>
   </UiAppShell>

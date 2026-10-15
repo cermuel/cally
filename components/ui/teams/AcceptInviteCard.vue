@@ -26,7 +26,7 @@ const acceptMutation = useMutation({
   mutationFn: () => teamsApi.acceptInvite(client, props.invite!.id, props.token),
   onSuccess: async () => {
     const teamId = props.invite!.team_id;
-    authReturnPath.take("/app/bookings");
+    authReturnPath.take("/app/meetings");
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.teams.detail(teamId) }),
@@ -42,7 +42,7 @@ const acceptMutation = useMutation({
 const declineMutation = useMutation({
   mutationFn: () => teamsApi.declineInvite(client, props.invite!.id, props.token),
   onSuccess: async () => {
-    authReturnPath.take("/app/bookings");
+    authReturnPath.take("/app/meetings");
     await queryClient.invalidateQueries({ queryKey: queryKeys.teams.all() });
     toast.success("Invitation declined");
     await navigateTo("/app/teams");

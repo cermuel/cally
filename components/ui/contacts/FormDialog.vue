@@ -23,6 +23,11 @@ import { queryKeys } from "~/utils/api/query-keys";
 
 const props = defineProps<{
   contact?: Contact | null;
+  nested?: boolean;
+}>();
+
+const emit = defineEmits<{
+  saved: [contact: Contact];
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
@@ -52,14 +57,18 @@ type SaveContactVariables =
   | { contactId: null; payload: CreateContactPayload };
 
 const saveMutation = useMutation({
-  mutationFn: ({ contactId, payload }: SaveContactVariables) =>
-    contactId
-      ? contactsApi.update(client, contactId, payload)
-      : contactsApi.create(client, payload),
-  onSuccess: async (_response, variables) => {
+  mutationFn: ({ contactId, payload }: SaveContactVariables) => {
+    if (contactId === null) {
+      return contactsApi.create(client, payload);
+    }
+
+    return contactsApi.update(client, contactId, payload);
+  },
+  onSuccess: async (response, variables) => {
     await queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all() });
     apiErrors.value = {};
     open.value = false;
+    emit("saved", response.contact);
     toast.success(variables.contactId ? "Contact updated" : "Contact added");
   },
   onError: (error) => {
@@ -116,10 +125,10 @@ const submit = () => {
     saveMutation.mutate({
       contactId: props.contact.id,
       payload: {
-      ...fields,
-      ...(!emailLocked.value
-        ? { email: email.value.trim().toLowerCase() }
-        : {}),
+        ...fields,
+        ...(!emailLocked.value
+          ? { email: email.value.trim().toLowerCase() }
+          : {}),
       },
     });
     return;
@@ -140,10 +149,12 @@ const submit = () => {
   <DialogRoot v-model:open="open">
     <DialogPortal>
       <DialogOverlay
-        class="fixed inset-0 z-50 bg-black/60 data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        class="fixed inset-0 bg-black/60 data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        :class="nested ? 'z-70' : 'z-50'"
       />
       <DialogContent
-        class="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xl outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+        class="fixed inset-s-1/2 top-1/2 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xl outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+        :class="nested ? 'z-70' : 'z-50'"
       >
         <header class="flex items-start gap-4 border-b border-border px-6 py-5">
           <div class="min-w-0 flex-1">

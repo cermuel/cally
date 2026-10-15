@@ -119,7 +119,7 @@ const selectTime = (startsAt: string) => {
         <SharedCalendar
           :model-value="calendarValue"
           :min-value="minimumDate"
-          calendar-label="Booking date"
+          calendar-label="Meeting date"
           prevent-deselect
           size="sm"
           class="mx-auto p-0"

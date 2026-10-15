@@ -104,7 +104,7 @@ export function useAuth() {
       return '/app/onboarding'
     }
 
-    return '/app/bookings'
+    return '/app/meetings'
   }
 
   hydrateAuth()

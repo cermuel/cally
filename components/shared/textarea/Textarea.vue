@@ -89,7 +89,7 @@ defineExpose({
       :aria-describedby="ariaDescribedBy"
       :class="
         cn(
-          'placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex min-h-22 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs outline-2 -outline-offset-1 outline-transparent transition-[border-color,color,outline-color] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:outline-ring/70 aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive/70',
+          'placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex min-h-16 w-full min-w-0 rounded-md border bg-transparent px-3 py-2 text-base shadow-xs outline-2 -outline-offset-1 outline-transparent transition-[border-color,color,outline-color] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:outline-ring/70 aria-invalid:border-destructive aria-invalid:focus-visible:outline-destructive/70',
           shouldShake &&
             'motion-safe:animate-[input-error-vibrate_220ms_ease-in-out]',
           props.class,

@@ -23,7 +23,7 @@ const timezone = computed(() => props.booking?.host?.timezone ?? "UTC");
 const eventName = computed(() =>
   props.booking
     ? (props.booking.event?.name ?? `Event #${props.booking.event_id}`)
-    : "Booking details",
+    : "Meeting details",
 );
 
 const statusLabel = computed(() => {
@@ -111,13 +111,13 @@ const copyMeetingLink = async () => {
 <template>
   <SharedSheet
     v-model:open="open"
-    title="Booking details"
-    description="Booking time, location and attendees"
-    close-label="Close booking details"
+    title="Meeting details"
+    description="Meeting time, location and attendees"
+    close-label="Close meeting details"
   >
     <template v-if="booking">
           <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <section class="p-5" aria-label="Booking overview">
+            <section class="p-5" aria-label="Meeting overview">
               <div class="mb-2 flex flex-wrap items-center gap-2">
                 <span
                   class="rounded-md px-2 py-0.5 text-xs font-medium"
@@ -135,7 +135,7 @@ const copyMeetingLink = async () => {
                   {{ statusLabel }}
                 </span>
                 <span class="text-xs tabular-nums text-muted-foreground"
-                  >Booking #{{ booking.id }}</span
+                  >Meeting #{{ booking.id }}</span
                 >
               </div>
               <p class="text-base font-semibold tracking-tight">
