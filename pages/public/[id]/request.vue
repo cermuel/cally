@@ -166,9 +166,34 @@ useHead(() => ({
         <div ref="contentRef">
           <div
             v-if="loading"
-            class="h-72 animate-pulse bg-muted/50"
+            class="animate-pulse motion-reduce:animate-none"
+            role="status"
+            aria-busy="true"
             aria-label="Loading invitation"
-          />
+          >
+            <div class="flex flex-col items-center gap-2 p-5">
+              <div class="size-10 rounded-full bg-muted" />
+              <div class="h-3 w-36 rounded bg-muted" />
+              <div class="h-4 w-48 rounded bg-muted" />
+            </div>
+
+            <div class="space-y-3 border-t p-5">
+              <div v-for="i in 3" :key="i" class="flex items-center gap-3">
+                <div class="size-4 shrink-0 rounded bg-muted" />
+                <div
+                  class="h-3 rounded bg-muted"
+                  :class="i === 2 ? 'w-40' : 'w-52'"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-3 border-t p-5">
+              <div class="h-3 w-16 rounded bg-muted" />
+              <div class="h-9 w-full rounded-md bg-muted" />
+              <div class="h-9 w-full rounded-md bg-muted" />
+              <div class="mx-auto h-7 w-16 rounded-md bg-muted" />
+            </div>
+          </div>
 
           <div v-else-if="loadError || !meeting || !guest" class="p-6">
             <h1 class="font-medium">Invitation unavailable</h1>
