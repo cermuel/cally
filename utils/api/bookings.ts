@@ -113,6 +113,7 @@ export type UpdateBookingPayload = {
   status?: BookingStatus;
   starts_at?: string | null;
   ends_at?: string | null;
+  timezone?: string;
   cancellation_reason?: string | null;
   notes?: string | null;
   event_id?: string | number | null;
@@ -200,15 +201,4 @@ export const bookingsApi = {
     });
   },
 
-  requestReschedule(
-    client: AxiosInstance,
-    id: number,
-    payload: { email: string; note: string },
-  ) {
-    return apiRequest<{ message: string }>(client, {
-      method: "POST",
-      url: `/bookings/${id}/reschedule-requests`,
-      data: payload,
-    });
-  },
 };

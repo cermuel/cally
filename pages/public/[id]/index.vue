@@ -125,26 +125,6 @@ const addGuests = async (emails: string[]) => {
   }
 };
 
-const requestReschedule = async (note: string) => {
-  if (!meeting.value || !attendeeEmail.value) return;
-  actionPending.value = true;
-  try {
-    await bookingsApi.requestReschedule(client, meeting.value.id, {
-      email: attendeeEmail.value,
-      note,
-    });
-    toast.success("Reschedule request sent", {
-      description: `${meeting.value.host?.name ?? "The host"} will reply with a new time.`,
-    });
-  } catch (error) {
-    toast.error(
-      getApiErrorMessage(error, "Could not send the reschedule request."),
-    );
-  } finally {
-    actionPending.value = false;
-  }
-};
-
 const cancelAttendance = async () => {
   if (!attendee.value) return;
   actionPending.value = true;
@@ -357,8 +337,10 @@ useHead(() => ({
 
     <UiPublicAddGuestsDialog v-model:open="addGuestsOpen" @add="addGuests" />
     <UiPublicRescheduleDialog
+      v-if="meeting"
       v-model:open="rescheduleDialogOpen"
-      @submit="requestReschedule"
+      :booking="meeting"
+      :email="attendeeEmail"
     />
     <UiPublicConfirmationDialog
       v-model:open="cancelDialogOpen"

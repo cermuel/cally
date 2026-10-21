@@ -13,6 +13,7 @@ import {
 } from "reka-ui";
 import { toast } from "vue-sonner";
 import {
+  addToContactPlaceholderPayload,
   allowedAutomationActions,
   automationActions,
   automationTriggers,
@@ -50,8 +51,6 @@ const action = ref<AutomationAction | "">("");
 const subject = ref("");
 const body = ref("");
 const guestType = ref<GuestType | "all">("all");
-const contactEmail = ref("");
-const contactName = ref("");
 const localErrors = ref<Record<string, string>>({});
 const apiErrors = ref<Record<string, string[]>>({});
 const subjectEditor = ref<{ insertVariable: (variable: string) => void } | null>(
@@ -94,7 +93,6 @@ const resetForm = () => {
   const automation = props.automation;
   const payload = automation?.payload;
   const emailPayload = payload && "subject" in payload ? payload : undefined;
-  const contactPayload = payload && "email" in payload ? payload : undefined;
 
   name.value = automation?.name ?? "";
   color.value = automation?.color ?? null;
@@ -103,8 +101,6 @@ const resetForm = () => {
   subject.value = emailPayload?.subject ?? "";
   body.value = emailPayload?.body ?? "";
   guestType.value = emailPayload?.guestType ?? "all";
-  contactEmail.value = contactPayload?.email ?? "";
-  contactName.value = contactPayload?.name ?? "";
   localErrors.value = {};
   apiErrors.value = {};
 };
@@ -142,13 +138,6 @@ const submit = () => {
     if (!body.value.trim())
       localErrors.value["payload.body"] = "Write an email message.";
   }
-  if (action.value === "add_to_contact") {
-    if (!contactEmail.value.trim())
-      localErrors.value["payload.email"] = "Enter an email address.";
-    if (!contactName.value.trim())
-      localErrors.value["payload.name"] = "Enter a contact name.";
-  }
-
   if (Object.keys(localErrors.value).length || !trigger.value || !action.value)
     return;
 
@@ -161,10 +150,7 @@ const submit = () => {
       ...(guestType.value !== "all" ? { guestType: guestType.value } : {}),
     };
   } else if (action.value === "add_to_contact") {
-    payload = {
-      email: contactEmail.value.trim(),
-      name: contactName.value.trim(),
-    };
+    payload = addToContactPlaceholderPayload;
   }
 
   updateMutation.mutate({
@@ -377,33 +363,13 @@ const submit = () => {
 
               <section
                 v-else-if="action === 'add_to_contact'"
-                class="grid gap-5 border-t border-border pt-5 sm:grid-cols-2"
+                class="border-t border-border pt-5"
               >
-                <div>
-                  <SharedLabel for="edit-contact-name" class="mb-1.5 text-sm">
-                    Contact name
-                  </SharedLabel>
-                  <SharedInput
-                    id="edit-contact-name"
-                    v-model="contactName"
-                    autocomplete="off"
-                    placeholder="Jane Doe"
-                    :error="fieldError('payload.name')"
-                  />
-                </div>
-                <div>
-                  <SharedLabel for="edit-contact-email" class="mb-1.5 text-sm">
-                    Contact email
-                  </SharedLabel>
-                  <SharedInput
-                    id="edit-contact-email"
-                    v-model="contactEmail"
-                    type="email"
-                    autocomplete="off"
-                    placeholder="guest@example.com"
-                    :error="fieldError('payload.email')"
-                  />
-                </div>
+                <p class="text-sm font-medium">Save every booking guest</p>
+                <p class="mt-1 text-sm leading-6 text-muted-foreground">
+                  When a booking is created, Cally will add each new guest to
+                  your contacts. Guests who are already contacts are skipped.
+                </p>
               </section>
             </div>
 

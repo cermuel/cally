@@ -62,6 +62,13 @@ export const guestTypes = [
   { value: "cancelled", label: "Cancelled guests" },
 ] satisfies readonly { value: GuestType; label: string }[];
 
+// The API currently validates these fields even though the runtime action uses
+// each booking guest's actual name and email address.
+export const addToContactPlaceholderPayload = {
+  email: "guest@example.com",
+  name: "Booking guest",
+} as const;
+
 export const getAutomationTriggerLabel = (trigger: AutomationTrigger) =>
   automationTriggers.find((item) => item.value === trigger)?.label ?? trigger;
 

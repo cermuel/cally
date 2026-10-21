@@ -11,11 +11,12 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 import { bookingsApi, type Booking } from "~/utils/api/bookings";
-import { getApiErrorMessage } from "~/utils/api/client";
+import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
 import { queryKeys } from "~/utils/api/query-keys";
 
 const props = defineProps<{
   booking: Booking | null;
+  timezone: string;
 }>();
 
 const open = defineModel<boolean>("open", { default: false });
@@ -25,7 +26,7 @@ const startsAt = ref("");
 const error = ref("");
 const input = ref<{ focus: () => void } | null>(null);
 
-const toLocalInputValue = (value: string | null) => {
+const toLocalInputValue = (value: string | Date | null) => {
   const date = value ? new Date(value) : new Date();
   const pad = (part: number) => String(part).padStart(2, "0");
 
@@ -40,6 +41,7 @@ const rescheduleMutation = useMutation({
     return bookingsApi.update(client, props.booking.id, {
       starts_at: startsAt,
       ends_at: endsAt,
+      timezone: props.timezone,
     });
   },
   onSuccess: async () => {
@@ -47,8 +49,20 @@ const rescheduleMutation = useMutation({
     open.value = false;
     toast.success("Meeting rescheduled");
   },
-  onError: (error) =>
-    toast.error(getApiErrorMessage(error, "Could not reschedule the meeting.")),
+  onError: async (requestError) => {
+    const fieldErrors = getApiFieldErrors(requestError);
+    error.value = fieldErrors.starts_at?.[0] ?? fieldErrors.ends_at?.[0] ?? "";
+    if (error.value) {
+      await nextTick();
+      input.value?.focus();
+    }
+    toast.error(
+      getApiErrorMessage(
+        requestError,
+        "Could not reschedule the meeting.",
+      ),
+    );
+  },
 });
 
 watch(open, (isOpen) => {
@@ -76,8 +90,8 @@ const submit = async () => {
   const end = new Date(start.getTime() + Math.max(currentDuration, 0));
 
   rescheduleMutation.mutate({
-    startsAt: start.toISOString(),
-    endsAt: end.toISOString(),
+    startsAt: startsAt.value,
+    endsAt: toLocalInputValue(end),
   });
 };
 </script>
@@ -110,13 +124,18 @@ const submit = async () => {
               @update:model-value="error = ''"
             />
             <p class="text-xs text-muted-foreground">
-              Times are shown in your device timezone.
+              Times are shown in {{ timezone }}.
             </p>
           </div>
 
           <div class="mt-6 flex justify-end gap-2">
             <DialogClose as-child>
-              <SharedButton type="button" variant="ghost" size="sm" :disabled="rescheduleMutation.isPending.value">
+              <SharedButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                :disabled="rescheduleMutation.isPending.value"
+              >
                 Cancel
               </SharedButton>
             </DialogClose>

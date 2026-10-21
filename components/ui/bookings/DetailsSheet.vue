@@ -218,6 +218,11 @@ const copyMeetingLink = async () => {
               </dl>
             </section>
 
+            <UiBookingsRescheduleRequests
+              :active="open"
+              :booking="booking"
+            />
+
             <section
               class="border-t border-border px-5 py-4"
               aria-labelledby="booking-people-heading"

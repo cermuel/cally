@@ -51,6 +51,7 @@ const deleteOpen = ref(false);
 const addGuestsOpen = ref(false);
 const rescheduleOpen = ref(false);
 const createMeetingOpen = ref(false);
+const rescheduleTimezone = ref("UTC");
 const meetingTimezone = computed(
   () =>
     auth.user.value?.timezone ||
@@ -58,6 +59,10 @@ const meetingTimezone = computed(
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : "UTC"),
 );
+
+onMounted(() => {
+  rescheduleTimezone.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+});
 
 watch(scope, () => {
   page.value = 1;
@@ -264,6 +269,7 @@ const clearActionTarget = () => {
       <UiBookingsRescheduleDialog
         v-model:open="rescheduleOpen"
         :booking="actionTarget"
+        :timezone="rescheduleTimezone"
       />
 
       <UiBookingsCreateDialog

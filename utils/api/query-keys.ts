@@ -66,6 +66,12 @@ export const queryKeys = {
     detail: (id: QueryKeyId) => [...queryKeys.bookings.details(), id] as const,
   },
 
+  reschedules: {
+    all: () => [...queryKeys.all, 'reschedules'] as const,
+    list: (bookingId: QueryKeyId) => [...queryKeys.reschedules.all(), 'list', bookingId] as const,
+    response: (rescheduleId: QueryKeyId, email: string) => [...queryKeys.reschedules.all(), 'response', rescheduleId, email] as const,
+  },
+
   contacts: {
     all: () => [...queryKeys.all, 'contacts'] as const,
     lists: () => [...queryKeys.contacts.all(), 'list'] as const,
