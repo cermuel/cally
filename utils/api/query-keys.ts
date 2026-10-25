@@ -49,6 +49,9 @@ export const queryKeys = {
     invites: (id: QueryKeyId, filters?: QueryKeyFilters) => filters
       ? [...queryKeys.teams.detail(id), 'invites', filters] as const
       : [...queryKeys.teams.detail(id), 'invites'] as const,
+    bookings: (id: QueryKeyId) => [...queryKeys.teams.detail(id), 'bookings'] as const,
+    bookingList: (id: QueryKeyId, filters?: QueryKeyFilters) => [...queryKeys.teams.bookings(id), 'list', filters ?? {}] as const,
+    booking: (id: QueryKeyId, bookingId: QueryKeyId) => [...queryKeys.teams.bookings(id), 'detail', bookingId] as const,
   },
 
   automations: {
@@ -64,6 +67,15 @@ export const queryKeys = {
     list: (filters?: QueryKeyFilters) => [...queryKeys.bookings.lists(), filters ?? {}] as const,
     details: () => [...queryKeys.bookings.all(), 'detail'] as const,
     detail: (id: QueryKeyId) => [...queryKeys.bookings.details(), id] as const,
+  },
+
+  recurrences: {
+    all: () => [...queryKeys.all, 'recurrences'] as const,
+    lists: () => [...queryKeys.recurrences.all(), 'list'] as const,
+    list: (filters?: QueryKeyFilters) => [...queryKeys.recurrences.lists(), filters ?? {}] as const,
+    details: () => [...queryKeys.recurrences.all(), 'detail'] as const,
+    detail: (id: QueryKeyId) => [...queryKeys.recurrences.details(), id] as const,
+    public: (id: QueryKeyId, email: string) => [...queryKeys.recurrences.all(), 'public', id, email] as const,
   },
 
   reschedules: {

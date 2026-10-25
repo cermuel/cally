@@ -34,6 +34,8 @@ export type CreateLinkPayload = {
   color?: string | null
   status?: LinkStatus
   visibility?: LinkVisibility
+  is_profile?: boolean
+  private?: boolean
 }
 
 export type UpdateLinkPayload = {

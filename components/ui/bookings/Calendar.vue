@@ -583,8 +583,8 @@ onMounted(scrollToRelevant);
                       }}<template v-if="e.booking.ends_at">
                         - {{ time24(e.booking.ends_at) }}</template
                       >
-                      <template v-if="guestName(e.booking)">
-                        · {{ guestName(e.booking) }}</template
+                      <template v-if="attendeeName(e.booking)">
+                        · {{ attendeeName(e.booking) }}</template
                       >
                     </span>
                   </button>

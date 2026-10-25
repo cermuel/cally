@@ -15,10 +15,12 @@ const props = withDefaults(
   defineProps<{
     id?: string;
     error?: string;
+    contentClass?: string;
   }>(),
   {
     id: "contact-tag",
     error: undefined,
+    contentClass: undefined,
   },
 );
 
@@ -167,7 +169,10 @@ const clearTag = () => {
 
       <SharedPopoverContent
         align="start"
-        class="w-(--reka-popover-trigger-width) min-w-56 p-1.5"
+        :class="[
+          'w-(--reka-popover-trigger-width) min-w-56 p-1.5',
+          props.contentClass,
+        ]"
       >
         <div v-if="customTagMode" class="p-1.5">
           <button

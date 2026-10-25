@@ -49,11 +49,17 @@ export const guestsApi = {
     })
   },
 
-  update(client: AxiosInstance, id: number, payload: UpdateGuestPayload) {
+  update(
+    client: AxiosInstance,
+    id: number,
+    payload: UpdateGuestPayload,
+    currentEmail?: string,
+  ) {
     return apiRequest<GuestResponse>(client, {
       method: 'PATCH',
       url: `/guests/${id}`,
       data: payload,
+      ...(currentEmail ? { params: { email: currentEmail } } : {}),
     })
   },
 

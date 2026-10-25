@@ -10,6 +10,7 @@ import { Placeholder } from "@tiptap/extensions";
 import { FontFamily, TextStyle } from "@tiptap/extension-text-style";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
+import type { HTMLAttributes } from "vue";
 import { LinkChip } from "~/utils/link-chip";
 
 const props = withDefaults(
@@ -18,6 +19,7 @@ const props = withDefaults(
     disabled?: boolean;
     error?: string;
     placeholder?: string;
+    contentClass?: HTMLAttributes["class"];
   }>(),
   {
     ariaLabel: "Profile description",
@@ -189,7 +191,7 @@ const removeLink = () =>
           >
             <SharedSelectValue placeholder="Font" />
           </SharedSelectTrigger>
-          <SharedSelectContent>
+          <SharedSelectContent :class="contentClass">
             <SharedSelectItem
               v-for="font in fontFamilies"
               :key="font.value"

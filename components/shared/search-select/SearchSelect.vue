@@ -117,6 +117,8 @@ const itemDisabled = (item: TItem) =>
   (item as SearchSelectItem).disabled ??
   false;
 
+const emptySearchDisplayValue = () => "";
+
 const visibleItems = computed(() => {
   const normalizedQuery = query.value.trim().toLocaleLowerCase();
   const items = props.search ? results.value : props.items;
@@ -260,7 +262,14 @@ onBeforeUnmount(() => {
           :size="16"
           color="currentColor"
           :stroke-width="1.75"
-          :class="loading ? 'animate-spin' : 'opacity-50'"
+          :class="
+            loading
+              ? 'animate-spin opacity-50'
+              : [
+                  'opacity-50 transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none',
+                  open && 'rotate-180',
+                ]
+          "
           aria-hidden="true"
         />
       </ComboboxTrigger>
@@ -290,6 +299,7 @@ onBeforeUnmount(() => {
           <ComboboxInput
             v-model="query"
             auto-focus
+            :display-value="emptySearchDisplayValue"
             :placeholder="searchPlaceholder"
             class="h-8 w-full rounded-sm bg-transparent ps-8 pe-8 text-sm outline-none placeholder:text-muted-foreground focus:bg-accent/50"
           />

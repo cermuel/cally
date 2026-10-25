@@ -13,9 +13,10 @@ export type Reschedule = {
   ends_at: string;
   created_at: string;
   updated_at: string;
+  responses: RescheduleResponse[];
 };
 
-export type RescheduleParticipantResponse = {
+export type RescheduleResponse = {
   id: number;
   reschedule_id: number;
   guest_id: number | null;
@@ -27,15 +28,20 @@ export type RescheduleParticipantResponse = {
   guest?: BookingGuest;
 };
 
+export type RescheduleParticipantResponse = RescheduleResponse;
+
 export type CreateReschedulePayload = {
-  email: string;
   starts_at: string;
   ends_at: string;
 };
 
-type CreateRescheduleResponse = {
+export type CreateRescheduleResult = {
   message: string;
   reschedule: Reschedule;
+};
+
+type CreatePublicReschedulePayload = CreateReschedulePayload & {
+  email: string;
 };
 
 type ParticipantResponseResponse = {
@@ -48,7 +54,7 @@ type RescheduleListResponse = {
   reschedules: Reschedule[];
 };
 
-type RescheduleResponse = {
+type GetRescheduleResult = {
   message: string;
   reschedule: Reschedule;
 };
@@ -63,7 +69,7 @@ export const reschedulesApi = {
   },
 
   get(client: AxiosInstance, rescheduleId: number) {
-    return apiRequest<RescheduleResponse>(client, {
+    return apiRequest<GetRescheduleResult>(client, {
       method: "GET",
       url: `/reschedules/${rescheduleId}`,
     });
@@ -72,11 +78,23 @@ export const reschedulesApi = {
   create(
     client: AxiosInstance,
     bookingId: number,
-    payload: CreateReschedulePayload,
+    payload: CreatePublicReschedulePayload,
   ) {
-    return apiRequest<CreateRescheduleResponse>(client, {
+    return apiRequest<CreateRescheduleResult>(client, {
       method: "POST",
       url: `/public/${bookingId}/reschedule`,
+      data: payload,
+    });
+  },
+
+  initiate(
+    client: AxiosInstance,
+    bookingId: number,
+    payload: CreateReschedulePayload,
+  ) {
+    return apiRequest<CreateRescheduleResult>(client, {
+      method: "POST",
+      url: `/bookings/${bookingId}/reschedules`,
       data: payload,
     });
   },

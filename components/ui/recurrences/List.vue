@@ -1,0 +1,48 @@
+<script setup lang="ts">
+import { RefreshCcwIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/vue";
+import type {
+  Recurrence,
+  RecurrencePagination,
+} from "~/utils/api/recurrences";
+
+defineProps<{
+  recurrences?: Recurrence[];
+  pagination?: RecurrencePagination;
+  loading: boolean;
+}>();
+
+defineEmits<{
+  open: [recurrence: Recurrence];
+  page: [page: number];
+}>();
+</script>
+
+<template>
+  <div class="flex min-h-0 flex-1 flex-col">
+    <div v-if="loading" class="min-h-0 flex-1 space-y-3 overflow-y-auto pe-1" aria-label="Loading recurring meetings" aria-busy="true">
+      <div v-for="index in 3" :key="index" class="h-36 animate-pulse rounded-xl border border-border bg-muted/50" />
+    </div>
+
+    <section v-else-if="!recurrences?.length" class="flex min-h-0 flex-1 flex-col justify-center rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center">
+      <div class="mx-auto grid size-11 place-items-center rounded-full bg-muted text-muted-foreground">
+        <HugeiconsIcon :icon="RefreshCcwIcon" :size="21" :stroke-width="1.75" aria-hidden="true" />
+      </div>
+      <h2 class="mt-4 font-semibold">No recurring meetings</h2>
+      <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+        Create a series to schedule the same contact on a repeating cadence.
+      </p>
+    </section>
+
+    <template v-else>
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto pe-1">
+        <UiRecurrencesCard v-for="recurrence in recurrences" :key="recurrence.id" :recurrence="recurrence" @open="$emit('open', $event)" />
+      </div>
+      <nav v-if="pagination && pagination.last_page > 1" class="mt-4 flex shrink-0 items-center justify-between" aria-label="Recurring meeting pages">
+        <SharedButton type="button" variant="outline" size="sm" :disabled="pagination.current_page === 1" @click="$emit('page', pagination.current_page - 1)">Previous</SharedButton>
+        <p class="text-sm text-muted-foreground">Page {{ pagination.current_page }} of {{ pagination.last_page }}</p>
+        <SharedButton type="button" variant="outline" size="sm" :disabled="pagination.current_page === pagination.last_page" @click="$emit('page', pagination.current_page + 1)">Next</SharedButton>
+      </nav>
+    </template>
+  </div>
+</template>

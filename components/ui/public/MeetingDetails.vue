@@ -85,21 +85,6 @@ const durationLabel = computed(() => {
       />
       <dd class="text-muted-foreground">{{ timeLabel }}</dd>
     </div>
-
-    <div class="flex items-start gap-3">
-      <HugeiconsIcon
-        :icon="Time02Icon"
-        :size="16"
-        :stroke-width="1.75"
-        class="mt-0.5 shrink-0 text-muted-foreground"
-        aria-hidden="true"
-      />
-      <dd>
-        {{ durationLabel }}
-        <span class="text-muted-foreground">· {{ timezone }}</span>
-      </dd>
-    </div>
-
     <div class="flex items-start gap-3">
       <HugeiconsIcon
         :icon="Location05Icon"

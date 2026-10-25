@@ -15,6 +15,10 @@ import {
 } from "~/utils/api/bookings";
 import { getApiErrorMessage } from "~/utils/api/client";
 import { guestsApi } from "~/utils/api/guests";
+import {
+  recurrencesApi,
+  type Recurrence,
+} from "~/utils/api/recurrences";
 
 const route = useRoute();
 const client = useApiClient();
@@ -22,7 +26,19 @@ const meetingId = computed(() => Number(route.params.id));
 const attendeeEmail = computed(() =>
   typeof route.query.email === "string" ? route.query.email.trim() : "",
 );
+const recurrenceId = computed(() => {
+  const value = route.query.recurrence_id;
+  const rawId = Array.isArray(value) ? value[0] : value;
+  if (!rawId || !/^\d+$/.test(rawId)) return null;
+  const id = Number(rawId);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+});
+const hasRecurrenceQuery = computed(
+  () => route.query.recurrence_id !== undefined,
+);
 const meeting = ref<Booking | null>(null);
+const invitedGuest = ref<BookingGuest | null>(null);
+const recurrence = ref<Recurrence | null>(null);
 const loading = ref(true);
 const loadError = ref("");
 const actionPending = ref(false);
@@ -46,10 +62,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => observer?.disconnect());
 
-const attendee = computed<BookingGuest | undefined>(() =>
-  meeting.value?.guests?.find(
-    (guest) => guest.email.toLowerCase() === attendeeEmail.value.toLowerCase(),
-  ),
+const attendee = computed<BookingGuest | undefined>(
+  () => invitedGuest.value ?? undefined,
 );
 const cancelled = computed(
   () =>
@@ -70,7 +84,8 @@ const loadMeeting = async () => {
   if (
     !Number.isInteger(meetingId.value) ||
     meetingId.value <= 0 ||
-    !attendeeEmail.value
+    !attendeeEmail.value ||
+    (hasRecurrenceQuery.value && recurrenceId.value === null)
   ) {
     loadError.value = "This meeting link is incomplete or invalid.";
     loading.value = false;
@@ -78,19 +93,35 @@ const loadMeeting = async () => {
   }
 
   try {
-    const response = await bookingsApi.details(client, meetingId.value);
+    const [response, guestResponse, recurrenceResponse] = await Promise.all([
+      bookingsApi.details(client, meetingId.value),
+      guestsApi.byEmail(client, meetingId.value, attendeeEmail.value),
+      recurrenceId.value
+        ? recurrencesApi.getPublic(
+            client,
+            recurrenceId.value,
+            attendeeEmail.value,
+          )
+        : Promise.resolve(null),
+    ]);
     const booking = response.booking;
     if (!booking) throw new Error("Booking not found");
     meeting.value = booking;
+    invitedGuest.value = guestResponse.guests;
+    recurrence.value = recurrenceResponse?.recurrence ?? null;
   } catch (error) {
     meeting.value = null;
+    invitedGuest.value = null;
+    recurrence.value = null;
     loadError.value = getApiErrorMessage(error, "Could not load this meeting.");
   } finally {
     loading.value = false;
   }
 };
 
-watch([meetingId, attendeeEmail], loadMeeting, { immediate: true });
+watch([meetingId, attendeeEmail, recurrenceId, hasRecurrenceQuery], loadMeeting, {
+  immediate: true,
+});
 
 const calendarUrl = computed(() => {
   if (!meeting.value?.starts_at || !meeting.value.ends_at) return "";
@@ -129,12 +160,17 @@ const cancelAttendance = async () => {
   if (!attendee.value) return;
   actionPending.value = true;
   try {
-    await guestsApi.update(client, attendee.value.id, {
-      attendance_status: "cancelled",
-    });
+    await guestsApi.update(
+      client,
+      attendee.value.id,
+      { attendance_status: "cancelled" },
+      recurrence.value ? attendeeEmail.value : undefined,
+    );
     await loadMeeting();
     cancelDialogOpen.value = false;
-    toast.success("Attendance cancelled");
+    toast.success(
+      recurrence.value ? "Series attendance cancelled" : "Attendance cancelled",
+    );
   } catch (error) {
     toast.error(getApiErrorMessage(error, "Could not cancel your attendance."));
   } finally {
@@ -225,6 +261,7 @@ useHead(() => ({
                 </SharedPopoverTrigger>
                 <SharedPopoverContent align="end" class="w-52 p-1">
                   <button
+                    v-if="!recurrence"
                     type="button"
                     class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-accent"
                     @click="
@@ -254,7 +291,11 @@ useHead(() => ({
                       :stroke-width="1.75"
                       aria-hidden="true"
                     />
-                    Cancel my attendance
+                    {{
+                      recurrence
+                        ? "Cancel attendance for series"
+                        : "Cancel my attendance"
+                    }}
                   </button>
                 </SharedPopoverContent>
               </SharedPopover>
@@ -281,8 +322,18 @@ useHead(() => ({
               <p class="text-xs text-muted-foreground">
                 with {{ meeting.host?.name ?? "Host" }}
               </p>
+              <p
+                v-if="recurrence"
+                class="text-xs font-medium text-foreground/80"
+              >
+                Recurring series
+              </p>
             </header>
 
+            <UiPublicRecurrenceSummary
+              v-if="recurrence"
+              :recurrence="recurrence"
+            />
             <UiPublicMeetingDetails :booking="meeting" />
 
             <footer class="border-t p-5">
@@ -306,7 +357,11 @@ useHead(() => ({
                     Join meeting
                   </a>
                 </SharedButton>
-                <SharedButton v-if="calendarUrl" as-child class="w-full">
+                <SharedButton
+                  v-if="calendarUrl && !recurrence"
+                  as-child
+                  class="w-full"
+                >
                   <a
                     :href="calendarUrl"
                     target="_blank"
@@ -316,6 +371,7 @@ useHead(() => ({
                   </a>
                 </SharedButton>
                 <SharedButton
+                  v-if="!recurrence"
                   type="button"
                   variant="ghost"
                   size="sm"
@@ -327,7 +383,11 @@ useHead(() => ({
                 </SharedButton>
               </div>
               <p v-else class="text-xs text-muted-foreground">
-                You're no longer attending. The host has been notified.
+                {{
+                  recurrence
+                    ? "You're no longer attending this series. The host has been notified."
+                    : "You're no longer attending. The host has been notified."
+                }}
               </p>
             </footer>
           </template>
@@ -344,9 +404,17 @@ useHead(() => ({
     />
     <UiPublicConfirmationDialog
       v-model:open="cancelDialogOpen"
-      title="Cancel your attendance?"
-      description="The host will be told you can't make it."
-      confirm-label="Cancel attendance"
+      :title="
+        recurrence ? 'Cancel the entire series?' : 'Cancel your attendance?'
+      "
+      :description="
+        recurrence
+          ? `You'll be removed from every occurrence in this series.`
+          : `The host will be told you can't make it.`
+      "
+      :confirm-label="
+        recurrence ? 'Cancel series attendance' : 'Cancel attendance'
+      "
       destructive
       @confirm="cancelAttendance"
     />

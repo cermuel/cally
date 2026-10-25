@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { DateValue, RangeCalendarRootEmits } from 'reka-ui'
-import type { RangeCalendarProps } from '../../../types/components/shared/range-calendar.d'
+import type { DateValue } from 'reka-ui'
 import {
   RangeCalendarCell,
   RangeCalendarCellTrigger,
@@ -14,29 +13,29 @@ import {
   RangeCalendarNext,
   RangeCalendarPrev,
   RangeCalendarRoot,
-  useForwardPropsEmits,
 } from 'reka-ui'
 import { ChevronLeftIcon, ChevronRightIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/vue'
-import { computed } from 'vue'
+import type { HTMLAttributes } from 'vue'
+import { useAttrs } from 'vue'
 import { cn } from '../../../lib/utils'
 import { buttonVariants } from '../button'
 
-const props = defineProps<RangeCalendarProps>()
-const emits = defineEmits<RangeCalendarRootEmits>()
-
-const delegatedProps = computed(() => {
-  const { class: _, ...delegated } = props
-  return delegated
+defineOptions({
+  inheritAttrs: false,
 })
-const forwarded = useForwardPropsEmits(delegatedProps, emits)
+
+const props = defineProps<{
+  class?: HTMLAttributes['class']
+}>()
+const attrs = useAttrs()
 </script>
 
 <template>
   <RangeCalendarRoot
     v-slot="{ grid, weekDays }"
     data-slot="range-calendar"
-    v-bind="forwarded"
+    v-bind="attrs"
     :class="cn('p-3', props.class)"
   >
     <RangeCalendarHeader class="relative flex w-full items-center justify-center pt-1">

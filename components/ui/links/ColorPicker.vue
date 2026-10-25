@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { CheckIcon, PaintBrush02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
+import type { HTMLAttributes } from "vue";
 import { linkColors } from "~/constants/link-colors";
 
 const props = defineProps<{
   disabled?: boolean;
+  contentClass?: HTMLAttributes["class"];
 }>();
 
 const model = defineModel<string | null>({ default: null });
@@ -49,7 +51,10 @@ const selectColor = (color: string | null) => {
         <span class="text-xs text-muted-foreground">Choose</span>
       </SharedButton>
     </SharedPopoverTrigger>
-    <SharedPopoverContent align="start" class="w-50 p-3">
+    <SharedPopoverContent
+      align="start"
+      :class="['w-50 p-3', props.contentClass]"
+    >
       <div class="grid grid-cols-4 gap-2" role="list" aria-label="Link colors">
         <button
           v-for="color in linkColors"

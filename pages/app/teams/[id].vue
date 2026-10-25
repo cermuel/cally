@@ -81,6 +81,16 @@ const canManageRoles = computed(() => currentMember.value?.role === "admin");
 const isOwner = computed(
   () => teamQuery.data.value?.team.owner_id === auth.user.value?.id,
 );
+const canManageBookings = computed(
+  () => isOwner.value || currentMember.value?.role === "admin",
+);
+const meetingTimezone = computed(
+  () =>
+    auth.user.value?.timezone ||
+    (import.meta.client
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : "UTC"),
+);
 
 useHead(() => ({
   title: teamQuery.data.value?.team
@@ -235,6 +245,8 @@ const clearSelectedInvite = () => {
         :members-error="membersQuery.isError.value"
         :invites-error="invitesQuery.isError.value"
         :is-owner="isOwner"
+        :can-manage-bookings="canManageBookings"
+        :timezone="meetingTimezone"
         @resend-invite="requestResendInvite"
         @update-invite-role="requestUpdateInviteRole"
         @delete-invite="requestDeleteInvite"

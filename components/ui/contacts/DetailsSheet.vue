@@ -17,6 +17,7 @@ const open = defineModel<boolean>("open", { default: false });
 const emit = defineEmits<{
   edit: [contact: Contact];
   schedule: [contact: Contact];
+  scheduleRecurring: [contact: Contact];
 }>();
 
 const page = ref(1);
@@ -92,9 +93,9 @@ const editContact = () => {
   open.value = false;
 };
 
-const scheduleBooking = () => {
+const scheduleBooking = (kind: "once" | "recurring") => {
   if (!contact.value) return;
-  emit("schedule", contact.value);
+  emit(kind === "once" ? "schedule" : "scheduleRecurring", contact.value);
   open.value = false;
 };
 </script>
@@ -212,20 +213,12 @@ const scheduleBooking = () => {
             </div>
           </div>
 
-          <SharedButton
-            type="button"
-            size="sm"
-            class="mt-4 w-full"
-            @click="scheduleBooking"
-          >
-            <HugeiconsIcon
-              :icon="Calendar03Icon"
-              :size="15"
-              :stroke-width="1.75"
-              aria-hidden="true"
-            />
-            Schedule meeting
-          </SharedButton>
+          <UiBookingsCreateMenu
+            label="Schedule meeting"
+            button-class="mt-4 w-full"
+            @once="scheduleBooking('once')"
+            @recurring="scheduleBooking('recurring')"
+          />
         </section>
 
         <section

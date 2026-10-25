@@ -17,6 +17,8 @@ defineProps<{
   membersError: boolean;
   invitesError: boolean;
   isOwner: boolean;
+  canManageBookings: boolean;
+  timezone: string;
   updatingInviteId?: number | null;
   resendingInviteId?: number | null;
   deletingInviteId?: number | null;
@@ -33,12 +35,19 @@ const emit = defineEmits<{
   leaveTeam: [];
 }>();
 
-const activeTab = ref("members");
+const route = useRoute();
+const activeTab = ref(route.query.booking_id ? "meetings" : "members");
 const memberSearch = ref("");
 const inviteSearch = ref("");
 
 watch(memberSearch, (search) => emit("searchMembers", search));
 watch(inviteSearch, (search) => emit("searchInvites", search));
+watch(
+  () => route.query.booking_id,
+  (bookingId) => {
+    if (bookingId) activeTab.value = "meetings";
+  },
+);
 </script>
 
 <template>
@@ -182,14 +191,11 @@ watch(inviteSearch, (search) => emit("searchInvites", search));
     </SharedTabsContent>
 
     <SharedTabsContent value="meetings">
-      <div
-        class="rounded-xl border border-dashed border-border px-6 py-14 text-center"
-      >
-        <p class="font-medium">Meetings are coming next</p>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Team meetings will appear here.
-        </p>
-      </div>
+      <UiTeamsMeetings
+        :team-id="teamId"
+        :can-manage="canManageBookings"
+        :timezone="timezone"
+      />
     </SharedTabsContent>
 
     <SharedTabsContent value="settings">

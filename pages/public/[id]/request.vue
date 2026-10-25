@@ -11,6 +11,7 @@ import {
 } from "~/utils/api/bookings";
 import { getApiErrorMessage } from "~/utils/api/client";
 import { guestsApi } from "~/utils/api/guests";
+import { recurrencesApi, type Recurrence } from "~/utils/api/recurrences";
 
 type ResponseState = "accepted" | "declined" | "pending";
 
@@ -20,8 +21,19 @@ const meetingId = computed(() => Number(route.params.id));
 const attendeeEmail = computed(() =>
   typeof route.query.email === "string" ? route.query.email.trim() : "",
 );
+const recurrenceId = computed(() => {
+  const value = route.query.recurrence_id;
+  const rawId = Array.isArray(value) ? value[0] : value;
+  if (!rawId || !/^\d+$/.test(rawId)) return null;
+  const id = Number(rawId);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+});
+const hasRecurrenceQuery = computed(
+  () => route.query.recurrence_id !== undefined,
+);
 const meeting = ref<Booking | null>(null);
 const guest = ref<BookingGuest | null>(null);
+const recurrence = ref<Recurrence | null>(null);
 const responseState = ref<ResponseState>("pending");
 const name = ref("");
 const nameError = ref("");
@@ -52,7 +64,8 @@ const loadInvitation = async () => {
   if (
     !Number.isInteger(meetingId.value) ||
     meetingId.value <= 0 ||
-    !attendeeEmail.value
+    !attendeeEmail.value ||
+    (hasRecurrenceQuery.value && recurrenceId.value === null)
   ) {
     loadError.value = "This invitation link is incomplete or invalid.";
     loading.value = false;
@@ -60,15 +73,24 @@ const loadInvitation = async () => {
   }
 
   try {
-    const [bookingResponse, guestResponse] = await Promise.all([
-      bookingsApi.details(client, meetingId.value),
-      guestsApi.byEmail(client, meetingId.value, attendeeEmail.value),
-    ]);
+    const [bookingResponse, guestResponse, recurrenceResponse] =
+      await Promise.all([
+        bookingsApi.details(client, meetingId.value),
+        guestsApi.byEmail(client, meetingId.value, attendeeEmail.value),
+        recurrenceId.value
+          ? recurrencesApi.getPublic(
+              client,
+              recurrenceId.value,
+              attendeeEmail.value,
+            )
+          : Promise.resolve(null),
+      ]);
     const booking = bookingResponse.booking;
     if (!booking) throw new Error("Booking not found");
 
     meeting.value = booking;
     guest.value = guestResponse.guests;
+    recurrence.value = recurrenceResponse?.recurrence ?? null;
     responseState.value =
       guest.value.attendance_status === "confirmed"
         ? "accepted"
@@ -82,6 +104,7 @@ const loadInvitation = async () => {
   } catch (error) {
     meeting.value = null;
     guest.value = null;
+    recurrence.value = null;
     loadError.value = getApiErrorMessage(
       error,
       "Could not load this invitation.",
@@ -91,7 +114,13 @@ const loadInvitation = async () => {
   }
 };
 
-watch([meetingId, attendeeEmail], loadInvitation, { immediate: true });
+watch(
+  [meetingId, attendeeEmail, recurrenceId, hasRecurrenceQuery],
+  loadInvitation,
+  {
+    immediate: true,
+  },
+);
 
 const acceptInvitation = async () => {
   if (!guest.value) return;
@@ -102,10 +131,15 @@ const acceptInvitation = async () => {
 
   submitting.value = true;
   try {
-    const response = await guestsApi.update(client, guest.value.id, {
-      name: name.value.trim(),
-      attendance_status: "confirmed",
-    });
+    const response = await guestsApi.update(
+      client,
+      guest.value.id,
+      {
+        name: name.value.trim(),
+        attendance_status: "confirmed",
+      },
+      recurrence.value ? attendeeEmail.value : undefined,
+    );
     guest.value = response.guests;
     responseState.value = "accepted";
   } catch (error) {
@@ -122,9 +156,12 @@ const declineInvitation = async () => {
   if (!guest.value) return;
   submitting.value = true;
   try {
-    const response = await guestsApi.update(client, guest.value.id, {
-      attendance_status: "cancelled",
-    });
+    const response = await guestsApi.update(
+      client,
+      guest.value.id,
+      { attendance_status: "cancelled" },
+      recurrence.value ? attendeeEmail.value : undefined,
+    );
     guest.value = response.guests;
     responseState.value = "declined";
     declineDialogOpen.value = false;
@@ -141,14 +178,16 @@ const declineInvitation = async () => {
 useHead(() => ({
   title:
     responseState.value === "pending"
-      ? "Meeting invitation"
+      ? recurrence.value
+        ? "Recurring meeting invitation"
+        : "Meeting invitation"
       : `Invitation ${responseState.value}`,
 }));
 </script>
 
 <template>
   <main
-    class="grid h-dvh place-items-center bg-background px-4 py-8 text-sm text-foreground antialiased"
+    class="grid min-h-dvh place-items-center bg-background px-4 py-8 text-sm text-foreground antialiased"
   >
     <section class="w-full max-w-sm">
       <NuxtLink
@@ -218,12 +257,13 @@ useHead(() => ({
               </div>
             </header>
 
+            <UiPublicRecurrenceSummary
+              v-if="recurrence"
+              :recurrence="recurrence"
+            />
             <UiPublicMeetingDetails :booking="meeting" />
 
-            <form
-              class="space-y-3 border-t p-5 text-left"
-              @submit.prevent="acceptInvitation"
-            >
+            <div class="space-y-3 border-t p-5 text-left">
               <div>
                 <SharedLabel
                   for="invitee-name"
@@ -242,25 +282,32 @@ useHead(() => ({
               </div>
               <div class="flex flex-col gap-1">
                 <SharedButton
-                  type="submit"
+                  type="button"
                   class="w-full"
                   :disabled="submitting"
                   :loading="submitting"
+                  @click="acceptInvitation"
                 >
-                  Accept
+                  {{ recurrence ? "Accept series" : "Accept" }}
                 </SharedButton>
                 <SharedButton
                   type="button"
                   variant="ghost"
                   size="sm"
-                  class="w-full text-muted-foreground mt-1"
+                  class="mt-1 w-full text-muted-foreground"
                   :disabled="submitting"
                   @click="declineDialogOpen = true"
                 >
-                  Decline
+                  {{ recurrence ? "Decline series" : "Decline" }}
                 </SharedButton>
               </div>
-            </form>
+              <p
+                v-if="recurrence"
+                class="text-center text-xs leading-5 text-muted-foreground"
+              >
+                Your response applies to every occurrence in this series.
+              </p>
+            </div>
           </template>
 
           <template v-else-if="responseState === 'accepted'">
@@ -272,8 +319,14 @@ useHead(() => ({
                 class="text-emerald-600 dark:text-emerald-400"
                 aria-hidden="true"
               />
-              <p class="font-semibold">You're going</p>
+              <p class="font-semibold">
+                {{ recurrence ? "Series accepted" : "You're going" }}
+              </p>
             </div>
+            <UiPublicRecurrenceSummary
+              v-if="recurrence"
+              :recurrence="recurrence"
+            />
             <UiPublicMeetingDetails :booking="meeting" />
             <p class="border-t p-4 text-xs text-muted-foreground">
               Details sent to
@@ -283,10 +336,12 @@ useHead(() => ({
 
           <template v-else>
             <div class="p-5">
-              <p class="font-semibold">Declined</p>
+              <p class="font-semibold">
+                {{ recurrence ? "Series declined" : "Declined" }}
+              </p>
               <p class="mt-1 text-muted-foreground">
                 {{ (meeting.host?.name ?? "The host").split(" ")[0] }} has been
-                notified.
+                notified<span v-if="recurrence"> for every occurrence</span>.
               </p>
             </div>
             <div class="flex justify-center border-t p-3">
@@ -310,8 +365,12 @@ useHead(() => ({
     <UiPublicConfirmationDialog
       v-model:open="declineDialogOpen"
       title="Decline this invitation?"
-      description="The host will be told you can't make it."
-      confirm-label="Decline"
+      :description="
+        recurrence
+          ? 'This declines every occurrence in the series.'
+          : `The host will be told you can't make it.`
+      "
+      :confirm-label="recurrence ? 'Decline series' : 'Decline'"
       destructive
       @confirm="declineInvitation"
     />

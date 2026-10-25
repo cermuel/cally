@@ -11,6 +11,7 @@ import {
   type ContactSortDirection,
   type ContactSortField,
 } from "~/utils/api/contacts";
+import type { Recurrence } from "~/utils/api/recurrences";
 import { queryKeys } from "~/utils/api/query-keys";
 
 definePageMeta({ layout: false });
@@ -40,6 +41,7 @@ const detailContactId = computed(() => {
 });
 const detailsOpen = computed(() => detailContactId.value !== null);
 const scheduleOpen = ref(false);
+const recurringScheduleOpen = ref(false);
 const scheduleContact = ref<Contact | null>(null);
 const formOpen = ref(false);
 const deleteOpen = ref(false);
@@ -124,11 +126,22 @@ const setDetailsOpen = (open: boolean) => {
   });
 };
 
-const openSchedule = async (contact: Contact) => {
+const openSchedule = async (
+  contact: Contact,
+  kind: "once" | "recurring" = "once",
+) => {
   setDetailsOpen(false);
   scheduleContact.value = contact;
   await nextTick();
-  scheduleOpen.value = true;
+  if (kind === "once") scheduleOpen.value = true;
+  else recurringScheduleOpen.value = true;
+};
+
+const recurrenceCreated = (recurrence: Recurrence) => {
+  void router.push({
+    path: "/app/meetings",
+    query: { recurrence_id: String(recurrence.id) },
+  });
 };
 
 watch(formOpen, (isOpen) => {
@@ -137,8 +150,8 @@ watch(formOpen, (isOpen) => {
   }
 });
 
-watch(scheduleOpen, (isOpen) => {
-  if (!isOpen) {
+watch([scheduleOpen, recurringScheduleOpen], ([oneTimeOpen, recurringOpen]) => {
+  if (!oneTimeOpen && !recurringOpen) {
     scheduleContact.value = null;
   }
 });
@@ -316,12 +329,20 @@ const updateSort = (field: ContactSortField) => {
       @update:open="setDetailsOpen"
       @edit="openEdit"
       @schedule="openSchedule"
+      @schedule-recurring="openSchedule($event, 'recurring')"
     />
 
     <UiBookingsCreateDialog
       v-model:open="scheduleOpen"
       :contact="scheduleContact"
       :timezone="bookingTimezone"
+    />
+
+    <UiRecurrencesCreateDialog
+      v-model:open="recurringScheduleOpen"
+      :contact="scheduleContact"
+      :timezone="bookingTimezone"
+      @created="recurrenceCreated"
     />
 
     <UiContactsFormDialog

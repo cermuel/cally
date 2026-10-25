@@ -76,7 +76,7 @@ const signOut = async () => {
         variant="ghost"
         class="min-h-12 w-full rounded-xl text-start hover:bg-sidebar-accent active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         :class="
-          compact ? 'px-0' : 'justify-start gap-3 bg-sidebar-accent/60 p-2'
+          compact ? 'min-h-0!' : 'justify-start gap-3 bg-sidebar-accent/60 p-2'
         "
         aria-label="Open account menu"
       >
@@ -86,6 +86,7 @@ const signOut = async () => {
           size="sm"
         />
         <span
+          v-if="!compact"
           class="sidebar-copy min-w-0 flex-1"
           :class="hideCopy && 'sidebar-copy--hidden'"
           :aria-hidden="hideCopy ? 'true' : undefined"
@@ -100,6 +101,7 @@ const signOut = async () => {
         <span
           :class="open ? 'rotate-180' : 'rotate-0'"
           class="transition-all duration-300 scale-120"
+          v-if="!compact"
         >
           <HugeiconsIcon :icon="UnfoldMoreIcon" />
         </span>

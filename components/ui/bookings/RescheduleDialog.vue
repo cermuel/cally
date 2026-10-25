@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/vue";
 import {
   DialogClose,
   DialogContent,
@@ -10,9 +12,11 @@ import {
 } from "reka-ui";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
-import { bookingsApi, type Booking } from "~/utils/api/bookings";
+import type { Booking } from "~/utils/api/bookings";
 import { getApiErrorMessage, getApiFieldErrors } from "~/utils/api/client";
+import type { PublicScheduleSlot } from "~/utils/api/public";
 import { queryKeys } from "~/utils/api/query-keys";
+import { reschedulesApi } from "~/utils/api/reschedules";
 
 const props = defineProps<{
   booking: Booking | null;
@@ -22,77 +26,158 @@ const props = defineProps<{
 const open = defineModel<boolean>("open", { default: false });
 const client = useApiClient();
 const queryClient = useQueryClient();
-const startsAt = ref("");
-const error = ref("");
-const input = ref<{ focus: () => void } | null>(null);
+const selectedDate = ref("");
+const selectedSlotId = ref("");
+const localError = ref("");
+const apiErrors = ref<Record<string, string[]>>({});
 
-const toLocalInputValue = (value: string | Date | null) => {
-  const date = value ? new Date(value) : new Date();
-  const pad = (part: number) => String(part).padStart(2, "0");
+const eventId = computed(() => {
+  const id = props.booking?.event?.id ?? Number(props.booking?.event_id);
+  return Number.isInteger(id) && Number(id) > 0 ? Number(id) : null;
+});
+const displayTimezone = computed(
+  () =>
+    props.booking?.booking_timezone ??
+    props.booking?.host?.timezone ??
+    props.timezone,
+);
+const originalDate = computed(() =>
+  props.booking?.starts_at
+    ? dateKeyInTimezone(props.booking.starts_at, displayTimezone.value)
+    : "",
+);
+const originalSlot = computed<PublicScheduleSlot | null>(() => {
+  if (!props.booking?.starts_at || !props.booking.ends_at) return null;
 
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return {
+    time: timeInTimezone(props.booking.starts_at, displayTimezone.value),
+    starts_at: props.booking.starts_at,
+    ends_at: props.booking.ends_at,
+  };
+});
+
+const availableTimesQuery = usePublicAvailableTimes(eventId, selectedDate);
+const availableSlots = computed(() => {
+  const slots = availableTimesQuery.data.value?.available_times ?? [];
+  const current = originalSlot.value;
+  if (
+    !current ||
+    selectedDate.value !== originalDate.value ||
+    slots.some((slot) => slot.starts_at === current.starts_at)
+  ) {
+    return slots;
+  }
+
+  return [current, ...slots].sort(
+    (first, second) =>
+      new Date(first.starts_at).getTime() -
+      new Date(second.starts_at).getTime(),
+  );
+});
+const selectedSlot = computed(() =>
+  availableSlots.value.find((slot) => slot.starts_at === selectedSlotId.value),
+);
+const fieldError = computed(
+  () =>
+    localError.value ||
+    apiErrors.value.starts_at?.[0] ||
+    apiErrors.value.ends_at?.[0],
+);
+
+function dateKeyInTimezone(value: string, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone,
+  }).formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function timeInTimezone(value: string, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+
+  return `${part("hour")}:${part("minute")}`;
+}
+
+const reset = () => {
+  selectedDate.value = originalDate.value;
+  selectedSlotId.value = props.booking?.starts_at ?? "";
+  localError.value = "";
+  apiErrors.value = {};
 };
 
-const minimumStart = computed(() => toLocalInputValue(null));
+watch(open, (isOpen) => {
+  if (isOpen) reset();
+});
+
+const selectDate = (date: string) => {
+  selectedDate.value = date;
+  selectedSlotId.value =
+    date === originalDate.value ? (props.booking?.starts_at ?? "") : "";
+  localError.value = "";
+  apiErrors.value = {};
+};
+
+const selectSlot = (startsAt: string) => {
+  selectedSlotId.value = startsAt;
+  localError.value = "";
+  apiErrors.value = {};
+};
 
 const rescheduleMutation = useMutation({
-  mutationFn: ({ startsAt, endsAt }: { startsAt: string; endsAt: string }) => {
+  mutationFn: (slot: PublicScheduleSlot) => {
     if (!props.booking) throw new Error("No meeting selected");
-    return bookingsApi.update(client, props.booking.id, {
-      starts_at: startsAt,
-      ends_at: endsAt,
-      timezone: props.timezone,
+    return reschedulesApi.initiate(client, props.booking.id, {
+      starts_at: slot.starts_at,
+      ends_at: slot.ends_at,
     });
   },
   onSuccess: async () => {
-    await queryClient.invalidateQueries({ queryKey: queryKeys.bookings.all() });
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.reschedules.all(),
+    });
     open.value = false;
-    toast.success("Meeting rescheduled");
+    toast.success("Reschedule request sent", {
+      description: "The meeting stays unchanged until attendees accept.",
+    });
   },
-  onError: async (requestError) => {
-    const fieldErrors = getApiFieldErrors(requestError);
-    error.value = fieldErrors.starts_at?.[0] ?? fieldErrors.ends_at?.[0] ?? "";
-    if (error.value) {
-      await nextTick();
-      input.value?.focus();
-    }
+  onError: (requestError) => {
+    apiErrors.value = getApiFieldErrors(requestError);
     toast.error(
       getApiErrorMessage(
         requestError,
-        "Could not reschedule the meeting.",
+        "Could not request the new time.",
       ),
     );
   },
 });
 
-watch(open, (isOpen) => {
-  if (!isOpen) return;
-  startsAt.value = toLocalInputValue(props.booking?.starts_at ?? null);
-  error.value = "";
-});
+const submit = () => {
+  localError.value = "";
+  apiErrors.value = {};
 
-const submit = async () => {
-  if (!props.booking || !startsAt.value) return;
-
-  const start = new Date(startsAt.value);
-  if (Number.isNaN(start.getTime()) || start.getTime() <= Date.now()) {
-    error.value = "Choose a future date and time.";
-    await nextTick();
-    input.value?.focus();
+  if (!selectedDate.value || !selectedSlot.value) {
+    localError.value = "Choose an available date and time.";
     return;
   }
 
-  const currentDuration =
-    props.booking.starts_at && props.booking.ends_at
-      ? new Date(props.booking.ends_at).getTime() -
-        new Date(props.booking.starts_at).getTime()
-      : (props.booking.event?.duration_minutes ?? 30) * 60_000;
-  const end = new Date(start.getTime() + Math.max(currentDuration, 0));
+  if (selectedSlot.value.starts_at === props.booking?.starts_at) {
+    localError.value = "Choose a different date and time.";
+    return;
+  }
 
-  rescheduleMutation.mutate({
-    startsAt: startsAt.value,
-    endsAt: toLocalInputValue(end),
-  });
+  rescheduleMutation.mutate(selectedSlot.value);
 };
 </script>
 
@@ -100,55 +185,77 @@ const submit = async () => {
   <DialogRoot v-model:open="open">
     <DialogPortal>
       <DialogOverlay
-        class="fixed inset-0 z-50 bg-black/55 backdrop-blur-xs duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none"
+        class="fixed inset-0 z-60 bg-black/55 backdrop-blur-xs duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 motion-reduce:animate-none"
       />
       <DialogContent
-        class="fixed start-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-background p-5 shadow-xl outline-none duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 motion-reduce:data-[state=closed]:zoom-out-100 motion-reduce:data-[state=open]:zoom-in-100"
+        class="fixed inset-s-1/2 top-1/2 z-60 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl outline-none duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 motion-reduce:data-[state=closed]:zoom-out-100 motion-reduce:data-[state=open]:zoom-in-100"
       >
-        <div>
-          <DialogTitle class="font-semibold">Reschedule meeting</DialogTitle>
-          <DialogDescription class="mt-1 text-sm leading-6 text-muted-foreground">
-            Choose a new start time. The meeting duration will stay the same.
-          </DialogDescription>
-
-          <div class="mt-5 space-y-2">
-            <SharedLabel for="booking-new-start">New date and time</SharedLabel>
-            <SharedInput
-              id="booking-new-start"
-              ref="input"
-              v-model="startsAt"
-              type="datetime-local"
-              name="booking-new-start"
-              :min="minimumStart"
-              :error="error"
-              @update:model-value="error = ''"
-            />
-            <p class="text-xs text-muted-foreground">
-              Times are shown in {{ timezone }}.
-            </p>
+        <header
+          class="flex items-start gap-4 border-b border-border px-5 py-5 sm:px-6"
+        >
+          <div class="min-w-0 flex-1">
+            <DialogTitle class="text-lg font-semibold tracking-tight">
+              Request a new time
+            </DialogTitle>
+            <DialogDescription class="mt-1 text-sm text-muted-foreground">
+              Pick another available time for
+              {{ booking?.event?.name ?? "this meeting" }}.
+            </DialogDescription>
           </div>
-
-          <div class="mt-6 flex justify-end gap-2">
-            <DialogClose as-child>
-              <SharedButton
-                type="button"
-                variant="ghost"
-                size="sm"
-                :disabled="rescheduleMutation.isPending.value"
-              >
-                Cancel
-              </SharedButton>
-            </DialogClose>
+          <DialogClose as-child>
             <SharedButton
               type="button"
-              size="sm"
-              :loading="rescheduleMutation.isPending.value"
-              @click="submit"
+              variant="ghost"
+              size="icon-sm"
+              class="-me-2 -mt-1 shrink-0 text-muted-foreground"
+              aria-label="Close reschedule dialog"
             >
-              Save new time
+              <HugeiconsIcon
+                :icon="Cancel01Icon"
+                :size="18"
+                :stroke-width="1.75"
+                aria-hidden="true"
+              />
             </SharedButton>
-          </div>
+          </DialogClose>
+        </header>
+
+        <div class="min-h-0 overflow-y-auto p-5 sm:p-6">
+          <UiBookingsAvailabilityPicker
+            :selected-date="selectedDate"
+            :selected-slot="selectedSlotId"
+            :slots="availableSlots"
+            :timezone="availableTimesQuery.data.value?.timezone ?? displayTimezone"
+            :loading="availableTimesQuery.isFetching.value"
+            :load-error="availableTimesQuery.isError.value"
+            :error="fieldError"
+            @retry="availableTimesQuery.refetch()"
+            @select-date="selectDate"
+            @select-slot="selectSlot"
+          />
         </div>
+
+        <footer
+          class="flex justify-end gap-2 border-t border-border px-5 py-4 sm:px-6"
+        >
+          <DialogClose as-child>
+            <SharedButton
+              type="button"
+              variant="outline"
+              :disabled="rescheduleMutation.isPending.value"
+            >
+              Cancel
+            </SharedButton>
+          </DialogClose>
+          <SharedButton
+            type="button"
+            :loading="rescheduleMutation.isPending.value"
+            :disabled="rescheduleMutation.isPending.value"
+            @click="submit"
+          >
+            Send request
+          </SharedButton>
+        </footer>
       </DialogContent>
     </DialogPortal>
   </DialogRoot>

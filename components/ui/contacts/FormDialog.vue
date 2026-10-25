@@ -23,6 +23,8 @@ import { queryKeys } from "~/utils/api/query-keys";
 
 const props = defineProps<{
   contact?: Contact | null;
+  initialEmail?: string;
+  initialName?: string;
   nested?: boolean;
 }>();
 
@@ -78,8 +80,8 @@ const saveMutation = useMutation({
 });
 
 const resetForm = () => {
-  email.value = props.contact?.email ?? "";
-  name.value = props.contact?.name ?? "";
+  email.value = props.contact?.email ?? props.initialEmail ?? "";
+  name.value = props.contact?.name ?? props.initialName ?? "";
   phone.value = props.contact?.phone ?? "";
   timezone.value = props.contact?.timezone ?? "";
   company.value = props.contact?.company ?? "";
@@ -187,9 +189,22 @@ const submit = () => {
 
         <div class="min-h-0 overflow-y-auto">
           <div class="grid gap-5 p-6 sm:grid-cols-2">
+            <div v-if="!editing" class="sm:col-span-2">
+              <SharedLabel for="contact-name" class="mb-1.5 text-sm">
+                Name
+              </SharedLabel>
+              <SharedInput
+                id="contact-name"
+                v-model="name"
+                autocomplete="name"
+                placeholder="John Doe"
+                :error="fieldError('name')"
+              />
+            </div>
+
             <div class="sm:col-span-2">
               <SharedLabel for="contact-email" class="mb-1.5 text-sm">
-                Email <span v-if="!editing" aria-hidden="true">*</span>
+                Email
               </SharedLabel>
               <SharedInput
                 id="contact-email"
@@ -215,13 +230,12 @@ const submit = () => {
               v-model="tag"
               class="sm:col-span-2"
               :error="fieldError('tag')"
+              :content-class="nested ? 'z-80' : undefined"
             />
 
-            <div :class="!editing && 'sm:col-span-2'">
+            <div v-if="editing">
               <SharedLabel for="contact-name" class="mb-1.5 text-sm">
-                Name<span v-if="!editing" class="text-muted-foreground">
-                  (optional)</span
-                >
+                Name
               </SharedLabel>
               <SharedInput
                 id="contact-name"
@@ -260,6 +274,7 @@ const submit = () => {
               v-if="editing"
               v-model="tag"
               :error="fieldError('tag')"
+              :content-class="nested ? 'z-80' : undefined"
             />
             <div v-if="editing" class="sm:col-span-2">
               <SharedLabel for="contact-notes" class="mb-1.5 text-sm"

@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import type { HTMLAttributes } from "vue";
+
 defineProps<{
   id: string;
   disabled?: boolean;
   error?: string;
+  contentClass?: HTMLAttributes["class"];
 }>();
 
 const duration = defineModel<string>({ required: true });
@@ -34,7 +37,7 @@ const durationOptions = computed(() => {
       >
         <SharedSelectValue placeholder="Select duration" />
       </SharedSelectTrigger>
-      <SharedSelectContent>
+      <SharedSelectContent :class="contentClass">
         <SharedSelectItem
           v-for="minutes in durationOptions"
           :key="minutes"
