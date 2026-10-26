@@ -44,7 +44,9 @@ export type CreateRecurrencePayload = CreateRecurrenceSchedule &
   (
     | { contact_id: number; team_id?: never }
     | { team_id: number; contact_id?: never }
-  );
+  ) & {
+    override?: true;
+  };
 
 export type RecurrenceListParams = {
   event_id?: number;

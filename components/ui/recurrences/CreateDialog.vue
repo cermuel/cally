@@ -9,6 +9,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { isAxiosError } from "axios";
 import type { DateRange, DateValue } from "reka-ui";
 import {
   DialogClose,
@@ -67,7 +68,10 @@ const contactPrefillName = ref("");
 const scheduleSentence = ref<HTMLElement | null>(null);
 const localErrors = ref<Record<string, string>>({});
 const apiErrors = ref<Record<string, string[]>>({});
+const conflictOpen = ref(false);
+const conflictPayload = shallowRef<CreateRecurrencePayload | null>(null);
 const isTeamRecurrence = computed(() => props.teamId !== undefined);
+const conflictMessage = "One or more meeting times are already reserved.";
 
 const cadenceOptions: { value: RecurrenceCadence; label: string }[] = [
   { value: "daily", label: "Daily" },
@@ -164,6 +168,8 @@ const reset = () => {
   setDefaultRange();
   localErrors.value = {};
   apiErrors.value = {};
+  conflictOpen.value = false;
+  conflictPayload.value = null;
 };
 watch(open, (isOpen) => {
   if (isOpen) reset();
@@ -396,13 +402,29 @@ const createMutation = useMutation({
     toast.success("Recurring meeting created");
     emit("created", response.body);
   },
-  onError: (error) => {
+  onError: (error, payload) => {
+    if (
+      isAxiosError(error) &&
+      error.response?.status === 409 &&
+      error.response.data?.message === conflictMessage
+    ) {
+      conflictPayload.value = payload;
+      conflictOpen.value = true;
+      return;
+    }
+
     apiErrors.value = getApiFieldErrors(error);
     toast.error(
       getApiErrorMessage(error, "Could not create the recurring meeting."),
     );
   },
 });
+const handleConflictCreated = (recurrence: Recurrence) => {
+  conflictPayload.value = null;
+  open.value = false;
+  toast.success("Recurring meeting created");
+  emit("created", recurrence);
+};
 const isPending = computed(
   () => createEventMutation.isPending.value || createMutation.isPending.value,
 );
@@ -782,5 +804,10 @@ const submit = async () => {
     :initial-name="contactPrefillName"
     nested
     @saved="handleContactCreated"
+  />
+  <UiRecurrencesConflictDialog
+    v-model:open="conflictOpen"
+    :payload="conflictPayload"
+    @created="handleConflictCreated"
   />
 </template>
