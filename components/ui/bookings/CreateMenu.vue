@@ -8,12 +8,13 @@ import {
 import { HugeiconsIcon } from "@hugeicons/vue";
 import type { HTMLAttributes } from "vue";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     label?: string;
     buttonClass?: HTMLAttributes["class"];
+    context?: "personal" | "team";
   }>(),
-  { label: "New meeting" },
+  { label: "New meeting", context: "personal" },
 );
 
 const emit = defineEmits<{
@@ -23,11 +24,14 @@ const emit = defineEmits<{
 
 const open = ref(false);
 
-const items = [
+const items = computed(() => [
   {
     kind: "once",
     label: "One-time meeting",
-    description: "Pick a contact, date, and time.",
+    description:
+      props.context === "team"
+        ? "Pick a date and time for the team."
+        : "Pick a contact, date, and time.",
     icon: CalendarAdd02Icon,
   },
   {
@@ -36,7 +40,7 @@ const items = [
     description: "Set a schedule that repeats.",
     icon: CalendarSyncIcon,
   },
-] as const;
+] as const);
 
 const choose = (kind: "once" | "recurring") => {
   open.value = false;

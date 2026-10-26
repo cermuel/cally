@@ -33,7 +33,11 @@ import {
 import { queryKeys } from "~/utils/api/query-keys";
 import { normalizeLinkSlug } from "~/utils/links";
 
-const props = defineProps<{ contact?: Contact | null; timezone: string }>();
+const props = defineProps<{
+  contact?: Contact | null;
+  teamId?: number;
+  timezone: string;
+}>();
 const open = defineModel<boolean>("open", { default: false });
 const emit = defineEmits<{ created: [recurrence: Recurrence] }>();
 const client = useApiClient();
@@ -63,6 +67,7 @@ const contactPrefillName = ref("");
 const scheduleSentence = ref<HTMLElement | null>(null);
 const localErrors = ref<Record<string, string>>({});
 const apiErrors = ref<Record<string, string[]>>({});
+const isTeamRecurrence = computed(() => props.teamId !== undefined);
 
 const cadenceOptions: { value: RecurrenceCadence; label: string }[] = [
   { value: "daily", label: "Daily" },
@@ -294,8 +299,8 @@ const selectEndDate = (value: DateValue | DateValue[] | undefined) => {
 const validateDetails = () => {
   localErrors.value = {};
   apiErrors.value = {};
-  if (name.value.trim().length < 4 || name.value.trim().length > 20)
-    localErrors.value.name = "Use between 4 and 20 characters.";
+  if (name.value.trim().length < 4 || name.value.trim().length > 30)
+    localErrors.value.name = "Use between 4 and 30 characters.";
   if (!Number.isInteger(Number(duration.value)) || Number(duration.value) <= 0)
     localErrors.value.duration_minutes = "Choose a valid duration.";
   return !Object.values(localErrors.value).some(Boolean);
@@ -323,7 +328,7 @@ const validateSchedule = () => {
   localErrors.value = {};
   apiErrors.value = {};
   const today = todayInTimezone().toString();
-  if (!selectedContact.value)
+  if (!isTeamRecurrence.value && !selectedContact.value)
     localErrors.value.contact_id = "Choose a contact.";
   if (frequency.value === "weekly" && !daysOfWeek.value.length)
     localErrors.value.days_of_week = "Choose at least one weekday.";
@@ -379,6 +384,13 @@ const createMutation = useMutation({
       queryClient.invalidateQueries({ queryKey: queryKeys.recurrences.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings.all() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all() }),
+      ...(props.teamId
+        ? [
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.teams.bookings(props.teamId),
+            }),
+          ]
+        : []),
     ]);
     open.value = false;
     toast.success("Recurring meeting created");
@@ -395,7 +407,8 @@ const isPending = computed(
   () => createEventMutation.isPending.value || createMutation.isPending.value,
 );
 const submit = async () => {
-  if (!validateSchedule() || !selectedContact.value) return;
+  if (!validateSchedule()) return;
+  if (!isTeamRecurrence.value && !selectedContact.value) return;
   let event = createdEvent.value;
   if (!event) {
     try {
@@ -404,9 +417,8 @@ const submit = async () => {
       return;
     }
   }
-  createMutation.mutate({
+  const schedule = {
     event_id: event.id,
-    contact_id: selectedContact.value.id,
     frequency: frequency.value,
     interval: interval.value,
     ...(frequency.value === "weekly"
@@ -415,7 +427,13 @@ const submit = async () => {
     starts_on: startsOn.value,
     ends_on: endsOn.value,
     start_time: startTime.value,
-  });
+  };
+
+  createMutation.mutate(
+    props.teamId
+      ? { ...schedule, team_id: props.teamId }
+      : { ...schedule, contact_id: selectedContact.value!.id },
+  );
 };
 </script>
 
@@ -439,7 +457,9 @@ const submit = async () => {
               {{
                 step === 1
                   ? "Step 1 of 2 · Meeting details"
-                  : "Step 2 of 2 · Contact and schedule"
+                  : isTeamRecurrence
+                    ? "Step 2 of 2 · Schedule"
+                    : "Step 2 of 2 · Contact and schedule"
               }}
             </DialogDescription>
           </div>
@@ -474,7 +494,7 @@ const submit = async () => {
                     id="recurrence-name"
                     v-model="name"
                     autocomplete="off"
-                    maxlength="20"
+                    maxlength="30"
                     placeholder="Weekly design review"
                     :error="fieldError('name')"
                     @update:model-value="localErrors.name = ''"
@@ -490,7 +510,13 @@ const submit = async () => {
               </div>
             </section>
 
-            <section v-else key="schedule" aria-label="Contact and schedule">
+            <section
+              v-else
+              key="schedule"
+              :aria-label="
+                isTeamRecurrence ? 'Schedule' : 'Contact and schedule'
+              "
+            >
               <div
                 ref="scheduleSentence"
                 class="flex flex-wrap items-center gap-x-2 gap-y-3 text-base leading-9"
@@ -515,68 +541,72 @@ const submit = async () => {
                   </SharedSelectContent>
                 </SharedSelect>
 
-                <span>meeting with</span>
-                <SharedSearchSelect
-                  id="recurrence-contact"
-                  v-model="contactId"
-                  class="w-40"
-                  :items="contactItems"
-                  :search="searchContacts"
-                  :get-item-value="(contact) => String(contact.id)"
-                  :get-item-label="contactLabel"
-                  :get-item-text="contactSearchText"
-                  placeholder="Select contact"
-                  search-placeholder="Search contacts..."
-                  content-class="z-70"
-                  :aria-invalid="Boolean(fieldError('contact_id'))"
-                  @search-error="
-                    toast.error('Could not search contacts. Please try again.')
-                  "
-                >
-                  <template #value="{ item }">
-                    <UiPublicProfileAvatar
-                      :image="item.platformUser?.avatar ?? undefined"
-                      :name="contactLabel(item)"
-                      class="size-5!"
-                    />
+                <template v-if="!isTeamRecurrence">
+                  <span>meeting with</span>
+                  <SharedSearchSelect
+                    id="recurrence-contact"
+                    v-model="contactId"
+                    class="w-40"
+                    :items="contactItems"
+                    :search="searchContacts"
+                    :get-item-value="(contact) => String(contact.id)"
+                    :get-item-label="contactLabel"
+                    :get-item-text="contactSearchText"
+                    placeholder="Select contact"
+                    search-placeholder="Search contacts..."
+                    content-class="z-70"
+                    :aria-invalid="Boolean(fieldError('contact_id'))"
+                    @search-error="
+                      toast.error(
+                        'Could not search contacts. Please try again.',
+                      )
+                    "
+                  >
+                    <template #value="{ item }">
+                      <UiPublicProfileAvatar
+                        :image="item.platformUser?.avatar ?? undefined"
+                        :name="contactLabel(item)"
+                        class="size-5!"
+                      />
 
-                    <span class="hidden shrink-0 text-foreground sm:inline">
-                      {{ contactLabel(item) }}
-                    </span>
-                  </template>
-                  <template #item="{ item }">
-                    <UiPublicProfileAvatar
-                      :image="item.platformUser?.avatar ?? undefined"
-                      :name="contactLabel(item)"
-                      class="size-7!"
-                    />
-                    <div class="min-w-0 flex-1">
-                      <p class="truncate">{{ contactLabel(item) }}</p>
-                      <p
-                        v-if="contactLabel(item) !== item.email"
-                        class="truncate text-xs text-muted-foreground"
-                      >
-                        {{ item.email }}
-                      </p>
-                    </div>
-                  </template>
-                  <template #empty="{ query }">
-                    <div class="px-1 py-1 text-center">
-                      <p class="font-medium text-foreground">
-                        No contacts found
-                      </p>
+                      <span class="hidden shrink-0 text-foreground sm:inline">
+                        {{ contactLabel(item) }}
+                      </span>
+                    </template>
+                    <template #item="{ item }">
+                      <UiPublicProfileAvatar
+                        :image="item.platformUser?.avatar ?? undefined"
+                        :name="contactLabel(item)"
+                        class="size-7!"
+                      />
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate">{{ contactLabel(item) }}</p>
+                        <p
+                          v-if="contactLabel(item) !== item.email"
+                          class="truncate text-xs text-muted-foreground"
+                        >
+                          {{ item.email }}
+                        </p>
+                      </div>
+                    </template>
+                    <template #empty="{ query }">
+                      <div class="px-1 py-1 text-center">
+                        <p class="font-medium text-foreground">
+                          No contacts found
+                        </p>
 
-                      <SharedButton
-                        type="button"
-                        size="sm"
-                        class="mt-1 w-max"
-                        @click.stop="openCreateContact(query)"
-                      >
-                        Create contact
-                      </SharedButton>
-                    </div>
-                  </template>
-                </SharedSearchSelect>
+                        <SharedButton
+                          type="button"
+                          size="sm"
+                          class="mt-1 w-max"
+                          @click.stop="openCreateContact(query)"
+                        >
+                          Create contact
+                        </SharedButton>
+                      </div>
+                    </template>
+                  </SharedSearchSelect>
+                </template>
 
                 <template v-if="frequency === 'weekly'">
                   <span>on</span>
@@ -746,6 +776,7 @@ const submit = async () => {
     </DialogPortal>
   </DialogRoot>
   <UiContactsFormDialog
+    v-if="!isTeamRecurrence"
     v-model:open="createContactOpen"
     :initial-email="contactPrefillEmail"
     :initial-name="contactPrefillName"

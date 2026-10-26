@@ -30,9 +30,8 @@ export type Recurrence = {
   bookings?: Booking[];
 };
 
-export type CreateRecurrencePayload = {
+type CreateRecurrenceSchedule = {
   event_id: number;
-  contact_id: number;
   frequency: RecurrenceFrequency;
   interval: number;
   days_of_week?: number[];
@@ -41,8 +40,15 @@ export type CreateRecurrencePayload = {
   start_time: string;
 };
 
+export type CreateRecurrencePayload = CreateRecurrenceSchedule &
+  (
+    | { contact_id: number; team_id?: never }
+    | { team_id: number; contact_id?: never }
+  );
+
 export type RecurrenceListParams = {
   event_id?: number;
+  team_id?: number;
   page?: number;
 };
 

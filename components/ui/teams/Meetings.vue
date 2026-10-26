@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import {
-  Add01Icon,
   Calendar03Icon,
-  Search01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import type { BookingScope } from "~/utils/api/bookings";
@@ -11,6 +9,7 @@ import type {
   TeamBooking,
   TeamBookingListParams,
 } from "~/utils/api/team-bookings";
+import type { Recurrence } from "~/utils/api/recurrences";
 
 const props = defineProps<{
   teamId: number;
@@ -20,17 +19,22 @@ const props = defineProps<{
 
 const route = useRoute();
 const router = useRouter();
+const section = ref<"meetings" | "recurring">("meetings");
 const page = ref(1);
 const perPage = ref(10);
 const scope = ref<BookingScope>("all");
-const searchInput = ref("");
-const search = ref("");
-const searching = ref(false);
 const createOpen = ref(false);
+const createRecurrenceOpen = ref(false);
 const editOpen = ref(false);
 const actionOpen = ref(false);
 const action = ref<"cancel" | "delete">("cancel");
 const selectedBooking = ref<TeamBooking | null>(null);
+const recurrencePage = ref(1);
+const recurrenceParams = computed(() => ({
+  team_id: props.teamId,
+  page: recurrencePage.value,
+}));
+const recurrencesQuery = useRecurrences(recurrenceParams);
 
 const linkedBookingId = computed(() => {
   const value = route.query.booking_id;
@@ -46,12 +50,19 @@ const detailsOpen = computed({
     void router.replace({ query: { ...route.query, booking_id: undefined } });
   },
 });
+const linkedRecurrenceId = computed(() => {
+  const value = route.query.recurrence_id;
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+});
+const recurrenceDetailsOpen = computed(() => linkedRecurrenceId.value !== null);
 const params = computed<TeamBookingListParams>(() => ({
   page: page.value,
   per_page: perPage.value,
   ...(scope.value === "pending" ? { status: "pending" as const } : {}),
   ...(scope.value === "cancelled" ? { status: "cancelled" as const } : {}),
-  ...(search.value ? { search: search.value } : {}),
 }));
 const bookingsQuery = useTeamBookings(() => props.teamId, params);
 const bookings = computed(() => {
@@ -89,24 +100,14 @@ watch(scope, () => {
   page.value = 1;
 });
 
-let searchTimer: ReturnType<typeof setTimeout> | undefined;
-watch(searchInput, (value) => {
-  if (searchTimer) clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    const nextSearch = value.trim();
-    if (nextSearch === search.value) return;
-    searching.value = true;
-    search.value = nextSearch;
-    page.value = 1;
-  }, 300);
-});
-
 watch(
-  () => bookingsQuery.isFetching.value,
-  (isFetching) => {
-    if (!isFetching) searching.value = false;
+  linkedRecurrenceId,
+  (id) => {
+    if (id !== null) section.value = "recurring";
   },
+  { immediate: true },
 );
+
 const openDetails = (booking: TeamBooking) => {
   void router.push({
     query: { ...route.query, booking_id: String(booking.id) },
@@ -126,6 +127,30 @@ const handleCreated = (bookingId: number) => {
     query: { ...route.query, booking_id: String(bookingId) },
   });
 };
+const openRecurrence = (recurrence: Recurrence) => {
+  void router.push({
+    query: {
+      ...route.query,
+      booking_id: undefined,
+      recurrence_id: String(recurrence.id),
+    },
+  });
+};
+const handleRecurrenceCreated = (recurrence: Recurrence) => {
+  section.value = "recurring";
+  openRecurrence(recurrence);
+};
+const setRecurrenceDetailsOpen = (open: boolean) => {
+  if (open || linkedRecurrenceId.value === null) return;
+  void router.replace({
+    query: { ...route.query, recurrence_id: undefined },
+  });
+};
+const handleRecurrenceDeleted = () => {
+  void router.replace({
+    query: { ...route.query, recurrence_id: undefined },
+  });
+};
 const handleActionCompleted = () => {
   selectedBooking.value = null;
   if (linkedBookingId.value !== null) {
@@ -136,48 +161,30 @@ const handleActionCompleted = () => {
 
 <template>
   <section aria-labelledby="team-meetings-heading">
-    <div
-      class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:grid-cols-[minmax(0,24rem)_minmax(0,1fr)_auto]"
-    >
-      <SharedInput
-        v-model="searchInput"
-        type="search"
-        class="col-start-1 row-start-1 min-w-0"
-        placeholder="Search meetings"
-        aria-label="Search meetings"
-        :loading="searching"
-      >
-        <template #prefix>
-          <span
-            class="flex size-9 shrink-0 items-center justify-center text-muted-foreground"
-          >
-            <HugeiconsIcon
-              :icon="Search01Icon"
-              :size="16"
-              :stroke-width="1.75"
-              aria-hidden="true"
-            />
-          </span>
-        </template>
-      </SharedInput>
-      <UiBookingsTabs
-        v-model="scope"
-        class="col-span-2 row-start-2 w-full sm:col-span-1 sm:col-start-2 sm:row-start-1"
-      />
-
-      <SharedButton
+    <div class="flex items-start justify-between gap-4">
+      <SharedTabs v-model="section">
+        <SharedTabsList aria-label="Team meeting collections">
+          <SharedTabsTrigger value="meetings">Meetings</SharedTabsTrigger>
+          <SharedTabsTrigger value="recurring">Recurring</SharedTabsTrigger>
+        </SharedTabsList>
+      </SharedTabs>
+      <UiBookingsCreateMenu
         v-if="canManage"
-        type="button"
-        class="col-start-2 row-start-1 shrink-0 sm:col-start-3"
-        @click="createOpen = true"
-      >
-        <HugeiconsIcon :icon="Add01Icon" :size="17" aria-hidden="true" />
-        New meeting
-      </SharedButton>
+        context="team"
+        button-class="shrink-0"
+        @once="createOpen = true"
+        @recurring="createRecurrenceOpen = true"
+      />
     </div>
 
+    <UiBookingsTabs
+      v-if="section === 'meetings'"
+      v-model="scope"
+      class="mt-5 w-full"
+    />
+
     <div
-      v-if="bookingsQuery.isError.value"
+      v-if="section === 'meetings' && bookingsQuery.isError.value"
       role="alert"
       class="mt-5 flex items-center justify-between gap-4 rounded-xl border border-destructive/30 bg-destructive/5 p-4"
     >
@@ -199,7 +206,7 @@ const handleActionCompleted = () => {
     </div>
 
     <div
-      v-else-if="bookingsQuery.isPending.value"
+      v-else-if="section === 'meetings' && bookingsQuery.isPending.value"
       class="mt-5 space-y-3"
       aria-label="Loading team meetings"
     >
@@ -210,7 +217,7 @@ const handleActionCompleted = () => {
       />
     </div>
 
-    <div v-else-if="bookings.length" class="mt-5">
+    <div v-else-if="section === 'meetings' && bookings.length" class="mt-5">
       <div class="space-y-3">
         <UiTeamsMeetingCard
           v-for="booking in bookings"
@@ -283,7 +290,7 @@ const handleActionCompleted = () => {
     </div>
 
     <div
-      v-else
+      v-else-if="section === 'meetings'"
       class="mt-5 rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center"
     >
       <div
@@ -299,27 +306,66 @@ const handleActionCompleted = () => {
       <p class="mt-4 font-semibold">No team meetings found</p>
       <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
         {{
-          scope !== "all" || search
+          scope !== "all"
             ? "Try clearing the active filters."
             : canManage
               ? "Create a meeting to bring the team together."
               : "An owner or admin can create the first meeting."
         }}
       </p>
-      <SharedButton
-        v-if="canManage && scope === 'all' && !search"
-        type="button"
-        class="mt-5"
-        @click="createOpen = true"
-        >New meeting</SharedButton
-      >
+      <UiBookingsCreateMenu
+        v-if="canManage && scope === 'all'"
+        context="team"
+        button-class="mt-5"
+        @once="createOpen = true"
+        @recurring="createRecurrenceOpen = true"
+      />
     </div>
+
+    <div
+      v-if="section === 'recurring' && recurrencesQuery.isError.value"
+      role="alert"
+      class="mt-5 flex items-center justify-between gap-4 rounded-xl border border-destructive/30 bg-destructive/5 p-4"
+    >
+      <p class="text-sm text-destructive">
+        {{
+          getApiErrorMessage(
+            recurrencesQuery.error.value,
+            "Could not load recurring team meetings.",
+          )
+        }}
+      </p>
+      <SharedButton
+        type="button"
+        variant="outline"
+        size="sm"
+        @click="recurrencesQuery.refetch()"
+      >
+        Try again
+      </SharedButton>
+    </div>
+
+    <UiRecurrencesList
+      v-if="section === 'recurring'"
+      class="mt-5"
+      :recurrences="recurrencesQuery.data.value?.recurrences"
+      :pagination="recurrencesQuery.data.value?.pagination"
+      :loading="recurrencesQuery.isPending.value"
+      @open="openRecurrence"
+      @page="recurrencePage = $event"
+    />
 
     <UiTeamsMeetingDialog
       v-model:open="createOpen"
       :team-id="teamId"
       :timezone="timezone"
       @completed="handleCreated"
+    />
+    <UiRecurrencesCreateDialog
+      v-model:open="createRecurrenceOpen"
+      :team-id="teamId"
+      :timezone="timezone"
+      @created="handleRecurrenceCreated"
     />
     <UiTeamsMeetingDialog
       v-model:open="editOpen"
@@ -342,6 +388,12 @@ const handleActionCompleted = () => {
       @edit="openEdit"
       @cancel="openAction($event, 'cancel')"
       @delete="openAction($event, 'delete')"
+    />
+    <UiRecurrencesDetailsSheet
+      :open="recurrenceDetailsOpen"
+      :recurrence-id="linkedRecurrenceId"
+      @update:open="setRecurrenceDetailsOpen"
+      @deleted="handleRecurrenceDeleted"
     />
   </section>
 </template>
