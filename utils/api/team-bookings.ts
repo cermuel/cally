@@ -44,6 +44,14 @@ export type TeamBookingGuest = {
   attendance_status: TeamGuestAttendanceStatus;
   created_at: string;
   updated_at: string;
+  user_id: number | null;
+  user: {
+    name: string;
+    email: string;
+    avatar_url: string | null;
+    id: number;
+    timezone: string;
+  } | null;
 };
 
 export type TeamBooking = {

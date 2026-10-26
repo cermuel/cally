@@ -3,7 +3,7 @@ import type { Booking, BookingEvent, BookingHost } from "./bookings";
 import { apiRequest } from "./client";
 
 export type RecurrenceFrequency = "daily" | "weekly" | "monthly";
-export type RecurrenceStatus = "active" | string;
+export type RecurrenceStatus = "active" | "cancelled" | "completed";
 
 export type Recurrence = {
   id: number;

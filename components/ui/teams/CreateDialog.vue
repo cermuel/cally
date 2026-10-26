@@ -45,7 +45,7 @@ const createMutation = useMutation({
     open.value = false;
     toast.success("Team created");
     await navigateTo({
-      path: `/app/teams/${team.id}`,
+      path: `/app/teams/${team.slug}`,
       query: { welcome: "1" },
     });
   },

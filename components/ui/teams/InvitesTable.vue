@@ -72,17 +72,6 @@ const getStatus = (invite: TeamInvite): InviteStatus => {
   if (new Date(invite.expires_at).getTime() <= Date.now()) return "expired";
   return "pending";
 };
-
-const statusClass: Record<InviteStatus, string> = {
-  accepted:
-    "border-transparent bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  declined:
-    "border-transparent bg-destructive/10 text-destructive dark:bg-destructive/20",
-  expired: "border-transparent bg-muted text-muted-foreground",
-  pending:
-    "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-};
-
 </script>
 
 <template>
@@ -111,12 +100,7 @@ const statusClass: Record<InviteStatus, string> = {
     </template>
 
     <template #cell-status="{ row }">
-      <span
-        class="inline-flex w-fit shrink-0 items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap capitalize"
-        :class="statusClass[getStatus(row)]"
-      >
-        {{ getStatus(row) }}
-      </span>
+      <SharedPill :value="getStatus(row)" />
     </template>
 
     <template #cell-role="{ row }">

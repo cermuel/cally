@@ -36,6 +36,7 @@ export const filterBookingsForScope = (
 export function useBookings(
   scope: MaybeRefOrGetter<BookingScope>,
   page: MaybeRefOrGetter<number>,
+  perPage: MaybeRefOrGetter<number> = 10,
 ) {
   const client = useApiClient()
   const activeScope = computed(() => toValue(scope))
@@ -48,6 +49,7 @@ export function useBookings(
 
     return {
       page: toValue(page),
+      per_page: toValue(perPage),
       ...(status ? { status } : {}),
     }
   })

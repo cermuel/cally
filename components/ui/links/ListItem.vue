@@ -143,11 +143,7 @@ watch(
       >
         {{ link.name }}
       </h2>
-      <span
-        v-if="link.status === 'draft'"
-        class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
-        >Draft</span
-      >
+      <SharedPill v-if="link.status === 'draft'" :value="link.status" />
     </div>
 
     <p

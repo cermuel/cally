@@ -12,11 +12,12 @@ import { bookingsApi } from "~/utils/api/bookings";
 import { getApiErrorMessage } from "~/utils/api/client";
 import { queryKeys } from "~/utils/api/query-keys";
 
-defineProps<{
+const props = defineProps<{
   bookings?: Booking[];
   pagination?: BookingPagination;
   loading: boolean;
   scope: BookingScope;
+  perPage: number;
 }>();
 
 const emit = defineEmits<{
@@ -26,12 +27,18 @@ const emit = defineEmits<{
   delete: [booking: Booking];
   open: [booking: Booking];
   page: [page: number];
+  perPage: [perPage: number];
   reschedule: [booking: Booking];
 }>();
 
 const client = useApiClient();
 const queryClient = useQueryClient();
 const busyId = ref<number | null>(null);
+const showPagination = computed(
+  () =>
+    !!props.pagination &&
+    (props.pagination.total > 10 || props.perPage < props.pagination.total),
+);
 
 const acceptMutation = useMutation({
   mutationFn: (booking: Booking) => {
@@ -111,31 +118,57 @@ const acceptBooking = (booking: Booking) => {
       </div>
 
       <nav
-        v-if="pagination && pagination.last_page > 1"
-        class="mt-4 flex shrink-0 items-center justify-between"
+        v-if="showPagination && pagination"
+        class="mt-4 flex shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         aria-label="Meeting pages"
       >
-        <SharedButton
-          type="button"
-          variant="outline"
-          size="sm"
-          :disabled="pagination.current_page === 1"
-          @click="$emit('page', pagination.current_page - 1)"
+        <div class="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>Rows per page</span>
+          <SharedSelect
+            :model-value="String(perPage)"
+            @update:model-value="$emit('perPage', Number($event))"
+          >
+            <SharedSelectTrigger size="sm" aria-label="Rows per page">
+              <SharedSelectValue />
+            </SharedSelectTrigger>
+            <SharedSelectContent>
+              <SharedSelectItem
+                v-for="size in [5, 10, 20, 50]"
+                :key="size"
+                :value="String(size)"
+              >
+                {{ size }}
+              </SharedSelectItem>
+            </SharedSelectContent>
+          </SharedSelect>
+        </div>
+
+        <div
+          v-if="pagination.last_page > 1"
+          class="flex items-center justify-between gap-4 sm:justify-end"
         >
-          Previous
-        </SharedButton>
-        <p class="text-sm text-muted-foreground">
-          Page {{ pagination.current_page }} of {{ pagination.last_page }}
-        </p>
-        <SharedButton
-          type="button"
-          variant="outline"
-          size="sm"
-          :disabled="pagination.current_page === pagination.last_page"
-          @click="$emit('page', pagination.current_page + 1)"
-        >
-          Next
-        </SharedButton>
+          <SharedButton
+            type="button"
+            variant="outline"
+            size="sm"
+            :disabled="pagination.current_page === 1"
+            @click="$emit('page', pagination.current_page - 1)"
+          >
+            Previous
+          </SharedButton>
+          <p class="text-sm text-muted-foreground">
+            Page {{ pagination.current_page }} of {{ pagination.last_page }}
+          </p>
+          <SharedButton
+            type="button"
+            variant="outline"
+            size="sm"
+            :disabled="pagination.current_page === pagination.last_page"
+            @click="$emit('page', pagination.current_page + 1)"
+          >
+            Next
+          </SharedButton>
+        </div>
       </nav>
     </template>
   </div>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { HugeiconsIcon } from "@hugeicons/vue";
-import { Calendar03Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { Calendar03Icon } from "@hugeicons/core-free-icons";
 import { CALENDAR_NOTES } from "~/constants/onboarding";
 import SharedButton from "~/components/shared/button/Button.vue";
 
@@ -39,19 +39,7 @@ const GOOGLE_ICON = "/svg/google.svg";
         </span>
       </span>
 
-      <span
-        class="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary/5 text-xs font-medium text-green-700"
-      >
-        <HugeiconsIcon
-          :icon="Tick02Icon"
-          :size="10"
-          color="green"
-          :stroke-width="2.5"
-          aria-hidden="true"
-        />
-
-        Connected
-      </span>
+      <SharedPill value="connected" class="ml-auto" />
     </SharedButton>
 
     <SharedButton

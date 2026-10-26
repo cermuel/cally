@@ -28,7 +28,7 @@ const updateMutation = useMutation({
   onSuccess: async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.teams.members(props.teamId) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.detail(props.teamId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.details() }),
     ]);
     toast.success("Member role updated");
   },

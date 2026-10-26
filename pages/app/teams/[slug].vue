@@ -18,11 +18,12 @@ const route = useRoute();
 const router = useRouter();
 const breadcrumb = useBreadcrumb();
 const auth = useAuth();
-const teamId = computed(() => {
-  const value = Number(route.params.id);
-  return Number.isSafeInteger(value) && value > 0 ? value : null;
+const teamSlug = computed(() => {
+  const value = route.params.slug;
+  return typeof value === "string" && value ? value : null;
 });
-const teamQuery = useTeam(teamId);
+const teamQuery = useTeam(teamSlug);
+const teamId = computed(() => teamQuery.data.value?.team.id ?? null);
 const inviteOpen = ref(route.query.welcome === "1");
 const resendInviteOpen = ref(false);
 const updateInviteRoleOpen = ref(false);

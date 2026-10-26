@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
-import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import {
   DialogClose,
   DialogContent,
@@ -18,7 +18,6 @@ import {
   teamBookingsApi,
   type CreateTeamBookingPayload,
   type TeamBooking,
-  type TeamBookingStatus,
   type UpdateTeamBookingPayload,
 } from "~/utils/api/team-bookings";
 import {
@@ -42,17 +41,33 @@ const queryClient = useQueryClient();
 
 const name = ref("");
 const description = ref("");
-const color = ref<string | null>(null);
 const duration = ref("30");
-const status = ref<TeamBookingStatus>("pending");
 const selectedDate = ref("");
 const selectedSlot = ref("");
-const preMeetingMinutes = ref(0);
-const postMeetingMinutes = ref(0);
 const localErrors = ref<Record<string, string>>({});
 const apiErrors = ref<Record<string, string[]>>({});
 
 const isEditing = computed(() => !!props.booking);
+const bookingQuery = useQuery({
+  queryKey: computed(() =>
+    queryKeys.teams.booking(props.teamId, props.booking?.id ?? "none"),
+  ),
+  enabled: computed(
+    () =>
+      open.value && props.booking !== null && props.booking !== undefined,
+  ),
+  queryFn: () => teamBookingsApi.get(client, props.teamId, props.booking!.id),
+  staleTime: Infinity,
+});
+const editableBooking = computed(
+  () => bookingQuery.data.value?.booking ?? props.booking ?? null,
+);
+const bookingTimezone = computed(
+  () => editableBooking.value?.booking_timezone || props.timezone,
+);
+const isLoadingBooking = computed(
+  () => isEditing.value && bookingQuery.isFetching.value,
+);
 const timeOptions = Array.from({ length: 24 * 12 }, (_, index) => {
   const hour = Math.floor(index / 12);
   const minute = (index % 12) * 5;
@@ -61,7 +76,7 @@ const timeOptions = Array.from({ length: 24 * 12 }, (_, index) => {
 const timeSlots = computed<PublicScheduleSlot[]>(() => {
   if (!selectedDate.value) return [];
 
-  return timeOptions
+  const slots = timeOptions
     .map((time) => {
       const startsAt = `${selectedDate.value}T${time}`;
       return {
@@ -72,9 +87,28 @@ const timeSlots = computed<PublicScheduleSlot[]>(() => {
     })
     .filter(
       (slot) =>
-        new Date(zonedDateTimeToIso(slot.starts_at, props.timezone)).getTime() >
+        new Date(
+          zonedDateTimeToIso(slot.starts_at, bookingTimezone.value),
+        ).getTime() >
         Date.now(),
     );
+
+  if (
+    isEditing.value &&
+    selectedSlot.value.startsWith(`${selectedDate.value}T`) &&
+    !slots.some((slot) => slot.starts_at === selectedSlot.value)
+  ) {
+    slots.unshift({
+      time: selectedSlot.value.slice(11, 16),
+      starts_at: selectedSlot.value,
+      ends_at: addMinutesToLocalDateTime(
+        selectedSlot.value,
+        Number(duration.value),
+      ),
+    });
+  }
+
+  return slots;
 });
 const fieldError = (field: string) =>
   localErrors.value[field] || apiErrors.value[field]?.[0];
@@ -90,23 +124,21 @@ const selectSlot = (startsAt: string) => {
 };
 
 const reset = () => {
-  const booking = props.booking;
+  const booking = editableBooking.value;
   const nextHour = new Date();
   nextHour.setMinutes(0, 0, 0);
   nextHour.setHours(nextHour.getHours() + 1);
 
   name.value = booking?.event?.name ?? "";
-  description.value = booking?.event?.description ?? "";
-  color.value = booking?.event?.color ?? null;
+  description.value =
+    booking?.event?.description ?? props.booking?.event?.description ?? "";
   duration.value = String(booking?.event?.duration_minutes ?? 30);
-  status.value = booking?.status ?? "pending";
+  const timezone = booking?.booking_timezone || props.timezone;
   const localStart = booking?.starts_at
-    ? toDateTimeLocal(booking.starts_at, props.timezone)
-    : toDateTimeLocal(nextHour.toISOString(), props.timezone);
+    ? toDateTimeLocal(booking.starts_at, timezone)
+    : toDateTimeLocal(nextHour.toISOString(), timezone);
   selectedDate.value = localStart.slice(0, 10);
   selectedSlot.value = localStart;
-  preMeetingMinutes.value = booking?.event?.pre_meeting_minutes ?? 0;
-  postMeetingMinutes.value = booking?.event?.post_meeting_minutes ?? 0;
   localErrors.value = {};
   apiErrors.value = {};
 };
@@ -114,6 +146,12 @@ const reset = () => {
 watch(open, (isOpen) => {
   if (isOpen) reset();
 });
+watch(
+  () => bookingQuery.data.value?.booking,
+  (booking) => {
+    if (open.value && booking) reset();
+  },
+);
 watch(name, () => {
   delete localErrors.value["event.name"];
 });
@@ -174,9 +212,9 @@ const submit = () => {
     Number(duration.value),
   );
   const booking = {
-    starts_at: zonedDateTimeToIso(startsAt, props.timezone),
-    ends_at: zonedDateTimeToIso(endsAt, props.timezone),
-    timezone: props.timezone,
+    starts_at: zonedDateTimeToIso(startsAt, bookingTimezone.value),
+    ends_at: zonedDateTimeToIso(endsAt, bookingTimezone.value),
+    timezone: bookingTimezone.value,
   };
 
   if (props.booking) {
@@ -185,11 +223,8 @@ const submit = () => {
         name: trimmedName,
         duration_minutes: Number(duration.value),
         description: description.value.trim() || null,
-        color: color.value,
-        pre_meeting_minutes: Number(preMeetingMinutes.value),
-        post_meeting_minutes: Number(postMeetingMinutes.value),
       },
-      booking: { ...booking, status: status.value },
+      booking,
     });
     return;
   }
@@ -203,7 +238,6 @@ const submit = () => {
       slug: `team-${nameSlug}-${Date.now()}`,
       duration_minutes: Number(duration.value),
       description: description.value.trim() || null,
-      color: color.value || null,
       status: "published",
     },
     booking,
@@ -248,7 +282,39 @@ const submit = () => {
         </header>
 
         <div class="min-h-0 overflow-y-auto p-5 sm:p-6">
-          <div class="space-y-5">
+          <div
+            v-if="isLoadingBooking"
+            class="space-y-4"
+            aria-label="Loading meeting fields"
+          >
+            <div class="h-16 animate-pulse rounded-lg bg-muted/60" />
+            <div class="h-16 animate-pulse rounded-lg bg-muted/60" />
+            <div class="h-44 animate-pulse rounded-lg bg-muted/60" />
+          </div>
+          <div
+            v-else-if="isEditing && bookingQuery.isError.value"
+            role="alert"
+            class="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
+          >
+            <p class="text-sm text-destructive">
+              {{
+                getApiErrorMessage(
+                  bookingQuery.error.value,
+                  "Could not load the meeting fields.",
+                )
+              }}
+            </p>
+            <SharedButton
+              type="button"
+              variant="outline"
+              size="sm"
+              class="mt-3"
+              @click="bookingQuery.refetch()"
+            >
+              Try again
+            </SharedButton>
+          </div>
+          <div v-else class="space-y-5">
             <div>
               <SharedLabel for="team-meeting-name" class="mb-1.5 text-sm">
                 Name
@@ -267,73 +333,15 @@ const submit = () => {
               content-class="z-70"
               :error="fieldError('event.duration_minutes')"
             />
-            <div>
-              <SharedLabel class="mb-1.5 text-sm">Color</SharedLabel>
-              <UiLinksColorPicker v-model="color" content-class="z-70" />
-            </div>
-            <div v-if="isEditing">
-              <SharedLabel
-                for="team-meeting-status"
-                class="mb-1.5 text-sm"
-              >
-                Status
-              </SharedLabel>
-              <SharedSelect v-model="status">
-                <SharedSelectTrigger
-                  id="team-meeting-status"
-                  class="w-full capitalize"
-                >
-                  <SharedSelectValue />
-                </SharedSelectTrigger>
-                <SharedSelectContent class="z-70">
-                  <SharedSelectItem value="pending">Pending</SharedSelectItem>
-                  <SharedSelectItem value="confirmed">Confirmed</SharedSelectItem>
-                  <SharedSelectItem value="completed">Completed</SharedSelectItem>
-                  <SharedSelectItem value="cancelled">Cancelled</SharedSelectItem>
-                </SharedSelectContent>
-              </SharedSelect>
-            </div>
             <UiBookingsAvailabilityPicker
               :selected-date="selectedDate"
               :selected-slot="selectedSlot"
               :slots="timeSlots"
-              :timezone="timezone"
+              :timezone="bookingTimezone"
               :error="fieldError('booking.starts_at')"
               @select-date="selectDate"
               @select-slot="selectSlot"
             />
-            <template v-if="isEditing">
-              <div>
-                <SharedLabel
-                  for="team-meeting-pre"
-                  class="mb-1.5 text-sm"
-                >
-                  Buffer before (minutes)
-                </SharedLabel>
-                <SharedInput
-                  id="team-meeting-pre"
-                  v-model="preMeetingMinutes"
-                  type="number"
-                  min="0"
-                  :error="fieldError('event.pre_meeting_minutes')"
-                />
-              </div>
-              <div>
-                <SharedLabel
-                  for="team-meeting-post"
-                  class="mb-1.5 text-sm"
-                >
-                  Buffer after (minutes)
-                </SharedLabel>
-                <SharedInput
-                  id="team-meeting-post"
-                  v-model="postMeetingMinutes"
-                  type="number"
-                  min="0"
-                  :error="fieldError('event.post_meeting_minutes')"
-                />
-              </div>
-            </template>
             <div>
               <SharedLabel class="mb-1.5 text-sm">
                 Description
@@ -353,8 +361,16 @@ const submit = () => {
           <DialogClose as-child>
             <SharedButton type="button" variant="outline" :disabled="saveMutation.isPending.value">Cancel</SharedButton>
           </DialogClose>
-          <SharedButton type="button" :loading="saveMutation.isPending.value" @click="submit">
-            {{ isEditing ? "Save changes" : "Create meeting" }}
+          <SharedButton
+            type="button"
+            :disabled="
+              isLoadingBooking ||
+              (isEditing && bookingQuery.isError.value)
+            "
+            :loading="saveMutation.isPending.value"
+            @click="submit"
+          >
+            {{ isEditing ? "Save changes" : "New meeting" }}
           </SharedButton>
         </footer>
       </DialogContent>

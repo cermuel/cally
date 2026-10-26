@@ -86,7 +86,7 @@ const deleted = (id: number) => {
       <template v-else-if="recurrence">
         <section class="p-5" aria-label="Recurring meeting overview">
           <div class="flex items-center gap-2">
-            <span class="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium capitalize text-emerald-700 dark:text-emerald-300">{{ recurrence.status }}</span>
+            <SharedPill :value="recurrence.status" />
             <span class="text-xs text-muted-foreground">Series #{{ recurrence.id }}</span>
           </div>
           <h2 class="mt-3 text-base font-semibold tracking-tight">{{ eventName }}</h2>

@@ -42,7 +42,7 @@ const loading = ref(true);
 const submitting = ref(false);
 const declineDialogOpen = ref(false);
 
-const contentRef = ref<HTMLElement | null>(null);
+const contentRef = shallowRef<HTMLElement | null>(null);
 const cardHeight = ref<number | null>(null);
 let observer: ResizeObserver | null = null;
 

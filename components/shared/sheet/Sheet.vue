@@ -72,7 +72,7 @@ const desktopWidth = computed(() =>
       />
       <DialogContent
         ref="sheet"
-        class="responsive-sheet fixed inset-x-0 bottom-0 z-50 mx-auto flex h-dvh w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-b-0 border-border bg-background shadow-[0_-16px_48px_oklch(0_0_0/0.16)] outline-none md:inset-y-0 md:start-auto md:end-0 md:mx-0 md:max-w-full md:rounded-none md:border-y-0 md:border-e-0 md:shadow-[-16px_0_48px_oklch(0_0_0/0.14)]"
+        class="responsive-sheet fixed inset-x-0 bottom-0 z-50 mx-auto flex h-dvh w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-b-0 border-border bg-background shadow-[0_-16px_48px_oklch(0_0_0/0.16)] outline-none md:inset-y-0 md:inset-s-auto md:inset-e-0 md:mx-0 md:max-w-full md:rounded-none md:border-y-0 md:border-e-0 md:shadow-[-16px_0_48px_oklch(0_0_0/0.14)]"
         :class="desktopWidth"
         :data-dragging="isDragging || undefined"
         :data-full="isFull || undefined"

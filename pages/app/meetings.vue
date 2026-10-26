@@ -23,7 +23,8 @@ const section = ref<"meetings" | "recurring">("meetings");
 const scope = ref<BookingScope>("all");
 const view = ref<BookingsView>("list");
 const page = ref(1);
-const bookingsQuery = useBookings(scope, page);
+const perPage = ref(10);
+const bookingsQuery = useBookings(scope, page, perPage);
 const calendarBookingsQuery = useCalendarBookings(
   "all",
   computed(() => view.value === "calendar"),
@@ -87,6 +88,10 @@ const meetingTimezone = computed(
 );
 
 watch(scope, () => {
+  page.value = 1;
+});
+
+watch(perPage, () => {
   page.value = 1;
 });
 
@@ -308,12 +313,14 @@ const clearActionTarget = () => {
           :pagination="bookingsQuery.data.value?.pagination"
           :loading="bookingsQuery.isPending.value"
           :scope="scope"
+          :per-page="perPage"
           @add-guests="requestAddGuests"
           @cancel="requestCancel"
           @decline="requestDecline"
           @delete="requestDelete"
           @open="openBooking"
           @page="page = $event"
+          @per-page="perPage = $event"
           @reschedule="requestReschedule"
         />
       </div>

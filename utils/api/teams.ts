@@ -140,10 +140,10 @@ export const teamsApi = {
     });
   },
 
-  get(client: AxiosInstance, teamId: number) {
+  get(client: AxiosInstance, teamIdentifier: number | string) {
     return apiRequest<TeamResponse>(client, {
       method: "GET",
-      url: `/teams/${teamId}`,
+      url: `/teams/${teamIdentifier}`,
     });
   },
 

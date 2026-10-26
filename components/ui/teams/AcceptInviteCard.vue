@@ -26,14 +26,15 @@ const acceptMutation = useMutation({
   mutationFn: () => teamsApi.acceptInvite(client, props.invite!.id, props.token),
   onSuccess: async () => {
     const teamId = props.invite!.team_id;
+    const team = props.invite!.team ?? (await teamsApi.get(client, teamId)).team;
     authReturnPath.take("/app/meetings");
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.detail(teamId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.details() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.teams.members(teamId) }),
     ]);
     toast.success("Invitation accepted");
-    await navigateTo(`/app/teams/${teamId}`);
+    await navigateTo(`/app/teams/${team.slug}`);
   },
   onError: (error) =>
     toast.error(getApiErrorMessage(error, "Could not accept this invitation.")),

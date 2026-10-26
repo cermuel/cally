@@ -26,7 +26,7 @@ const updateMutation = useMutation({
   mutationFn: (name: string) => teamsApi.update(client, props.teamId, { name }),
   onSuccess: async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.detail(props.teamId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams.details() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.teams.lists() }),
     ]);
     toast.success("Team name updated");

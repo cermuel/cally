@@ -40,7 +40,8 @@ const items = [
 
 const choose = (kind: "once" | "recurring") => {
   open.value = false;
-  emit(kind);
+  if (kind === "once") emit("once");
+  else emit("recurring");
 };
 </script>
 

@@ -12,14 +12,16 @@ export function useTeams(page: MaybeRefOrGetter<number> = 1) {
   });
 }
 
-export function useTeam(teamId: MaybeRefOrGetter<number | null>) {
+export function useTeam(
+  teamIdentifier: MaybeRefOrGetter<number | string | null>,
+) {
   const client = useApiClient();
 
   return useQuery({
     queryKey: computed(() =>
-      queryKeys.teams.detail(toValue(teamId) ?? "none"),
+      queryKeys.teams.detail(toValue(teamIdentifier) ?? "none"),
     ),
-    queryFn: () => teamsApi.get(client, toValue(teamId)!),
-    enabled: computed(() => toValue(teamId) !== null),
+    queryFn: () => teamsApi.get(client, toValue(teamIdentifier)!),
+    enabled: computed(() => toValue(teamIdentifier) !== null),
   });
 }

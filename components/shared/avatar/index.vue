@@ -7,6 +7,22 @@ const props = defineProps<{
   name: string;
   class?: HTMLAttributes["class"];
 }>();
+
+const imageFailed = ref(false);
+const fallbackImage = computed(
+  () =>
+    `https://api.dicebear.com/10.x/glass/svg?seed=${encodeURIComponent(props.name)}`,
+);
+const imageSource = computed(() =>
+  props.image && !imageFailed.value ? props.image : fallbackImage.value,
+);
+
+watch(
+  () => props.image,
+  () => {
+    imageFailed.value = false;
+  },
+);
 </script>
 
 <template>
@@ -20,12 +36,10 @@ const props = defineProps<{
     "
   >
     <img
-      :src="
-        props.image ||
-        `https://api.dicebear.com/10.x/glass/svg?seed=${encodeURIComponent(props.name)}`
-      "
+      :src="imageSource"
       :alt="props.name"
       class="size-full object-cover"
+      @error="imageFailed = true"
     />
   </div>
 </template>

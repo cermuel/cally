@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { Add01Icon, Search01Icon } from "@hugeicons/core-free-icons";
+import {
+  Add01Icon,
+  Calendar03Icon,
+  Search01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import type { BookingScope } from "~/utils/api/bookings";
 import { getApiErrorMessage } from "~/utils/api/client";
@@ -17,7 +21,7 @@ const props = defineProps<{
 const route = useRoute();
 const router = useRouter();
 const page = ref(1);
-const perPage = ref(20);
+const perPage = ref(10);
 const scope = ref<BookingScope>("all");
 const searchInput = ref("");
 const search = ref("");
@@ -75,6 +79,11 @@ const bookings = computed(() => {
   return items;
 });
 const pagination = computed(() => bookingsQuery.data.value?.pagination);
+const showPagination = computed(
+  () =>
+    !!pagination.value &&
+    (pagination.value.total > 10 || perPage.value < pagination.value.total),
+);
 
 watch(scope, () => {
   page.value = 1;
@@ -127,11 +136,13 @@ const handleActionCompleted = () => {
 
 <template>
   <section aria-labelledby="team-meetings-heading">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div
+      class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:grid-cols-[minmax(0,24rem)_minmax(0,1fr)_auto]"
+    >
       <SharedInput
         v-model="searchInput"
         type="search"
-        class="w-full sm:max-w-sm"
+        class="col-start-1 row-start-1 min-w-0"
         placeholder="Search meetings"
         aria-label="Search meetings"
         :loading="searching"
@@ -149,30 +160,19 @@ const handleActionCompleted = () => {
           </span>
         </template>
       </SharedInput>
-      <SharedLabel for="team-booking-scope" class="sr-only">
-        Filter meetings
-      </SharedLabel>
-      <SharedSelect v-model="scope">
-        <SharedSelectTrigger id="team-booking-scope" class="w-30">
-          <SharedSelectValue />
-        </SharedSelectTrigger>
-        <SharedSelectContent>
-          <SharedSelectItem value="all">All</SharedSelectItem>
-          <SharedSelectItem value="upcoming">Upcoming</SharedSelectItem>
-          <SharedSelectItem value="pending"> Pending </SharedSelectItem>
-          <SharedSelectItem value="cancelled">Cancelled</SharedSelectItem>
-          <SharedSelectItem value="past">Past</SharedSelectItem>
-        </SharedSelectContent>
-      </SharedSelect>
+      <UiBookingsTabs
+        v-model="scope"
+        class="col-span-2 row-start-2 w-full sm:col-span-1 sm:col-start-2 sm:row-start-1"
+      />
 
       <SharedButton
         v-if="canManage"
         type="button"
-        class="sm:ms-auto"
+        class="col-start-2 row-start-1 shrink-0 sm:col-start-3"
         @click="createOpen = true"
       >
         <HugeiconsIcon :icon="Add01Icon" :size="17" aria-hidden="true" />
-        Create meeting
+        New meeting
       </SharedButton>
     </div>
 
@@ -206,7 +206,7 @@ const handleActionCompleted = () => {
       <div
         v-for="index in 3"
         :key="index"
-        class="h-28 animate-pulse rounded-xl bg-muted/60"
+        class="h-40 animate-pulse rounded-xl border border-border bg-muted/50"
       />
     </div>
 
@@ -225,7 +225,7 @@ const handleActionCompleted = () => {
       </div>
 
       <div
-        v-if="pagination"
+        v-if="showPagination && pagination"
         class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         aria-label="Team meeting pages"
       >
@@ -243,7 +243,7 @@ const handleActionCompleted = () => {
             </SharedSelectTrigger>
             <SharedSelectContent>
               <SharedSelectItem
-                v-for="size in [10, 20, 50, 100]"
+                v-for="size in [5, 10, 20, 50]"
                 :key="size"
                 :value="String(size)"
               >
@@ -284,10 +284,20 @@ const handleActionCompleted = () => {
 
     <div
       v-else
-      class="mt-5 rounded-xl border border-dashed border-border px-6 py-14 text-center"
+      class="mt-5 rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center"
     >
-      <p class="font-medium">No team meetings found</p>
-      <p class="mt-1 text-sm text-muted-foreground">
+      <div
+        class="mx-auto grid size-11 place-items-center rounded-full bg-muted text-muted-foreground"
+      >
+        <HugeiconsIcon
+          :icon="Calendar03Icon"
+          :size="21"
+          :stroke-width="1.75"
+          aria-hidden="true"
+        />
+      </div>
+      <p class="mt-4 font-semibold">No team meetings found</p>
+      <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
         {{
           scope !== "all" || search
             ? "Try clearing the active filters."
@@ -301,7 +311,7 @@ const handleActionCompleted = () => {
         type="button"
         class="mt-5"
         @click="createOpen = true"
-        >Create meeting</SharedButton
+        >New meeting</SharedButton
       >
     </div>
 

@@ -30,7 +30,6 @@ const open = ref(false);
 
 const pending = computed(() => props.booking.status === "pending");
 const confirmed = computed(() => props.booking.status === "confirmed");
-const completed = computed(() => props.booking.status === "completed");
 const cancelled = computed(() => props.booking.status === "cancelled");
 const canModify = computed(
   () =>
@@ -99,9 +98,6 @@ const eventName = computed(
 
 const item =
   "flex min-h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-sm outline-none hover:bg-accent focus-visible:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50";
-
-const badge =
-  "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset";
 </script>
 
 <template>
@@ -143,33 +139,10 @@ const badge =
             >
               {{ eventName }}
             </h2>
-            <span
-              v-if="pending"
-              :class="[
-                badge,
-                'bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-300',
-              ]"
-            >
-              Needs confirmation
-            </span>
-            <span
-              v-else-if="completed"
-              :class="[
-                badge,
-                'bg-blue-500/10 text-blue-700 ring-blue-500/20 dark:text-blue-300',
-              ]"
-            >
-              Completed
-            </span>
-            <span
-              v-else-if="cancelled"
-              :class="[
-                badge,
-                'bg-destructive/10 text-destructive ring-destructive/20',
-              ]"
-            >
-              Cancelled
-            </span>
+            <SharedPill
+              v-if="booking.status !== 'confirmed'"
+              :value="booking.status"
+            />
           </div>
 
           <p class="mt-1 text-sm tabular-nums text-muted-foreground">

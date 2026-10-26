@@ -2,11 +2,17 @@
 import {
   Calendar03Icon,
   Clock01Icon,
+  CopyLinkIcon,
   Edit02Icon,
+  Location05Icon,
+  Note01Icon,
+  Time02Icon,
+  UserMultipleIcon,
   Video01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/vue";
 import { useQuery } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 import { getApiErrorMessage } from "~/utils/api/client";
 import { queryKeys } from "~/utils/api/query-keys";
 import { teamBookingsApi, type TeamBooking } from "~/utils/api/team-bookings";
@@ -42,32 +48,77 @@ const bookingQuery = useQuery({
 });
 const booking = computed(() => bookingQuery.data.value?.booking ?? null);
 const timezone = computed(() => booking.value?.booking_timezone || "UTC");
+const eventName = computed(() =>
+  booking.value
+    ? (booking.value.event?.name ?? `Event #${booking.value.event_id}`)
+    : "Meeting details",
+);
 const dateLabel = computed(() =>
   booking.value?.starts_at
-    ? new Intl.DateTimeFormat(undefined, {
-        dateStyle: "full",
+    ? new Intl.DateTimeFormat("en-GB", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
         timeZone: timezone.value,
       }).format(new Date(booking.value.starts_at))
-    : "Time to be confirmed",
+    : "Date to be confirmed",
 );
 const timeLabel = computed(() => {
-  if (!booking.value?.starts_at) return "—";
-  const formatter = new Intl.DateTimeFormat(undefined, {
-    timeStyle: "short",
+  if (!booking.value?.starts_at) return "Time to be confirmed";
+
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
     timeZone: timezone.value,
   });
-  const start = formatter.format(new Date(booking.value.starts_at));
-  return booking.value.ends_at
-    ? `${start} – ${formatter.format(new Date(booking.value.ends_at))}`
-    : start;
+  const start = formatter
+    .format(new Date(booking.value.starts_at))
+    .toLowerCase();
+  const end = booking.value.ends_at
+    ? formatter.format(new Date(booking.value.ends_at)).toLowerCase()
+    : "";
+
+  return end ? `${start}–${end}` : start;
 });
+
+const durationLabel = computed(() => {
+  if (booking.value?.starts_at && booking.value.ends_at) {
+    const minutes = Math.max(
+      0,
+      Math.round(
+        (new Date(booking.value.ends_at).getTime() -
+          new Date(booking.value.starts_at).getTime()) /
+          60_000,
+      ),
+    );
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+  }
+
+  const minutes = booking.value?.event?.duration_minutes;
+  return minutes
+    ? `${minutes} ${minutes === 1 ? "minute" : "minutes"}`
+    : "Duration to be confirmed";
+});
+
+const copyMeetingLink = async () => {
+  if (!booking.value?.meeting_url) return;
+
+  try {
+    await navigator.clipboard.writeText(booking.value.meeting_url);
+    toast.success("Meeting link copied");
+  } catch {
+    toast.error("Could not copy the meeting link");
+  }
+};
 </script>
 
 <template>
   <SharedSheet
     v-model:open="open"
-    title="Team meeting"
-    description="Meeting details, attendees and actions"
+    title="Meeting details"
+    description="Meeting time, location and attendees"
     close-label="Close team meeting details"
   >
     <template v-if="booking && canManage" #actions>
@@ -85,72 +136,237 @@ const timeLabel = computed(() => {
         {{ getApiErrorMessage(bookingQuery.error.value, "Could not load the team meeting.") }}
       </div>
     </div>
-    <div v-else-if="booking" class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-      <section class="p-5">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="rounded-full bg-muted px-2 py-0.5 text-xs font-medium capitalize">{{ booking.status }}</span>
-          <span class="text-xs text-muted-foreground">Meeting #{{ booking.id }}</span>
-        </div>
-        <h2 class="mt-2 text-base font-semibold tracking-tight">{{ booking.event?.name ?? `Event #${booking.event_id}` }}</h2>
-        <p v-if="booking.notes" class="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{{ booking.notes }}</p>
-      </section>
+    <template v-else-if="booking">
+      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <section class="p-5" aria-label="Meeting overview">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <SharedPill :value="booking.status" />
+            <span class="text-xs tabular-nums text-muted-foreground">
+              Meeting #{{ booking.id }}
+            </span>
+          </div>
+          <p class="text-base font-semibold tracking-tight">
+            {{ eventName }}
+          </p>
+        </section>
 
-      <section class="border-t border-border px-5 py-4" aria-labelledby="team-meeting-when">
-        <h2 id="team-meeting-when" class="text-xs font-medium text-muted-foreground">When and where</h2>
-        <dl class="mt-3 space-y-3 text-sm">
-          <div class="grid grid-cols-[92px_1fr] gap-3">
-            <dt class="flex items-center gap-1.5 text-muted-foreground"><HugeiconsIcon :icon="Calendar03Icon" :size="15" aria-hidden="true" />Date</dt>
-            <dd>{{ dateLabel }}</dd>
-          </div>
-          <div class="grid grid-cols-[92px_1fr] gap-3">
-            <dt class="flex items-center gap-1.5 text-muted-foreground"><HugeiconsIcon :icon="Clock01Icon" :size="15" aria-hidden="true" />Time</dt>
-            <dd>{{ timeLabel }} · {{ timezone }}</dd>
-          </div>
-          <div class="grid grid-cols-[92px_1fr] gap-3">
-            <dt class="flex items-center gap-1.5 text-muted-foreground"><HugeiconsIcon :icon="Video01Icon" :size="15" aria-hidden="true" />Location</dt>
-            <dd>
-              <a v-if="booking.meeting_url" :href="booking.meeting_url" target="_blank" rel="noopener noreferrer" class="font-medium text-primary hover:underline">Join Google Meet</a>
-              <span v-else class="text-muted-foreground">Meet link is being prepared</span>
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      <section class="border-t border-border px-5 py-4" aria-labelledby="team-meeting-guests">
-        <div class="flex items-center justify-between gap-3">
-          <h2 id="team-meeting-guests" class="text-xs font-medium text-muted-foreground">Team guests</h2>
-          <span class="text-xs text-muted-foreground">{{ booking.guests?.length ?? 0 }}</span>
-        </div>
-        <ul v-if="booking.guests?.length" class="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border">
-          <li v-for="guest in booking.guests" :key="guest.id" class="flex items-center gap-3 px-3 py-2.5">
-            <SharedAvatar :name="guest.name || guest.email" class="size-8" />
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-medium">{{ guest.name || guest.email }}</p>
-              <p class="truncate text-xs text-muted-foreground">{{ guest.email }}</p>
+        <section
+          class="border-t border-border px-5 py-4"
+          aria-labelledby="team-booking-time-heading"
+        >
+          <h2
+            id="team-booking-time-heading"
+            class="text-xs font-medium text-muted-foreground"
+          >
+            When and where
+          </h2>
+          <dl class="mt-3 space-y-2.5 text-[13px]">
+            <div class="grid grid-cols-[96px_1fr] items-baseline gap-3">
+              <dt class="flex items-center gap-1.5 text-muted-foreground">
+                <HugeiconsIcon
+                  :icon="Calendar03Icon"
+                  :size="14"
+                  :stroke-width="1.75"
+                  class="shrink-0 self-center"
+                  aria-hidden="true"
+                />
+                Date
+              </dt>
+              <dd class="min-w-0">{{ dateLabel }}</dd>
             </div>
-            <span class="rounded-md bg-muted px-1.5 py-0.5 text-xs capitalize text-muted-foreground">{{ guest.attendance_status }}</span>
-          </li>
-        </ul>
-        <p v-else class="mt-3 rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">No guests were returned for this meeting.</p>
-      </section>
+            <div class="grid grid-cols-[96px_1fr] items-baseline gap-3">
+              <dt class="flex items-center gap-1.5 text-muted-foreground">
+                <HugeiconsIcon
+                  :icon="Clock01Icon"
+                  :size="14"
+                  :stroke-width="1.75"
+                  class="shrink-0 self-center"
+                  aria-hidden="true"
+                />
+                Time
+              </dt>
+              <dd class="min-w-0">{{ timeLabel }}</dd>
+            </div>
+            <div class="grid grid-cols-[96px_1fr] items-baseline gap-3">
+              <dt class="flex items-center gap-1.5 text-muted-foreground">
+                <HugeiconsIcon
+                  :icon="Time02Icon"
+                  :size="14"
+                  :stroke-width="1.75"
+                  class="shrink-0 self-center"
+                  aria-hidden="true"
+                />
+                Duration
+              </dt>
+              <dd class="min-w-0">
+                {{ durationLabel }}
+                <span class="text-muted-foreground">· {{ timezone }}</span>
+              </dd>
+            </div>
+            <div class="grid grid-cols-[96px_1fr] items-baseline gap-3">
+              <dt class="flex items-center gap-1.5 text-muted-foreground">
+                <HugeiconsIcon
+                  :icon="Location05Icon"
+                  :size="14"
+                  :stroke-width="1.75"
+                  class="shrink-0 self-center"
+                  aria-hidden="true"
+                />
+                Location
+              </dt>
+              <dd class="min-w-0">
+                {{
+                  booking.meeting_url
+                    ? "Google Meet"
+                    : "Meeting link to follow"
+                }}
+              </dd>
+            </div>
+          </dl>
+        </section>
 
-      <section v-if="booking.cancellation_reason" class="border-t border-border px-5 py-4">
-        <h2 class="text-xs font-medium text-muted-foreground">Cancellation reason</h2>
-        <p class="mt-2 whitespace-pre-wrap text-sm">{{ booking.cancellation_reason }}</p>
-      </section>
+        <section
+          class="border-t border-border px-5 py-4"
+          aria-labelledby="team-booking-people-heading"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <h2
+              id="team-booking-people-heading"
+              class="text-xs font-medium text-muted-foreground"
+            >
+              People
+            </h2>
+            <span class="text-xs tabular-nums text-muted-foreground">
+              {{ booking.guests?.length ?? 0 }}
+            </span>
+          </div>
 
-      <div v-if="canManage" class="flex gap-2 border-t border-border p-5">
+          <ul
+            v-if="booking.guests?.length"
+            class="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border"
+          >
+            <li
+              v-for="guest in booking.guests"
+              :key="guest.id"
+              class="flex items-center gap-3 px-3 py-2.5"
+            >
+              <UiPublicProfileAvatar
+                :image="guest.user?.avatar_url || undefined"
+                :name="guest.user?.name || guest.name || guest.email"
+                size="sm"
+                class="size-8"
+              />
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium">
+                  {{ guest.name || guest.email }}
+                </p>
+                <p class="truncate text-xs text-muted-foreground">
+                  {{ guest.email }}
+                </p>
+              </div>
+              <SharedPill :value="guest.attendance_status" />
+            </li>
+          </ul>
+
+          <div
+            v-else
+            class="mt-3 rounded-lg border border-dashed border-border px-5 py-8 text-center"
+          >
+            <HugeiconsIcon
+              :icon="UserMultipleIcon"
+              :size="18"
+              :stroke-width="1.75"
+              class="mx-auto text-muted-foreground"
+              aria-hidden="true"
+            />
+            <p class="mt-2 text-[13px] font-medium">No attendees</p>
+            <p class="mt-0.5 text-xs text-muted-foreground">
+              No attendees were added.
+            </p>
+          </div>
+        </section>
+
+        <section
+          v-if="booking.notes || booking.cancellation_reason"
+          class="border-t border-border px-5 py-4"
+          aria-labelledby="team-booking-notes-heading"
+        >
+          <h2
+            id="team-booking-notes-heading"
+            class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+          >
+            <HugeiconsIcon
+              :icon="Note01Icon"
+              :size="14"
+              :stroke-width="1.75"
+              aria-hidden="true"
+            />
+            {{
+              booking.cancellation_reason ? "Cancellation reason" : "Guest note"
+            }}
+          </h2>
+          <p
+            class="mt-3 whitespace-pre-wrap wrap-break-word text-[13px] leading-6"
+          >
+            {{ booking.cancellation_reason || booking.notes }}
+          </p>
+        </section>
+
+        <div v-if="canManage" class="flex gap-2 border-t border-border p-5">
+          <SharedButton
+            v-if="booking.status !== 'cancelled' && booking.status !== 'completed'"
+            type="button"
+            variant="outline"
+            class="flex-1"
+            @click="emit('cancel', booking)"
+          >
+            Cancel meeting
+          </SharedButton>
+          <SharedButton
+            type="button"
+            variant="destructive"
+            class="flex-1"
+            @click="emit('delete', booking)"
+          >
+            Delete
+          </SharedButton>
+        </div>
+      </div>
+
+      <footer
+        v-if="booking.meeting_url"
+        class="flex shrink-0 items-center gap-2 border-t border-border bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
+        <SharedButton as-child class="flex-1">
+          <a
+            :href="booking.meeting_url"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <HugeiconsIcon
+              :icon="Video01Icon"
+              :size="15"
+              :stroke-width="1.75"
+              aria-hidden="true"
+            />
+            Join meeting
+          </a>
+        </SharedButton>
         <SharedButton
-          v-if="booking.status !== 'cancelled' && booking.status !== 'completed'"
           type="button"
           variant="outline"
-          class="flex-1"
-          @click="emit('cancel', booking)"
+          size="icon"
+          aria-label="Copy meeting link"
+          @click="copyMeetingLink"
         >
-          Cancel meeting
+          <HugeiconsIcon
+            :icon="CopyLinkIcon"
+            :size="16"
+            :stroke-width="1.75"
+            aria-hidden="true"
+          />
         </SharedButton>
-        <SharedButton type="button" variant="destructive" class="flex-1" @click="emit('delete', booking)">Delete</SharedButton>
-      </div>
-    </div>
+      </footer>
+    </template>
   </SharedSheet>
 </template>

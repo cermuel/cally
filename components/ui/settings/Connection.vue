@@ -40,13 +40,11 @@ const emit = defineEmits<{
       </div>
     </div>
 
-    <span
+    <SharedPill
       v-if="connection"
-      class="inline-flex shrink-0 items-center gap-2 self-start rounded-full border border-green-600/20 bg-green-600/10 px-3 py-1.5 text-xs font-medium text-green-700 sm:self-auto dark:text-green-400"
-    >
-      <span class="size-2 rounded-full bg-green-500" />
-      Connected
-    </span>
+      value="connected"
+      class="self-start sm:self-auto"
+    />
 
     <SharedButton
       v-else-if="provider.canConnect"
@@ -59,11 +57,6 @@ const emit = defineEmits<{
       Connect
     </SharedButton>
 
-    <span
-      v-else
-      class="shrink-0 self-start rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground sm:self-auto"
-    >
-      Coming soon
-    </span>
+    <SharedPill v-else value="coming-soon" class="self-start sm:self-auto" />
   </article>
 </template>

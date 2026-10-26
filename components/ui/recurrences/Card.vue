@@ -47,9 +47,7 @@ const time = computed(() => {
           <h2 class="truncate text-[15px] font-medium">
             {{ recurrence.event?.name ?? `Event #${recurrence.event_id}` }}
           </h2>
-          <span class="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium capitalize text-emerald-700 ring-1 ring-emerald-500/20 ring-inset dark:text-emerald-300">
-            {{ recurrence.status }}
-          </span>
+          <SharedPill :value="recurrence.status" />
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground sm:gap-x-4">
           <span class="font-medium text-foreground/80">

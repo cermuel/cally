@@ -194,19 +194,7 @@ const respond = (decision: RescheduleDecision) => {
           <p class="text-[13px] font-medium">
             {{ reschedule.status === "pending" ? "Proposed time" : "Reschedule" }}
           </p>
-          <span
-            class="rounded-md px-1.5 py-0.5 text-[10px] font-medium capitalize"
-            :class="{
-              'bg-amber-500/10 text-amber-700 dark:text-amber-300':
-                reschedule.status === 'pending',
-              'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300':
-                reschedule.status === 'accepted',
-              'bg-destructive/10 text-destructive':
-                reschedule.status === 'declined',
-            }"
-          >
-            {{ reschedule.status }}
-          </span>
+          <SharedPill :value="reschedule.status" />
         </div>
 
         <dl class="mt-2.5 space-y-2 text-[13px]">

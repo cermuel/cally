@@ -26,16 +26,6 @@ const eventName = computed(() =>
     : "Meeting details",
 );
 
-const statusLabel = computed(() => {
-  if (!props.booking) return "";
-  return {
-    pending: "Needs confirmation",
-    confirmed: "Confirmed",
-    completed: "Completed",
-    cancelled: "Cancelled",
-  }[props.booking.status];
-});
-
 const dateLabel = computed(() =>
   props.booking?.starts_at
     ? new Intl.DateTimeFormat("en-GB", {
@@ -119,21 +109,7 @@ const copyMeetingLink = async () => {
           <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <section class="p-5" aria-label="Meeting overview">
               <div class="mb-2 flex flex-wrap items-center gap-2">
-                <span
-                  class="rounded-md px-2 py-0.5 text-xs font-medium"
-                  :class="{
-                    'bg-amber-500/10 text-amber-700 dark:text-amber-300':
-                      booking.status === 'pending',
-                    'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300':
-                      booking.status === 'confirmed',
-                    'bg-muted text-muted-foreground':
-                      booking.status === 'completed',
-                    'bg-destructive/10 text-destructive':
-                      booking.status === 'cancelled',
-                  }"
-                >
-                  {{ statusLabel }}
-                </span>
+                <SharedPill :value="booking.status" />
                 <span class="text-xs tabular-nums text-muted-foreground"
                   >Meeting #{{ booking.id }}</span
                 >
@@ -311,11 +287,7 @@ const copyMeetingLink = async () => {
                       {{ guest.email }}
                     </p>
                   </div>
-                  <span
-                    class="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium capitalize text-muted-foreground"
-                  >
-                    {{ guest.attendance_status }}
-                  </span>
+                  <SharedPill :value="guest.attendance_status" />
                 </li>
               </ul>
 
