@@ -5,12 +5,12 @@
     aria-busy="true"
   >
     <div class="mb-4 flex items-center justify-between gap-4 md:mb-7">
-      <div class="h-6 w-32 rounded bg-white/10 motion-safe:animate-pulse" />
+      <div class="h-6 w-32 rounded bg-muted motion-safe:animate-pulse" />
       <div class="flex items-center gap-6">
         <div
           v-for="item in 2"
           :key="item"
-          class="size-6 rounded-md bg-white/10 motion-safe:animate-pulse"
+          class="size-6 rounded-md bg-muted motion-safe:animate-pulse"
         />
       </div>
     </div>
@@ -26,7 +26,7 @@
       <div
         v-for="day in 35"
         :key="`date-${day}`"
-        class="mx-auto size-8 rounded bg-white/[0.07] motion-safe:animate-pulse sm:size-9 md:size-10"
+        class="mx-auto size-8 rounded bg-muted/70 motion-safe:animate-pulse sm:size-9 md:size-10"
       />
     </div>
   </section>

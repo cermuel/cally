@@ -141,7 +141,7 @@ const label = (time: string) => {
           type="button"
           variant="secondary"
           size="icon-sm"
-          class="-ms-1 w-6 h-6 text-muted-foreground hover:bg-white/10 hover:text-foreground sm:hidden"
+          class="-ms-1 size-6 text-muted-foreground hover:bg-muted hover:text-foreground sm:hidden"
           aria-label="Back to calendar"
           @click="$emit('back')"
         >
@@ -155,7 +155,7 @@ const label = (time: string) => {
         </SharedButton>
         <h2 class="truncate text-sm font-medium">{{ heading }}</h2>
       </div>
-      <span class="slot-caption text-xs text-white/50">Available times</span>
+      <span class="slot-caption text-xs text-muted-foreground">Available times</span>
     </div>
     <div
       ref="slotList"
@@ -176,8 +176,8 @@ const label = (time: string) => {
           class="slot-button flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors duration-150"
           :class="
             selectedSlot === slot.starts_at
-              ? 'border-transparent text-white'
-              : 'border-white/15 bg-white/5 text-white/85 hover:border-white/50 hover:bg-white/10'
+              ? 'border-transparent text-primary-foreground'
+              : 'border-border bg-secondary/40 text-foreground/85 hover:border-foreground/35 hover:bg-secondary'
           "
           :aria-pressed="selectedSlot === slot.starts_at"
           @pointermove="previewSlot($event, slot.time)"
@@ -191,13 +191,13 @@ const label = (time: string) => {
         <div
           v-if="highlightClip"
           aria-hidden="true"
-          class="slot-highlight pointer-events-none absolute inset-0 grid grid-cols-2 content-start gap-2 bg-white md:grid-cols-1"
+          class="slot-highlight pointer-events-none absolute inset-0 grid grid-cols-2 content-start gap-2 bg-foreground md:grid-cols-1"
           :style="{ clipPath: highlightClip }"
         >
           <span
             v-for="slot in slots"
             :key="slot.starts_at"
-            class="relative flex min-h-10 items-center justify-center rounded-lg border border-transparent px-3 py-2 text-sm font-medium text-slate-900"
+            class="relative flex min-h-10 items-center justify-center rounded-lg border border-transparent px-3 py-2 text-sm font-medium text-background"
           >
             {{ label(slot.time) }}
             <span
@@ -211,7 +211,7 @@ const label = (time: string) => {
     </div>
     <button
       type="button"
-      class="mt-4 h-9 w-full rounded-lg bg-white px-4 text-sm font-semibold text-slate-900 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+      class="mt-4 h-9 w-full rounded-lg bg-foreground px-4 text-sm font-semibold text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
       :disabled="!selectedSlot"
       @click="$emit('continue')"
     >
@@ -225,7 +225,7 @@ const label = (time: string) => {
   transition: clip-path 220ms var(--ease-out);
 }
 .slot-button:focus-visible {
-  outline: 2px solid white;
+  outline: 2px solid var(--foreground);
   outline-offset: -2px;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -236,7 +236,8 @@ const label = (time: string) => {
 .slot-list {
   overflow-anchor: none;
   scrollbar-width: thin;
-  scrollbar-color: rgb(255 255 255 / 25%) transparent;
+  scrollbar-color: color-mix(in oklch, var(--foreground) 25%, transparent)
+    transparent;
 }
 @media (max-width: 767px) {
   .slot-list {

@@ -44,7 +44,7 @@ const hiddenGuestCount = computed(() =>
 <template>
   <section>
     <SharedCard
-      class="w-full overflow-hidden rounded-2xl border-white/20 bg-slate-950/65 py-0 text-white shadow-2xl backdrop-blur-2xl"
+      class="scheduled-card w-full overflow-hidden rounded-2xl border border-border bg-card py-0 text-card-foreground shadow-2xl"
     >
       <header class="grid place-items-center text-center pt-5 mb-0">
         <h1
@@ -61,7 +61,7 @@ const hiddenGuestCount = computed(() =>
         We've sent you a mail with more details about your event
       </p>
 
-      <section class="border-y border-white/10 bg-black/10 px-5 py-6 sm:px-8">
+      <section class="border-y border-border bg-muted/40 px-5 py-6 sm:px-8">
         <div class="space-y-7 text-base font-medium">
           <section class="grid gap-3 grid-cols-[32px_1fr]">
             <HugeiconsIcon

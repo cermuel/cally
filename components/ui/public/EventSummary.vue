@@ -55,41 +55,41 @@ onBeforeUnmount(() => window.removeEventListener("resize", handleResize));
 
 <template>
   <aside
-    class="flex max-sm:h-max md:flex-row md:justify-between flex-col gap-4"
+    class="flex flex-col gap-4 max-sm:h-max sm:flex-row sm:items-center sm:justify-between sm:gap-6"
   >
     <div
       v-if="loading"
-      class="max-lg:space-y-4 w-full lg:flex lg:items-center lg:flex-row lg:justify-between"
+      class="w-full space-y-4 sm:flex sm:items-center sm:justify-between sm:gap-6 sm:space-y-0"
       aria-busy="true"
     >
       <div class="flex items-center gap-2">
         <span
-          class="size-8 rounded-full bg-white/10 motion-safe:animate-pulse"
+          class="size-8 rounded-full bg-muted motion-safe:animate-pulse"
         />
-        <span class="h-4 w-24 rounded bg-white/10 motion-safe:animate-pulse" />
+        <span class="h-4 w-24 rounded bg-muted motion-safe:animate-pulse" />
       </div>
       <div
-        class="block h-7 lg:w-40 w-3/4 rounded bg-white/10 motion-safe:animate-pulse"
+        class="block h-7 w-3/4 rounded bg-muted motion-safe:animate-pulse sm:w-40"
       />
       <div
-        class="block h-4 mb-0 lg:w-40 w-1/2 rounded bg-white/10 motion-safe:animate-pulse"
+        class="mb-0 block h-4 w-1/2 rounded bg-muted motion-safe:animate-pulse sm:w-40"
       />
     </div>
 
     <template v-else>
-      <div class="flex items-center gap-2">
+      <div class="flex shrink-0 items-center gap-2">
         <UiPublicProfileAvatar :image="hostImage" :name="hostName" size="sm" />
         <p class="text-sm font-medium text-muted-foreground">{{ hostName }}</p>
       </div>
 
       <h1
-        class="text-2xl font-semibold leading-tight tracking-tight text-foreground"
+        class="min-w-0 text-2xl font-semibold leading-tight tracking-tight text-foreground sm:flex-1 sm:text-center"
       >
         {{ title }}
       </h1>
 
       <dl
-        class="flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium text-foreground/85 md:flex-col"
+        class="flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium text-foreground/85 sm:shrink-0 sm:flex-nowrap"
       >
         <div class="flex items-center gap-2">
           <dt class="grid size-5 place-items-center text-muted-foreground">

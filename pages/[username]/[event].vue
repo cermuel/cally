@@ -60,12 +60,17 @@ const viewerTimezone = ref(
   import.meta.client ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC",
 );
 
-const isEmbed = computed(() =>
-  ["true", "1"].includes(String(route.query.embed)),
-);
+const {
+  isEmbed,
+  mode: embedMode,
+  root,
+  theme: embedTheme,
+} = usePublicEmbed("event");
 const profilePath = computed(() => ({
   path: `/${username.value}`,
-  query: isEmbed.value ? { embed: "true" } : undefined,
+  query: isEmbed.value
+    ? { embed: "true", mode: embedMode.value, theme: embedTheme.value }
+    : undefined,
 }));
 
 const {
@@ -363,23 +368,6 @@ const clearScheduleError = (field: string) => {
   scheduleErrors.value = nextErrors;
 };
 
-const root = ref<HTMLElement | null>(null);
-let resizeObserver: ResizeObserver | undefined;
-
-onMounted(() => {
-  if (!isEmbed.value || window.parent === window || !root.value) return;
-  const el = root.value;
-  const postHeight = () =>
-    window.parent.postMessage(
-      { source: "cally", type: "resize", height: el.offsetHeight },
-      "*",
-    );
-  resizeObserver = new ResizeObserver(postHeight);
-  resizeObserver.observe(el);
-  postHeight();
-});
-onBeforeUnmount(() => resizeObserver?.disconnect());
-
 useHead(() => ({
   title:
     event.value && profile.value
@@ -397,12 +385,14 @@ if (import.meta.server) {
 <template>
   <main
     ref="root"
-    class="booking-page booking-scenic dark relative isolate h-dvh text-foreground antialiased"
-    :class="
+    class="booking-page booking-scenic relative isolate h-dvh text-foreground antialiased"
+    :class="[
       isEmbed
-        ? 'booking-embed bg-transparent'
-        : 'px-4 pb-8 pt-6 md:px-10 md:pb-12'
-    "
+        ? embedMode === 'popup'
+          ? 'booking-embed booking-popup bg-transparent'
+          : 'booking-embed bg-transparent p-3 sm:p-4'
+        : 'dark px-4 pb-8 pt-6 md:px-10 md:pb-12',
+    ]"
   >
     <UiPublicBookingScene
       v-if="!isEmbed"
@@ -433,7 +423,7 @@ if (import.meta.server) {
       :class="isEmbed ? '' : 'min-h-dvh'"
     >
       <SharedCard
-        class="grid p-8 max-w-115 -mt-10 mx-auto w-full grid-cols-1 gap-0 overflow-hidden rounded-2xl border-white/20 bg-slate-950/55 text-white shadow-2xl backdrop-blur-2xl"
+        class="booking-glass mx-auto -mt-10 grid w-full max-w-115 grid-cols-1 gap-0 overflow-hidden rounded-2xl border border-border bg-card p-8 text-card-foreground shadow-2xl"
       >
         <h1 class="text-2xl font-bold tracking-normal text-foreground">
           This booking page is unavailable
@@ -452,7 +442,7 @@ if (import.meta.server) {
       class="booking-content relative w-full"
       :class="[
         'max-w-185',
-        isEmbed ? 'mx-auto py-1' : 'mt-8',
+        isEmbed ? 'mx-auto' : 'mt-8',
         {
           'booking-confirmation': confirmationVisible,
           'booking-details': step === 'details',
@@ -471,7 +461,7 @@ if (import.meta.server) {
         >
           <SharedCard
             v-if="!confirmationVisible"
-            class="booking-glass grid w-full grid-cols-1 gap-0 overflow-hidden rounded-2xl border-white/20 bg-slate-950/55 py-0 text-white shadow-2xl backdrop-blur-2xl"
+            class="booking-glass grid w-full grid-cols-1 gap-0 overflow-hidden rounded-2xl border border-border bg-card py-0 text-card-foreground shadow-2xl backdrop-blur-2xl"
           >
             <UiPublicEventSummary
               :host-name="profile?.name ?? username"
@@ -481,7 +471,7 @@ if (import.meta.server) {
               :duration-label="event ? `${event.duration_minutes}m` : ''"
               :loading="bookingPending"
               :hide-description-on-mobile="step === 'details'"
-              class="booking-summary border-b border-white/15 p-5 md:p-6"
+              class="booking-summary border-b border-border p-5 md:p-6"
               :class="step !== 'slots' && 'max-sm:hidden'"
             />
 
@@ -490,7 +480,7 @@ if (import.meta.server) {
               class="booking-slots-layout grid min-h-0 grid-cols-1"
               :class="
                 showSlots
-                  ? 'md:h-100 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]'
+                  ? 'booking-has-slots md:h-100 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]'
                   : 'grid-rows-1'
               "
             >
@@ -501,6 +491,7 @@ if (import.meta.server) {
                 :month-label="monthLabel"
                 :selected-date="selectedDate"
                 :no-availability="availableDates.size === 0"
+                class="booking-calendar"
                 :class="mobileSlotStep === 'times' && 'max-sm:hidden'"
                 @previous="moveMonth(-1)"
                 @next="moveMonth(1)"
@@ -517,7 +508,7 @@ if (import.meta.server) {
                   :heading="selectedSlotHeading"
                   :slots="slots"
                   :selected-slot="selectedSlotId"
-                  class="border-t border-white/10 md:border-l md:border-t-0"
+                  class="booking-slot-picker border-t border-border md:border-s md:border-t-0"
                   :class="mobileSlotStep === 'calendar' && 'max-sm:hidden'"
                   @select="chooseSlot"
                   @preview="previewTime = $event"
@@ -537,7 +528,7 @@ if (import.meta.server) {
                 v-model:notes="notes"
                 :errors="scheduleErrors"
                 :submitting="scheduleSubmitting"
-                class="border-b border-white/10 md:min-h-0 md:overflow-y-auto md:border-b-0 md:border-r"
+                class="border-b border-border md:min-h-0 md:overflow-y-auto md:border-e md:border-b-0"
                 @back="step = 'slots'"
                 @clear-error="clearScheduleError"
                 @confirm="scheduleBooking"
@@ -586,7 +577,7 @@ if (import.meta.server) {
 </template>
 
 <style scoped>
-.booking-scenic {
+.booking-scenic:not(.booking-embed) {
   --foreground: oklch(0.985 0 0);
   --background: oklch(0.18 0.015 250);
   --card-foreground: oklch(0.985 0 0);
@@ -611,10 +602,24 @@ if (import.meta.server) {
   }
 }
 .booking-embed {
+  height: auto;
   min-height: 0;
+  color-scheme: light;
 }
-.booking-embed.booking-scenic .booking-glass {
-  background: #171c23;
+.dark .booking-embed {
+  color-scheme: dark;
+}
+.booking-embed .booking-glass {
+  border-color: var(--border);
+  background: var(--card);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--foreground) 4%, transparent),
+    0 12px 32px color-mix(in oklch, var(--foreground) 8%, transparent);
+  backdrop-filter: none;
+}
+.booking-popup .booking-glass,
+.booking-popup :deep(.scheduled-card) {
+  box-shadow: none;
 }
 @media (min-width: 1101px) {
   .booking-content {
@@ -689,6 +694,21 @@ if (import.meta.server) {
     align-items: stretch; /* items stretch to fill the cross axis */
   }
 }
+@media (min-width: 600px) and (max-width: 767px) {
+  .booking-embed .booking-has-slots {
+    grid-template-columns: minmax(0, 1.3fr) minmax(12rem, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    height: 25rem;
+  }
+  .booking-embed .booking-calendar {
+    display: block;
+  }
+  .booking-embed .booking-slot-picker {
+    display: flex;
+    border-top: 0;
+    border-inline-start: 1px solid var(--border);
+  }
+}
 @media (max-width: 639px) {
   .booking-details .booking-glass {
     grid-template-rows: minmax(0, 1fr);
@@ -725,5 +745,17 @@ if (import.meta.server) {
 }
 .booking-embed .confirmation-panel {
   max-height: none;
+}
+.booking-embed.booking-popup,
+.booking-popup .booking-content,
+.booking-popup .booking-panel,
+.booking-popup .booking-card-region,
+.booking-popup .booking-glass {
+  height: 100dvh;
+}
+.booking-popup .booking-slots-layout,
+.booking-popup .booking-details-layout {
+  height: auto;
+  min-height: 0;
 }
 </style>

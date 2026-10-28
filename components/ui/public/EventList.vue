@@ -5,6 +5,8 @@ import type { PublicApiEvent } from "~/utils/api/public";
 
 const props = defineProps<{
   events: PublicApiEvent[];
+  embedMode: "inline" | "popup";
+  embedTheme: "auto" | "light" | "dark";
   isEmbed: boolean;
   pending: boolean;
   username: string;
@@ -53,7 +55,9 @@ const getDescriptionFirstLine = (html: string) =>
           <NuxtLink
             :to="{
               path: `/${username}/${event.slug}`,
-              query: isEmbed ? { embed: 'true' } : undefined,
+              query: isEmbed
+                ? { embed: 'true', mode: embedMode, theme: embedTheme }
+                : undefined,
             }"
             class="group flex items-center gap-4 rounded-xl border border-border bg-muted/20 px-4 py-3.5 transition-colors hover:border-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >

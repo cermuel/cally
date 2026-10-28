@@ -13,25 +13,12 @@ const { data: eventsData, isPending: eventsPending } =
 
 const profile = computed(() => profileData.value?.user);
 
-const isEmbed = computed(() =>
-  ["true", "1"].includes(String(route.query.embed)),
-);
-const root = ref<HTMLElement | null>(null);
-let resizeObserver: ResizeObserver | undefined;
-
-onMounted(() => {
-  if (!isEmbed.value || window.parent === window || !root.value) return;
-  const el = root.value;
-  const postHeight = () =>
-    window.parent.postMessage(
-      { source: "cally", type: "resize", height: el.offsetHeight },
-      "*",
-    );
-  resizeObserver = new ResizeObserver(postHeight);
-  resizeObserver.observe(el);
-  postHeight();
-});
-onBeforeUnmount(() => resizeObserver?.disconnect());
+const {
+  isEmbed,
+  mode: embedMode,
+  root,
+  theme: embedTheme,
+} = usePublicEmbed("profile");
 const isProfileNotFound = computed(() => {
   const error = profileError.value as {
     status?: number;
@@ -75,7 +62,10 @@ if (import.meta.server) {
   <main
     ref="root"
     class="relative text-foreground antialiased"
-    :class="isEmbed ? 'bg-transparent' : 'h-dvh overflow-y-auto bg-background'"
+    :class="[
+      isEmbed ? 'bg-transparent' : 'h-dvh overflow-y-auto bg-background',
+      embedMode === 'popup' && 'booking-popup',
+    ]"
   >
     <div
       v-if="!isEmbed"
@@ -85,7 +75,13 @@ if (import.meta.server) {
 
     <section
       class="relative mx-auto flex w-full max-w-xl flex-col"
-      :class="isEmbed ? 'p-1' : 'min-h-full px-5 pt-16 pb-10 sm:pt-24'"
+      :class="
+        isEmbed
+          ? embedMode === 'popup'
+            ? ''
+            : 'p-4 sm:p-6'
+          : 'min-h-full px-5 pt-16 pb-10 sm:pt-24'
+      "
     >
       <UiPublicAvailableUsername
         v-if="isProfileNotFound"
@@ -110,6 +106,8 @@ if (import.meta.server) {
         <UiPublicEventList
           :events="eventsData?.events ?? []"
           :is-embed="isEmbed"
+          :embed-mode="embedMode"
+          :embed-theme="embedTheme"
           :pending="eventsPending"
           :username="username"
         />

@@ -81,7 +81,7 @@ defineEmits<{
           day.key === selectedDate
             ? 'bg-foreground text-background'
             : day.available
-              ? 'cursor-pointer text-foreground hover:bg-white/10'
+              ? 'cursor-pointer text-foreground hover:bg-muted'
               : day.muted
                 ? 'cursor-not-allowed text-muted-foreground hover:cursor-not-allowed'
                 : 'text-muted-foreground/50 cursor-not-allowed'
