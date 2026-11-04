@@ -155,7 +155,7 @@ const addGuests = (emails: string[]) => {
         type="button"
         variant="secondary"
         size="sm"
-        class="mt-auto shrink-0 max-sm:hidden"
+        class="mt-auto shrink-0 max-md:hidden"
         @click="addGuest"
       >
         <HugeiconsIcon
@@ -171,7 +171,7 @@ const addGuests = (emails: string[]) => {
         type="button"
         variant="secondary"
         size="sm"
-        class="mt-auto shrink-0 sm:hidden"
+        class="mt-auto shrink-0 md:hidden"
         @click="addGuestsOpen = true"
       >
         <HugeiconsIcon

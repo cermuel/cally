@@ -11,7 +11,6 @@ const dialog = useTemplateRef("dialog");
 const inlineFrame = useTemplateRef("inlineFrame");
 const popupFrame = useTemplateRef("popupFrame");
 const inlineHeight = ref(560);
-const popupHeight = 476;
 const trigger = useTemplateRef("trigger");
 
 const previewUrlLabel = computed(() => {
@@ -116,7 +115,6 @@ watch(
     <dialog
       ref="dialog"
       class="embed-preview-dialog m-auto w-[calc(100%_-_2rem)] max-w-2xl overflow-hidden rounded-2xl border-0 bg-transparent p-0 text-foreground"
-      :style="{ height: popupHeight + 'px' }"
       aria-label="Booking preview"
       tabindex="-1"
       @close="restoreTriggerFocus"
@@ -145,7 +143,8 @@ watch(
 }
 
 .embed-preview-dialog {
-  max-height: calc(100dvh - 2rem);
+  height: min(476px, calc(100dvh - 2rem));
+  max-height: min(476px, calc(100dvh - 2rem));
   opacity: 0;
   transform: scale(0.96);
   transition:
@@ -153,6 +152,13 @@ watch(
     transform 250ms var(--ease-out),
     display 250ms allow-discrete,
     overlay 250ms allow-discrete;
+}
+
+@media (max-width: 640px) {
+  .embed-preview-dialog {
+    height: min(476px, 65dvh);
+    max-height: 65dvh;
+  }
 }
 
 .embed-preview-dialog[open] {

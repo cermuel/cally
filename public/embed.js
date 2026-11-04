@@ -33,7 +33,7 @@
       "@starting-style{.cally-embed-dialog[open]{opacity:0;transform:scale(.96)}.cally-embed-dialog[open]::backdrop{background:rgba(0,0,0,0)}}",
       "@media(prefers-color-scheme:dark){.cally-embed-dialog[data-theme=auto]{color:#f5f5f5}}",
       "@media(prefers-reduced-motion:reduce){.cally-trigger{transition-property:filter}.cally-embed-dialog{transform:none;transition:opacity 200ms cubic-bezier(.23,1,.32,1),display 200ms allow-discrete,overlay 200ms allow-discrete}.cally-embed-dialog[open]{transform:none}.cally-embed-spinner{animation:none}}",
-      "@media(max-width:640px){.cally-embed-dialog{width:calc(100% - 16px);height:calc(100dvh - 16px);max-height:none}}",
+      "@media(max-width:640px){.cally-embed-dialog{width:calc(100% - 16px);height:min(476px,65dvh);max-height:65dvh}}",
     ].join("");
     document.head.appendChild(style);
   }
