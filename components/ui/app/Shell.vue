@@ -146,6 +146,8 @@ onBeforeUnmount(() => widthAnimation?.cancel());
         </div>
       </main>
     </section>
+
+    <UiAppTwoFactorPrompt />
   </div>
 </template>
 

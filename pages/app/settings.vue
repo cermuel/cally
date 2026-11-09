@@ -2,7 +2,18 @@
 definePageMeta({ layout: false });
 useHead({ title: "Settings" });
 
-const section = ref("connections");
+const sections = ["connections", "embed", "notifications", "account"];
+const route = useRoute();
+const router = useRouter();
+
+const section = computed({
+  get: () =>
+    typeof route.query.tab === "string" && sections.includes(route.query.tab)
+      ? route.query.tab
+      : "connections",
+  set: (tab: string | number) =>
+    router.replace({ query: { ...route.query, tab: String(tab) } }),
+});
 </script>
 
 <template>
@@ -25,8 +36,12 @@ const section = ref("connections");
         <UiSettingsEmbedConfigurator />
       </SharedTabsContent>
 
-      <SharedTabsContent value="account">
-        <UiSettingsPasswordForm />
+      <SharedTabsContent
+        value="account"
+        class="grid items-start gap-6 lg:grid-cols-7"
+      >
+        <UiSettingsTwoFactor class="lg:order-last lg:col-span-3" />
+        <UiSettingsPasswordForm class="lg:col-span-4" />
       </SharedTabsContent>
 
       <SharedTabsContent value="notifications">

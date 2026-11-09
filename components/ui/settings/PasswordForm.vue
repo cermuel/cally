@@ -102,7 +102,7 @@ const submit = async () => {
 
 <template>
   <section
-    class="overflow-hidden rounded-xl border border-border bg-card max-w-2xl"
+    class="overflow-hidden rounded-xl border border-border bg-card"
   >
     <div class="border-b border-border px-5 py-4 sm:px-6">
       <h2 class="font-medium">Change password</h2>

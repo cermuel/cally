@@ -4,6 +4,8 @@ import type {
   AuthUserResponse,
   MessageResponse,
   NotificationPreferences,
+  OtpChallengeResponse,
+  VerifyOtpPayload,
 } from './auth'
 import { apiRequest } from './client'
 
@@ -26,6 +28,10 @@ export type ChangePasswordPayload = {
   old_password: string
   password: string
   password_confirmation: string
+}
+
+export type SetupTwoFactorPayload = {
+  two_factor_enabled: boolean
 }
 
 export const usersApi = {
@@ -64,6 +70,22 @@ export const usersApi = {
     return apiRequest<AuthUserResponse>(client, {
       method: 'PATCH',
       url: '/users/change-password',
+      data: payload,
+    })
+  },
+
+  setupTwoFactor(client: AxiosInstance, payload: SetupTwoFactorPayload) {
+    return apiRequest<OtpChallengeResponse | MessageResponse>(client, {
+      method: 'PATCH',
+      url: '/users/setup-two-factor',
+      data: payload,
+    })
+  },
+
+  confirmTwoFactor(client: AxiosInstance, payload: VerifyOtpPayload) {
+    return apiRequest<AuthUserResponse>(client, {
+      method: 'PATCH',
+      url: '/users/confirm-two-factor',
       data: payload,
     })
   },

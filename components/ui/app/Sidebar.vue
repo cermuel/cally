@@ -140,6 +140,7 @@ const trapMobileFocus = (event: KeyboardEvent) => {
     </nav>
 
     <div class="p-3">
+      <UiAppTwoFactorCard v-if="!compact && !hideCopy" />
       <UiAppAccountMenu :compact="compact" :hide-copy="hideCopy" />
     </div>
 

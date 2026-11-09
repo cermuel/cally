@@ -4,7 +4,7 @@ import { toast } from "vue-sonner";
 import SharedButton from "../../components/shared/button/Button.vue";
 import SharedInput from "../../components/shared/input/Input.vue";
 import SharedLabel from "../../components/shared/label/Label.vue";
-import { authApi } from "../../utils/api/auth";
+import { authApi, type TokenAuthResponse } from "../../utils/api/auth";
 import { getApiErrorMessage, getApiFieldErrors } from "../../utils/api/client";
 import { isSafeAuthReturnPath } from "../../utils/auth-redirect";
 import { helpers } from "../../utils/helpers";
@@ -28,10 +28,24 @@ const passwordInput = ref<InputField | null>(null);
 const apiClient = useApiClient();
 const auth = useAuth();
 const verificationEmail = ref("");
+const challengeId = ref("");
 const errors = reactive({
   email: "",
   password: "",
 });
+
+const completeLogin = async (response: TokenAuthResponse) => {
+  auth.setAuth(response.token, response.user);
+  const redirect = authReturnPath.peek(
+    requestedReturnPath.value ?? auth.getAuthenticatedHomePath(),
+  );
+
+  await navigateTo(
+    auth.authState.value === "needs_onboarding"
+      ? auth.getAuthenticatedHomePath()
+      : redirect,
+  );
+};
 
 const loginMutation = useMutation({
   mutationFn: () =>
@@ -40,17 +54,13 @@ const loginMutation = useMutation({
       password: password.value,
     }),
   onSuccess: async (response) => {
-    if (response.token) {
-      auth.setAuth(response.token, response.user);
-      const redirect = authReturnPath.peek(
-        requestedReturnPath.value ?? auth.getAuthenticatedHomePath(),
-      );
+    if ("challenge_id" in response) {
+      challengeId.value = response.challenge_id;
+      return;
+    }
 
-      await navigateTo(
-        auth.authState.value === "needs_onboarding"
-          ? auth.getAuthenticatedHomePath()
-          : redirect,
-      );
+    if ("token" in response) {
+      await completeLogin(response);
       return;
     }
 
@@ -123,6 +133,7 @@ const handleSubmit = async () => {
   errors.email = "";
   errors.password = "";
   verificationEmail.value = "";
+  challengeId.value = "";
   await nextTick();
 
   if (!helpers.validateEmail(email.value)) {
@@ -153,14 +164,33 @@ onMounted(() => {
 </script>
 
 <template>
-  <UiAuthCard :title="verificationEmail && 'Check your email'">
-    <template v-if="verificationEmail" #description>
+  <UiAuthCard
+    :title="
+      (challengeId && 'Two-factor authentication') ||
+      (verificationEmail && 'Check your email')
+    "
+  >
+    <template v-if="challengeId" #description>
+      Enter the 6-digit code we sent to
+      <span class="font-semibold text-foreground">{{ email.trim() }}</span
+      >.
+    </template>
+    <template v-else-if="verificationEmail" #description>
       We sent a confirmation link to
       <span class="font-semibold text-foreground">{{ verificationEmail }}</span
       >.
     </template>
 
-    <div v-if="verificationEmail" class="space-y-5">
+    <UiAuthTwoFactorChallenge
+      v-if="challengeId"
+      v-model:challenge-id="challengeId"
+      :email="email.trim()"
+      :password="password"
+      @authenticated="completeLogin"
+      @back="challengeId = ''"
+    />
+
+    <div v-else-if="verificationEmail" class="space-y-5">
       <p class="text-sm text-muted-foreground">
         Verify your email, then come back here to finish signing in.
       </p>

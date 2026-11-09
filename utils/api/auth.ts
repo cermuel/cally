@@ -23,6 +23,7 @@ export type AuthUser = {
   email_verified_at: string | null
   onboarding_completed_at: string | null
   timezone: string
+  two_factor_enabled: boolean
   notification_preference: NotificationPreferences
 }
 
@@ -61,8 +62,18 @@ export type TokenAuthResponse = AuthUserResponse & {
   token: string
 }
 
-export type LoginResponse = AuthUserResponse & {
-  token?: string
+export type OtpChallengeResponse = MessageResponse & {
+  challenge_id: string
+}
+
+export type LoginResponse =
+  | TokenAuthResponse
+  | AuthUserResponse
+  | OtpChallengeResponse
+
+export type VerifyOtpPayload = {
+  challenge_id: string
+  code: string
 }
 
 export const authApi = {
@@ -78,6 +89,14 @@ export const authApi = {
     return apiRequest<LoginResponse>(client, {
       method: 'POST',
       url: '/login',
+      data: payload,
+    })
+  },
+
+  verifyOtp(client: AxiosInstance, payload: VerifyOtpPayload) {
+    return apiRequest<TokenAuthResponse>(client, {
+      method: 'POST',
+      url: '/verify-otp',
       data: payload,
     })
   },
