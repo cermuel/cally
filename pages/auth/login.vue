@@ -164,33 +164,21 @@ onMounted(() => {
 </script>
 
 <template>
-  <UiAuthCard
-    :title="
-      (challengeId && 'Two-factor authentication') ||
-      (verificationEmail && 'Check your email')
-    "
-  >
-    <template v-if="challengeId" #description>
-      Enter the 6-digit code we sent to
-      <span class="font-semibold text-foreground">{{ email.trim() }}</span
-      >.
-    </template>
-    <template v-else-if="verificationEmail" #description>
+  <UiAuthCard :title="verificationEmail && 'Check your email'">
+    <template v-if="verificationEmail" #description>
       We sent a confirmation link to
       <span class="font-semibold text-foreground">{{ verificationEmail }}</span
       >.
     </template>
 
-    <UiAuthTwoFactorChallenge
-      v-if="challengeId"
+    <UiAuthTwoFactorDialog
       v-model:challenge-id="challengeId"
       :email="email.trim()"
       :password="password"
       @authenticated="completeLogin"
-      @back="challengeId = ''"
     />
 
-    <div v-else-if="verificationEmail" class="space-y-5">
+    <div v-if="verificationEmail" class="space-y-5">
       <p class="text-sm text-muted-foreground">
         Verify your email, then come back here to finish signing in.
       </p>

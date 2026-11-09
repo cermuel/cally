@@ -54,29 +54,27 @@ const setupMutation = useMutation({
         </p>
       </div>
 
+      <span
+        v-if="setupMutation.isPending.value"
+        role="status"
+        class="mt-0.5 flex h-[1.15rem] w-8 shrink-0 items-center justify-center text-muted-foreground"
+      >
+        <HugeiconsIcon
+          :icon="LoaderIcon"
+          :size="16"
+          class="animate-spin"
+          aria-hidden="true"
+        />
+        <span class="sr-only">Sending verification code</span>
+      </span>
       <SharedSwitch
+        v-else
         id="settings-two-factor-toggle"
         class="mt-1"
         :model-value="enabled"
-        :disabled="setupMutation.isPending.value || dialogOpen"
-        :aria-busy="setupMutation.isPending.value ? 'true' : undefined"
+        :disabled="dialogOpen"
         @update:model-value="setupMutation.mutate($event)"
-      >
-        <template #thumb>
-          <span
-            v-if="setupMutation.isPending.value"
-            class="flex size-full items-center justify-center text-muted-foreground"
-          >
-            <HugeiconsIcon
-              :icon="LoaderIcon"
-              :size="11"
-              :stroke-width="2.5"
-              class="animate-spin"
-              aria-hidden="true"
-            />
-          </span>
-        </template>
-      </SharedSwitch>
+      />
     </div>
 
     <UiSettingsTwoFactorDialog

@@ -40,7 +40,7 @@ watch(code, (value) => {
       type="number"
       otp
       :disabled="disabled"
-      class="flex items-center gap-2"
+      class="flex items-center justify-center gap-2"
       @update:model-value="updateDigits"
       @complete="emit('complete', $event.join(''))"
     >
@@ -55,7 +55,7 @@ watch(code, (value) => {
         class="size-11 min-w-0 rounded-md border border-input bg-transparent text-center text-lg font-medium tabular-nums shadow-xs outline-2 -outline-offset-1 outline-transparent transition-[border-color,outline-color] focus-visible:border-ring focus-visible:outline-ring/70 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive dark:bg-input/30"
       />
     </PinInputRoot>
-    <p v-if="error" :id="errorId" class="text-xs text-destructive">
+    <p v-if="error" :id="errorId" class="text-center text-xs text-destructive">
       {{ error }}
     </p>
   </div>

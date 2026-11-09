@@ -26,6 +26,15 @@ const client = useApiClient();
 const queryClient = useQueryClient();
 const code = ref("");
 const codeError = ref("");
+const cooldown = useResendCooldown();
+
+watch(
+  challengeId,
+  (id) => {
+    if (id) cooldown.start();
+  },
+  { immediate: true },
+);
 
 const resendMutation = useMutation({
   mutationFn: () =>
@@ -121,14 +130,23 @@ const confirm = () => {
             @update:model-value="codeError = ''"
             @complete="confirm"
           />
-          <button
-            type="button"
-            class="text-xs font-medium text-primary underline-offset-4 hover:underline disabled:opacity-50"
-            :disabled="pending"
-            @click="resendMutation.mutate()"
-          >
-            {{ resendMutation.isPending.value ? "Sending…" : "Resend code" }}
-          </button>
+          <p class="text-center text-xs text-muted-foreground">
+            Didn’t get it?
+            <button
+              type="button"
+              class="font-medium text-primary tabular-nums underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
+              :disabled="pending || cooldown.remaining.value > 0"
+              @click="resendMutation.mutate()"
+            >
+              {{
+                resendMutation.isPending.value
+                  ? "Sending…"
+                  : cooldown.remaining.value > 0
+                    ? `Resend in ${cooldown.remaining.value}s`
+                    : "Resend code"
+              }}
+            </button>
+          </p>
         </div>
 
         <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
